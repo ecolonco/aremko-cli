@@ -1,0 +1,104 @@
+package api
+
+import (
+	"encoding/json"
+	"fmt"
+	"net/http"
+	"time"
+
+	"github.com/aremko/aremko-cli/internal/api/handlers"
+	"github.com/aremko/aremko-cli/internal/api/middleware"
+	"github.com/aremko/aremko-cli/internal/config"
+	"github.com/go-chi/chi/v5"
+	chimiddleware "github.com/go-chi/chi/v5/middleware"
+	"github.com/go-chi/cors"
+)
+
+type Server struct {
+	router *chi.Mux
+	config *config.Config
+}
+
+// NewServer crea una nueva instancia del servidor API
+func NewServer(cfg *config.Config) *Server {
+	s := &Server{
+		router: chi.NewRouter(),
+		config: cfg,
+	}
+
+	s.setupMiddleware()
+	s.setupRoutes()
+
+	return s
+}
+
+func (s *Server) setupMiddleware() {
+	// Middleware básicos de Chi
+	s.router.Use(chimiddleware.RequestID)
+	s.router.Use(chimiddleware.RealIP)
+	s.router.Use(middleware.Logger)
+	s.router.Use(chimiddleware.Recoverer)
+
+	// CORS para permitir requests desde el frontend
+	s.router.Use(cors.Handler(cors.Options{
+		AllowedOrigins:   []string{"http://localhost:3000", "http://localhost:8080"},
+		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
+		ExposedHeaders:   []string{"Link"},
+		AllowCredentials: true,
+		MaxAge:           300,
+	}))
+
+	// Timeout de 60 segundos para todas las requests
+	s.router.Use(chimiddleware.Timeout(60 * time.Second))
+}
+
+func (s *Server) setupRoutes() {
+	// Health check
+	s.router.Get("/health", s.handleHealth)
+
+	// API v1 routes
+	s.router.Route("/api/v1", func(r chi.Router) {
+		// Meta Ads endpoints
+		r.Get("/meta-ads/campaigns", handlers.GetMetaCampaigns(s.config))
+		r.Get("/meta-ads/insights", handlers.GetMetaInsights(s.config))
+		r.Get("/meta-ads/account-summary", handlers.GetMetaAccountSummary(s.config))
+
+		// Brief endpoints
+		r.Get("/brief/weekly", handlers.GetWeeklyBrief(s.config))
+		r.Post("/brief/generate", handlers.GenerateBrief(s.config))
+
+		// Stats endpoints (próximamente)
+		r.Get("/stats/overview", handlers.GetStatsOverview(s.config))
+	})
+}
+
+func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
+	response := map[string]interface{}{
+		"status":  "healthy",
+		"version": "0.1.0-alpha",
+		"time":    time.Now().Format(time.RFC3339),
+		"services": map[string]bool{
+			"meta_ads": s.config.EnableMetaAds,
+			"google_ads": s.config.EnableGoogleAds,
+			"linkedin": s.config.EnableLinkedIn,
+		},
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+}
+
+// Start inicia el servidor HTTP
+func (s *Server) Start() error {
+	addr := fmt.Sprintf(":%s", s.config.Port)
+	fmt.Printf("🚀 API Server starting on http://localhost%s\n", addr)
+	fmt.Printf("📚 API docs: http://localhost%s/api/v1\n", addr)
+	fmt.Printf("💚 Health check: http://localhost%s/health\n", addr)
+	return http.ListenAndServe(addr, s.router)
+}
+
+// Router retorna el router de Chi para testing
+func (s *Server) Router() *chi.Mux {
+	return s.router
+}

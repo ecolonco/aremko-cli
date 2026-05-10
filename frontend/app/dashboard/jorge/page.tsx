@@ -5,23 +5,40 @@ import {
   MegaphoneIcon,
 } from '@heroicons/react/24/outline';
 import StatCard from '@/components/ui/StatCard';
+import { apiClient } from '@/lib/api/client';
 
-// Datos de ejemplo - luego se conectarán a la API real
-const mockData = {
-  metaAds: {
-    spend: 245.32,
-    impressions: 45200,
-    clicks: 892,
-    ctr: 1.97,
-  },
-  bookings: {
-    total: 48,
-    revenue: 2840000,
-    avgTicket: 59167,
-  },
-};
+// Helper para formatear números grandes
+function formatNumber(n: number): string {
+  if (n < 1000) return n.toString();
+  if (n < 1000000) return `${(n / 1000).toFixed(1)}K`;
+  return `${(n / 1000000).toFixed(1)}M`;
+}
 
-export default function JorgeDashboard() {
+export default async function JorgeDashboard() {
+  // Fetch datos reales de la API
+  const statsResponse = await apiClient.getStatsOverview();
+
+  // Datos por defecto en caso de error
+  const defaultData = {
+    meta_ads: {
+      summary: { spend: 0, impressions: 0, clicks: 0, ctr: 0, cpc: 0, cpm: 0, reach: 0 },
+      campaigns_count: 0,
+      recommendations: []
+    },
+    bookings: {
+      total: 48,
+      revenue: 2840000,
+      avg_ticket: 59167,
+      status: 'mock_data'
+    }
+  };
+
+  const stats = statsResponse.success ? statsResponse.data : defaultData;
+  const metaAds = stats.meta_ads?.summary || defaultData.meta_ads.summary;
+  const bookings = stats.bookings || defaultData.bookings;
+  const isRealData = statsResponse.success && stats.meta_ads?.campaigns_count > 0;
+  const isBookingsReal = !stats.bookings.status || stats.bookings.status !== 'mock_data';
+
   return (
     <div className="py-6">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
@@ -36,64 +53,110 @@ export default function JorgeDashboard() {
 
         {/* Meta Ads Stats */}
         <div className="mb-8">
-          <h2 className="text-lg font-medium text-gray-900 mb-4">
-            Meta Ads - Última Semana
-          </h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-medium text-gray-900">
+              Meta Ads - Última Semana
+            </h2>
+            {isRealData && (
+              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                🔄 Datos en vivo
+              </span>
+            )}
+          </div>
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
             <StatCard
               title="Gasto Total"
-              value={`$${mockData.metaAds.spend.toFixed(2)}`}
+              value={metaAds.spend > 0 ? `$${metaAds.spend.toFixed(2)}` : '$0.00'}
               subtitle="USD"
               icon={<CurrencyDollarIcon className="h-6 w-6 text-blue-600" />}
-              trend={{ value: 12.5, isPositive: false }}
             />
             <StatCard
               title="Impresiones"
-              value={mockData.metaAds.impressions.toLocaleString()}
+              value={formatNumber(metaAds.impressions)}
               icon={<MegaphoneIcon className="h-6 w-6 text-blue-600" />}
-              trend={{ value: 8.3, isPositive: true }}
             />
             <StatCard
               title="Clicks"
-              value={mockData.metaAds.clicks.toLocaleString()}
+              value={formatNumber(metaAds.clicks)}
               icon={<ChartBarIcon className="h-6 w-6 text-blue-600" />}
-              trend={{ value: 15.2, isPositive: true }}
             />
             <StatCard
               title="CTR"
-              value={`${mockData.metaAds.ctr}%`}
+              value={metaAds.ctr > 0 ? `${metaAds.ctr.toFixed(2)}%` : '0.00%'}
               subtitle="Click-Through Rate"
               icon={<ChartBarIcon className="h-6 w-6 text-blue-600" />}
-              trend={{ value: 6.8, isPositive: true }}
             />
           </div>
+
+          {/* Métricas adicionales de Meta Ads */}
+          {isRealData && (
+            <div className="grid grid-cols-1 gap-5 sm:grid-cols-3 mt-5">
+              <StatCard
+                title="CPC"
+                value={metaAds.cpc > 0 ? `$${metaAds.cpc.toFixed(2)}` : '$0.00'}
+                subtitle="Cost Per Click"
+              />
+              <StatCard
+                title="CPM"
+                value={metaAds.cpm > 0 ? `$${metaAds.cpm.toFixed(2)}` : '$0.00'}
+                subtitle="Cost Per 1000 Impressions"
+              />
+              <StatCard
+                title="Campañas Activas"
+                value={stats.meta_ads?.campaigns_count || 0}
+                subtitle="Con datos en este período"
+              />
+            </div>
+          )}
+
+          {/* Recomendaciones */}
+          {stats.meta_ads?.recommendations && stats.meta_ads.recommendations.length > 0 && (
+            <div className="mt-5 bg-yellow-50 border-l-4 border-yellow-400 p-4">
+              <div className="flex">
+                <div className="ml-3">
+                  <h3 className="text-sm font-medium text-yellow-800">Recomendaciones</h3>
+                  <div className="mt-2 text-sm text-yellow-700">
+                    <ul className="list-disc pl-5 space-y-1">
+                      {stats.meta_ads.recommendations.map((rec, idx) => (
+                        <li key={idx}>{rec}</li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Booking Stats */}
         <div>
-          <h2 className="text-lg font-medium text-gray-900 mb-4">
-            Reservas - Última Semana
-          </h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-medium text-gray-900">
+              Reservas - Última Semana
+            </h2>
+            {!isBookingsReal && (
+              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                📊 Datos de ejemplo
+              </span>
+            )}
+          </div>
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
             <StatCard
               title="Reservas Totales"
-              value={mockData.bookings.total}
+              value={bookings.total}
               icon={<UserGroupIcon className="h-6 w-6 text-green-600" />}
-              trend={{ value: 22.1, isPositive: true }}
             />
             <StatCard
               title="Ingresos"
-              value={`$${(mockData.bookings.revenue / 1000).toFixed(0)}K`}
+              value={`$${(bookings.revenue / 1000).toFixed(0)}K`}
               subtitle="CLP"
               icon={<CurrencyDollarIcon className="h-6 w-6 text-green-600" />}
-              trend={{ value: 18.7, isPositive: true }}
             />
             <StatCard
               title="Ticket Promedio"
-              value={`$${(mockData.bookings.avgTicket / 1000).toFixed(0)}K`}
+              value={`$${(bookings.avg_ticket / 1000).toFixed(0)}K`}
               subtitle="CLP"
               icon={<ChartBarIcon className="h-6 w-6 text-green-600" />}
-              trend={{ value: 3.2, isPositive: false }}
             />
           </div>
         </div>
@@ -120,17 +183,31 @@ export default function JorgeDashboard() {
 
         {/* System Status */}
         <div className="mt-8">
-          <div className="bg-blue-50 border-l-4 border-blue-400 p-4">
-            <div className="flex">
-              <div className="ml-3">
-                <p className="text-sm text-blue-700">
-                  <span className="font-medium">Fase 1 MVP en desarrollo.</span>{' '}
-                  Este dashboard muestra datos de ejemplo. La integración con datos reales
-                  se activará próximamente.
-                </p>
+          {statsResponse.success ? (
+            <div className="bg-green-50 border-l-4 border-green-400 p-4">
+              <div className="flex">
+                <div className="ml-3">
+                  <p className="text-sm text-green-700">
+                    <span className="font-medium">✅ Fase 2 activa - API conectada.</span>{' '}
+                    Los datos de Meta Ads se obtienen en tiempo real desde la API.
+                    {!isBookingsReal && ' Los datos de reservas son de ejemplo y se conectarán próximamente.'}
+                  </p>
+                </div>
               </div>
             </div>
-          </div>
+          ) : (
+            <div className="bg-red-50 border-l-4 border-red-400 p-4">
+              <div className="flex">
+                <div className="ml-3">
+                  <p className="text-sm text-red-700">
+                    <span className="font-medium">⚠️ Error de conexión con la API.</span>{' '}
+                    {statsResponse.error || 'No se pudo conectar con el servidor backend.'}
+                    Mostrando datos de ejemplo.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
