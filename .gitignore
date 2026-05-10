@@ -1,0 +1,42 @@
+# Backend (Go)
+backend/bin/
+backend/aremko
+backend/*.exe
+backend/*.dll
+backend/*.so
+backend/*.dylib
+backend/tmp/
+backend/.env
+
+# Frontend (Next.js)
+frontend/.next/
+frontend/out/
+frontend/node_modules/
+frontend/.env*.local
+frontend/.vercel
+
+# Database
+*.db
+*.sqlite
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Environment
+.env
+.env.local
+.env.production
+
+# Build artifacts
+dist/
+build/
