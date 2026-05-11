@@ -10,8 +10,8 @@ RUN go mod download
 # Copy source code
 COPY . .
 
-# Build the application
-RUN CGO_ENABLED=0 GOOS=linux go build -o aremko ./cmd/aremko
+# Build the application for amd64 architecture
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o aremko ./cmd/aremko
 
 # Runtime stage
 FROM alpine:latest
