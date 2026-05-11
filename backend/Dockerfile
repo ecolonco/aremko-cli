@@ -23,6 +23,9 @@ WORKDIR /root/
 # Copy the binary from builder
 COPY --from=builder /app/aremko .
 
+# Make binary executable
+RUN chmod +x ./aremko
+
 # Expose port
 EXPOSE 8080
 
