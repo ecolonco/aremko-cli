@@ -79,9 +79,10 @@ func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 		"version": "0.1.0-alpha",
 		"time":    time.Now().Format(time.RFC3339),
 		"services": map[string]bool{
-			"meta_ads": s.config.EnableMetaAds,
+			"meta_ads":  s.config.EnableMetaAds,
 			"google_ads": s.config.EnableGoogleAds,
-			"linkedin": s.config.EnableLinkedIn,
+			"linkedin":   s.config.EnableLinkedIn,
+			"bookings":   s.config.EnableBookings,
 		},
 	}
 

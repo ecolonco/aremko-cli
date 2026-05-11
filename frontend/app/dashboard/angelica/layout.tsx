@@ -2,7 +2,7 @@ import Sidebar from '@/components/layout/Sidebar';
 import { auth } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 
-export default async function JorgeDashboardLayout({
+export default async function AngelicaDashboardLayout({
   children,
 }: {
   children: React.ReactNode;

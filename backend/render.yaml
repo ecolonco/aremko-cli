@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: aremko-cli-backend
+    env: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    envVars:
+      - key: PORT
+        value: 8080
+      - key: BOOKING_SYSTEM_URL
+        sync: false
+      - key: ENABLE_BOOKINGS
+        value: true
+    healthCheckPath: /api/health

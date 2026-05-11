@@ -9,13 +9,16 @@ import {
   DocumentTextIcon,
   CogIcon,
   UsersIcon,
+  ArrowRightOnRectangleIcon,
 } from '@heroicons/react/24/outline';
 import { UserRole } from '@/lib/types/user';
+import { signOut } from 'next-auth/react';
 import clsx from 'clsx';
 
 interface SidebarProps {
   userRole: UserRole;
   userName: string;
+  userFullName?: string;
 }
 
 const navigation = {
@@ -45,9 +48,13 @@ const navigation = {
   ],
 };
 
-export default function Sidebar({ userRole, userName }: SidebarProps) {
+export default function Sidebar({ userRole, userName, userFullName }: SidebarProps) {
   const pathname = usePathname();
   const userNavigation = navigation[userRole];
+
+  const handleLogout = async () => {
+    await signOut({ callbackUrl: '/login' });
+  };
 
   return (
     <div className="flex flex-col w-64 bg-gray-900">
@@ -57,8 +64,9 @@ export default function Sidebar({ userRole, userName }: SidebarProps) {
 
       <div className="flex flex-col flex-1 overflow-y-auto">
         <nav className="flex-1 px-3 py-4 space-y-1">
-          <div className="mb-4 px-3 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">
-            {userName}
+          <div className="mb-4 px-3 py-2">
+            <div className="text-sm font-medium text-white">{userFullName || userName}</div>
+            <div className="text-xs text-gray-400">@{userName}</div>
           </div>
           {userNavigation.map((item) => {
             const isActive = pathname === item.href;
@@ -86,8 +94,15 @@ export default function Sidebar({ userRole, userName }: SidebarProps) {
         </nav>
       </div>
 
-      <div className="flex-shrink-0 p-4 border-t border-gray-800">
-        <div className="text-xs text-gray-400">
+      <div className="flex-shrink-0 border-t border-gray-800">
+        <button
+          onClick={handleLogout}
+          className="w-full flex items-center px-6 py-3 text-sm font-medium text-gray-300 hover:bg-gray-800 hover:text-white transition-colors"
+        >
+          <ArrowRightOnRectangleIcon className="mr-3 h-5 w-5 text-gray-400" />
+          Cerrar sesión
+        </button>
+        <div className="p-4 text-xs text-gray-400">
           aremko-cli v0.1.0-alpha
         </div>
       </div>

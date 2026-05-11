@@ -12,6 +12,9 @@ type Config struct {
 	MetaAccessToken string
 	MetaAdAccountID string
 
+	// Booking System (Django)
+	BookingSystemURL string
+
 	// Database
 	DatabaseURL string
 
@@ -20,9 +23,10 @@ type Config struct {
 	Environment string
 
 	// Features
-	EnableMetaAds bool
-	EnableGoogleAds bool
-	EnableLinkedIn bool
+	EnableMetaAds     bool
+	EnableGoogleAds   bool
+	EnableLinkedIn    bool
+	EnableBookings    bool
 }
 
 var AppConfig *Config
@@ -33,14 +37,16 @@ func LoadConfig() (*Config, error) {
 	_ = godotenv.Load()
 
 	config := &Config{
-		MetaAccessToken: getEnvOrDefault("META_ACCESS_TOKEN", ""),
-		MetaAdAccountID: getEnvOrDefault("META_AD_ACCOUNT_ID", ""),
-		DatabaseURL:     getEnvOrDefault("DATABASE_URL", "postgres://localhost/aremko?sslmode=disable"),
-		Port:            getEnvOrDefault("PORT", "8080"),
-		Environment:     getEnvOrDefault("ENVIRONMENT", "development"),
-		EnableMetaAds:   getEnvOrDefault("ENABLE_META_ADS", "true") == "true",
-		EnableGoogleAds: getEnvOrDefault("ENABLE_GOOGLE_ADS", "false") == "true",
-		EnableLinkedIn:  getEnvOrDefault("ENABLE_LINKEDIN", "false") == "true",
+		MetaAccessToken:  getEnvOrDefault("META_ACCESS_TOKEN", ""),
+		MetaAdAccountID:  getEnvOrDefault("META_AD_ACCOUNT_ID", ""),
+		BookingSystemURL: getEnvOrDefault("BOOKING_SYSTEM_URL", "http://localhost:8002"),
+		DatabaseURL:      getEnvOrDefault("DATABASE_URL", "postgres://localhost/aremko?sslmode=disable"),
+		Port:             getEnvOrDefault("PORT", "8080"),
+		Environment:      getEnvOrDefault("ENVIRONMENT", "development"),
+		EnableMetaAds:    getEnvOrDefault("ENABLE_META_ADS", "true") == "true",
+		EnableGoogleAds:  getEnvOrDefault("ENABLE_GOOGLE_ADS", "false") == "true",
+		EnableLinkedIn:   getEnvOrDefault("ENABLE_LINKEDIN", "false") == "true",
+		EnableBookings:   getEnvOrDefault("ENABLE_BOOKINGS", "true") == "true",
 	}
 
 	// Validar configuración mínima

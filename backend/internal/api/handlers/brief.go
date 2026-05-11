@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/aremko/aremko-cli/internal/bookings"
 	"github.com/aremko/aremko-cli/internal/config"
 	"github.com/aremko/aremko-cli/internal/meta"
 )
@@ -85,12 +86,37 @@ func GetStatsOverview(cfg *config.Config) http.HandlerFunc {
 			}
 		}
 
-		// Mock data para reservas (Fase 2: conectar con sistema real)
-		overview["bookings"] = map[string]interface{}{
-			"total":        48,
-			"revenue":      2840000,
-			"avg_ticket":   59167,
-			"status":       "mock_data",
+		// Booking stats (real data from Django API)
+		if cfg.EnableBookings {
+			bookingClient := bookings.NewClient(cfg.BookingSystemURL)
+			bookingStats, err := bookingClient.GetBookingStats(dateStart, dateStop)
+			if err == nil {
+				overview["bookings"] = map[string]interface{}{
+					"total":      bookingStats.Total,
+					"revenue":    bookingStats.Revenue,
+					"avg_ticket": bookingStats.AvgTicket,
+					"paid":       bookingStats.Paid,
+					"pending":    bookingStats.Pending,
+					"partial":    bookingStats.Partial,
+					"status":     "real_data",
+				}
+			} else {
+				// Fallback a datos de ejemplo si no hay conexión
+				overview["bookings"] = map[string]interface{}{
+					"total":      48,
+					"revenue":    2840000,
+					"avg_ticket": 59167,
+					"status":     "mock_data",
+					"error":      err.Error(),
+				}
+			}
+		} else {
+			overview["bookings"] = map[string]interface{}{
+				"total":      48,
+				"revenue":    2840000,
+				"avg_ticket": 59167,
+				"status":     "mock_data",
+			}
 		}
 
 		respondJSON(w, http.StatusOK, map[string]interface{}{
