@@ -1,10 +1,7 @@
-# Multi-stage build for aremko-cli
-FROM golang:1.24-alpine AS builder
+# Build stage - usar debian en lugar de alpine
+FROM golang:1.23-bullseye AS builder
 
 WORKDIR /app
-
-# Install build dependencies
-RUN apk add --no-cache git ca-certificates
 
 # Copy dependency files
 COPY go.mod go.sum ./
@@ -13,13 +10,17 @@ RUN go mod download
 # Copy source code
 COPY . .
 
-# Build for linux/amd64
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -installsuffix cgo -ldflags="-w -s" -o aremko ./cmd/aremko
+# Build static binary
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
+    -a -installsuffix cgo \
+    -ldflags="-w -s" \
+    -o aremko \
+    ./cmd/aremko
 
-# Runtime stage - use scratch for minimal image
-FROM alpine:latest
+# Runtime stage - debian slim
+FROM debian:bullseye-slim
 
-RUN apk --no-cache add ca-certificates
+RUN apt-get update && apt-get install -y ca-certificates && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /root/
 
