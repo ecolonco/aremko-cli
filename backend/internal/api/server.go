@@ -41,7 +41,7 @@ func (s *Server) setupMiddleware() {
 
 	// CORS para permitir requests desde el frontend
 	s.router.Use(cors.Handler(cors.Options{
-		AllowedOrigins:   []string{"http://localhost:3000", "http://localhost:8080"},
+		AllowedOrigins:   []string{"http://localhost:3000", "http://localhost:8080", "https://*.vercel.app", "https://*.onrender.com"},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
 		ExposedHeaders:   []string{"Link"},
@@ -92,10 +92,10 @@ func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 
 // Start inicia el servidor HTTP
 func (s *Server) Start() error {
-	addr := fmt.Sprintf(":%s", s.config.Port)
-	fmt.Printf("🚀 API Server starting on http://localhost%s\n", addr)
-	fmt.Printf("📚 API docs: http://localhost%s/api/v1\n", addr)
-	fmt.Printf("💚 Health check: http://localhost%s/health\n", addr)
+	addr := fmt.Sprintf("0.0.0.0:%s", s.config.Port)
+	fmt.Printf("🚀 API Server starting on http://%s\n", addr)
+	fmt.Printf("📚 API docs: http://0.0.0.0:%s/api/v1\n", s.config.Port)
+	fmt.Printf("💚 Health check: http://0.0.0.0:%s/health\n", s.config.Port)
 	return http.ListenAndServe(addr, s.router)
 }
 

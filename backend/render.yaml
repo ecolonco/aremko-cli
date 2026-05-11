@@ -12,4 +12,4 @@ services:
         sync: false
       - key: ENABLE_BOOKINGS
         value: true
-    healthCheckPath: /api/health
+    healthCheckPath: /health
