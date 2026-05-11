@@ -1,3 +1,6 @@
+'use client';
+
+import { useState, useEffect } from 'react';
 import {
   MegaphoneIcon,
   CurrencyDollarIcon,
@@ -7,6 +10,7 @@ import {
 } from '@heroicons/react/24/outline';
 import StatCard from '@/components/ui/StatCard';
 import { apiClient } from '@/lib/api/client';
+import type { MetaAdsSummary, Campaign } from '@/lib/types/api';
 
 // Helper para formatear números grandes
 function formatNumber(n: number): string {
@@ -44,14 +48,43 @@ function CampaignStatusBadge({ status }: { status: string }) {
   );
 }
 
-export default async function MetaAdsPage() {
-  // Fetch datos de la API
-  const [summaryResponse, campaignsResponse] = await Promise.all([
-    apiClient.getMetaAccountSummary(),
-    apiClient.getMetaCampaigns(),
-  ]);
+export default function MetaAdsPage() {
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [summary, setSummary] = useState<MetaAdsSummary | null>(null);
+  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
 
-  // Datos por defecto si hay error
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        setLoading(true);
+        setError(null);
+
+        const [summaryResponse, campaignsResponse] = await Promise.all([
+          apiClient.getMetaAccountSummary(),
+          apiClient.getMetaCampaigns(),
+        ]);
+
+        if (summaryResponse.success) {
+          setSummary(summaryResponse.data);
+        } else {
+          setError(summaryResponse.error || 'Error al cargar datos de Meta Ads');
+        }
+
+        if (campaignsResponse.success) {
+          setCampaigns(campaignsResponse.data.data);
+        }
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Error desconocido');
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchData();
+  }, []);
+
+  // Datos por defecto
   const defaultSummary = {
     spend: 0,
     impressions: 0,
@@ -64,9 +97,23 @@ export default async function MetaAdsPage() {
     period: { start: '', end: '' },
   };
 
-  const summary = summaryResponse.success ? summaryResponse.data : defaultSummary;
-  const campaigns = campaignsResponse.success ? campaignsResponse.data.data : [];
-  const hasRealData = summaryResponse.success && campaignsResponse.success;
+  const displaySummary = summary || defaultSummary;
+  const hasRealData = summary !== null && !error;
+
+  if (loading) {
+    return (
+      <div className="py-6">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
+          <div className="flex items-center justify-center h-96">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+              <p className="text-gray-500">Cargando datos de Meta Ads...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="py-6">
@@ -78,10 +125,10 @@ export default async function MetaAdsPage() {
               <p className="mt-1 text-sm text-gray-500">
                 Monitoreo y análisis de campañas publicitarias en Facebook e Instagram
               </p>
-              {summary.period.start && (
+              {displaySummary.period.start && (
                 <p className="mt-1 text-xs text-gray-400">
-                  Período: {new Date(summary.period.start).toLocaleDateString('es-CL')} -{' '}
-                  {new Date(summary.period.end).toLocaleDateString('es-CL')}
+                  Período: {new Date(displaySummary.period.start).toLocaleDateString('es-CL')} -{' '}
+                  {new Date(displaySummary.period.end).toLocaleDateString('es-CL')}
                 </p>
               )}
             </div>
@@ -94,7 +141,7 @@ export default async function MetaAdsPage() {
         </div>
 
         {/* Mensaje de error si no hay datos */}
-        {!hasRealData && (
+        {error && (
           <div className="mb-6 bg-yellow-50 border-l-4 border-yellow-400 p-4">
             <div className="flex">
               <div className="ml-3">
@@ -103,7 +150,7 @@ export default async function MetaAdsPage() {
                   {' '}Verifica que las credenciales estén configuradas correctamente en el backend.
                   <br />
                   <span className="text-xs mt-1 block">
-                    Error: {summaryResponse.error || campaignsResponse.error || 'Desconocido'}
+                    Error: {error}
                   </span>
                 </p>
               </div>
@@ -117,23 +164,23 @@ export default async function MetaAdsPage() {
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
             <StatCard
               title="Gasto Total"
-              value={formatCurrency(summary.spend)}
+              value={formatCurrency(displaySummary.spend)}
               subtitle="USD"
               icon={<CurrencyDollarIcon className="h-6 w-6 text-blue-600" />}
             />
             <StatCard
               title="Impresiones"
-              value={formatNumber(summary.impressions)}
+              value={formatNumber(displaySummary.impressions)}
               icon={<EyeIcon className="h-6 w-6 text-purple-600" />}
             />
             <StatCard
               title="Clicks"
-              value={formatNumber(summary.clicks)}
+              value={formatNumber(displaySummary.clicks)}
               icon={<CursorArrowRaysIcon className="h-6 w-6 text-green-600" />}
             />
             <StatCard
               title="Alcance"
-              value={formatNumber(summary.reach)}
+              value={formatNumber(displaySummary.reach)}
               subtitle="Usuarios únicos"
               icon={<MegaphoneIcon className="h-6 w-6 text-orange-600" />}
             />
@@ -143,19 +190,19 @@ export default async function MetaAdsPage() {
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-3 mt-5">
             <StatCard
               title="CTR"
-              value={`${summary.ctr.toFixed(2)}%`}
+              value={`${displaySummary.ctr.toFixed(2)}%`}
               subtitle="Click-Through Rate"
               icon={<ChartBarIcon className="h-6 w-6 text-indigo-600" />}
             />
             <StatCard
               title="CPC"
-              value={formatCurrency(summary.cpc)}
+              value={formatCurrency(displaySummary.cpc)}
               subtitle="Cost Per Click"
               icon={<CurrencyDollarIcon className="h-6 w-6 text-blue-600" />}
             />
             <StatCard
               title="CPM"
-              value={formatCurrency(summary.cpm)}
+              value={formatCurrency(displaySummary.cpm)}
               subtitle="Cost Per 1000 Impressions"
               icon={<CurrencyDollarIcon className="h-6 w-6 text-blue-600" />}
             />
