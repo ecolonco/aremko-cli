@@ -9,7 +9,13 @@ services:
       - key: PORT
         value: 8080
       - key: BOOKING_SYSTEM_URL
-        sync: false
+        value: https://www.aremko.cl
       - key: ENABLE_BOOKINGS
         value: true
+      - key: ENABLE_META_ADS
+        value: false
+      - key: ENABLE_GOOGLE_ADS
+        value: false
+      - key: ENABLE_LINKEDIN
+        value: false
     healthCheckPath: /health
