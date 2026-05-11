@@ -13,6 +13,9 @@ COPY . .
 # Build the application for amd64 architecture
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o aremko ./cmd/aremko
 
+# Verify binary architecture
+RUN file ./aremko && ls -lh ./aremko
+
 # Runtime stage
 FROM --platform=linux/amd64 alpine:latest
 
@@ -20,8 +23,8 @@ RUN apk --no-cache add ca-certificates
 
 WORKDIR /root/
 
-# Copy the binary from builder
-COPY --from=builder /app/aremko .
+# Copy the binary from builder (with explicit timestamp to break cache)
+COPY --from=builder /app/aremko ./aremko
 
 # Make binary executable
 RUN chmod +x ./aremko
