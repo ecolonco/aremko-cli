@@ -1,36 +1,34 @@
-# Build stage
-FROM --platform=linux/amd64 golang:1.24-alpine AS builder
+# Multi-stage build for aremko-cli
+FROM golang:1.24-alpine AS builder
 
 WORKDIR /app
 
-# Copy go mod files
+# Install build dependencies
+RUN apk add --no-cache git ca-certificates
+
+# Copy dependency files
 COPY go.mod go.sum ./
 RUN go mod download
 
 # Copy source code
 COPY . .
 
-# Build the application for amd64 architecture
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o aremko ./cmd/aremko
+# Build for linux/amd64
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -installsuffix cgo -ldflags="-w -s" -o aremko ./cmd/aremko
 
-# Verify binary architecture
-RUN file ./aremko && ls -lh ./aremko
-
-# Runtime stage
-FROM --platform=linux/amd64 alpine:latest
+# Runtime stage - use scratch for minimal image
+FROM alpine:latest
 
 RUN apk --no-cache add ca-certificates
 
 WORKDIR /root/
 
-# Copy the binary from builder (with explicit timestamp to break cache)
+# Copy binary
 COPY --from=builder /app/aremko ./aremko
 
-# Make binary executable
+# Make executable
 RUN chmod +x ./aremko
 
-# Expose port
 EXPOSE 8080
 
-# Run the application
 CMD ["./aremko", "server", "--port", "8080"]
