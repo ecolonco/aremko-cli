@@ -6,11 +6,28 @@ export default auth((req) => {
   const isLoggedIn = !!req.auth;
   const { nextUrl } = req;
 
-  // Rutas públicas
-  const isPublicRoute = nextUrl.pathname === '/login' || nextUrl.pathname === '/';
-
   // Rutas de dashboard
   const isDashboardRoute = nextUrl.pathname.startsWith('/dashboard');
+
+  // Manejar ruta raíz
+  if (nextUrl.pathname === '/') {
+    if (isLoggedIn) {
+      const user = req.auth?.user;
+      let dashboardPath = '/dashboard/jorge'; // Default
+
+      if (user?.username === 'deborah') {
+        dashboardPath = '/dashboard/deborah';
+      } else if (user?.username === 'angelica') {
+        dashboardPath = '/dashboard/angelica';
+      } else if (user?.username === 'ernesto') {
+        dashboardPath = '/dashboard/ernesto';
+      }
+
+      return NextResponse.redirect(new URL(dashboardPath, nextUrl.origin));
+    } else {
+      return NextResponse.redirect(new URL('/login', nextUrl.origin));
+    }
+  }
 
   // Si no está logueado y trata de acceder a dashboard, redirigir a login
   if (isDashboardRoute && !isLoggedIn) {
@@ -60,5 +77,7 @@ export default auth((req) => {
 });
 
 export const config = {
-  matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)'],
+  matcher: [
+    '/((?!api|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+  ],
 };
