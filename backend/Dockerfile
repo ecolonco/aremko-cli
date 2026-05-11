@@ -18,7 +18,7 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
     -a -installsuffix cgo \
     -ldflags="-w -s" \
     -o aremko \
-    ./cmd/aremko
+    .
 
 # Verify binary was built correctly
 RUN file aremko && ls -lh aremko
