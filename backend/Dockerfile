@@ -1,5 +1,5 @@
-# Build stage - usar debian en lugar de alpine
-FROM golang:1.23-bullseye AS builder
+# Build stage - usar debian con Go 1.24
+FROM golang:1.24-bullseye AS builder
 
 WORKDIR /app
 
