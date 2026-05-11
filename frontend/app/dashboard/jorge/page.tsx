@@ -36,7 +36,7 @@ export default async function JorgeDashboard() {
   const stats = statsResponse.success ? statsResponse.data : defaultData;
   const metaAds = stats.meta_ads?.summary || defaultData.meta_ads.summary;
   const bookings = stats.bookings || defaultData.bookings;
-  const isRealData = statsResponse.success && stats.meta_ads?.campaigns_count > 0;
+  const isRealData = statsResponse.success && (stats.meta_ads?.campaigns_count ?? 0) > 0;
   const isBookingsReal = !stats.bookings.status || stats.bookings.status !== 'mock_data';
 
   return (
