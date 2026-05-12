@@ -35,7 +35,8 @@ export default async function JorgeDashboard() {
       paid: undefined,
       pending: undefined,
       partial: undefined,
-      by_family: undefined
+      by_family: undefined,
+      by_payment_method: undefined
     }
   };
 
