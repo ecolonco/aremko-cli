@@ -49,6 +49,13 @@ type ClientStats struct {
 	Period               Period `json:"period"`
 }
 
+// ServiceFamilyStats represents sales by service family
+type ServiceFamilyStats struct {
+	Family  string  `json:"family"`
+	Count   int     `json:"count"`
+	Revenue float64 `json:"revenue"`
+}
+
 // Period represents a date range
 type Period struct {
 	Start string `json:"start"`
@@ -155,6 +162,38 @@ func (c *Client) GetClientStats() (*ClientStats, error) {
 	}
 
 	return &stats, nil
+}
+
+// GetServiceFamilyStats fetches sales grouped by service family
+func (c *Client) GetServiceFamilyStats(dateStart, dateStop string) ([]ServiceFamilyStats, error) {
+	url := fmt.Sprintf("%s/ventas/api/aremko-cli/bookings/by-family/?date_start=%s&date_stop=%s",
+		c.BaseURL, dateStart, dateStop)
+
+	resp, err := c.HTTPClient.Get(url)
+	if err != nil {
+		return nil, fmt.Errorf("error fetching service family stats: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+	}
+
+	var apiResp APIResponse
+	if err := json.NewDecoder(resp.Body).Decode(&apiResp); err != nil {
+		return nil, fmt.Errorf("error decoding response: %w", err)
+	}
+
+	if !apiResp.Success {
+		return nil, fmt.Errorf("API error: %s", apiResp.Error)
+	}
+
+	var stats []ServiceFamilyStats
+	if err := json.Unmarshal(apiResp.Data, &stats); err != nil {
+		return nil, fmt.Errorf("error parsing service family stats: %w", err)
+	}
+
+	return stats, nil
 }
 
 // HealthCheck verifies the Django API is accessible

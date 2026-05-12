@@ -91,7 +91,7 @@ func GetStatsOverview(cfg *config.Config) http.HandlerFunc {
 			bookingClient := bookings.NewClient(cfg.BookingSystemURL)
 			bookingStats, err := bookingClient.GetBookingStats(dateStart, dateStop)
 			if err == nil {
-				overview["bookings"] = map[string]interface{}{
+				bookingsData := map[string]interface{}{
 					"total":      bookingStats.Total,
 					"revenue":    bookingStats.Revenue,
 					"avg_ticket": bookingStats.AvgTicket,
@@ -100,6 +100,14 @@ func GetStatsOverview(cfg *config.Config) http.HandlerFunc {
 					"partial":    bookingStats.Partial,
 					"status":     "real_data",
 				}
+
+				// Obtener datos por familia de servicios
+				familyStats, err := bookingClient.GetServiceFamilyStats(dateStart, dateStop)
+				if err == nil {
+					bookingsData["by_family"] = familyStats
+				}
+
+				overview["bookings"] = bookingsData
 			} else {
 				// Fallback a datos de ejemplo si no hay conexión
 				overview["bookings"] = map[string]interface{}{

@@ -76,7 +76,15 @@ export interface StatsOverview {
     paid?: number;
     pending?: number;
     partial?: number;
+    by_family?: ServiceFamilyStats[];
   };
+}
+
+// Service Family Stats
+export interface ServiceFamilyStats {
+  family: string;
+  count: number;
+  revenue: number;
 }
 
 // Brief types
