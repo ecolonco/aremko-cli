@@ -109,12 +109,48 @@ export default async function JorgeDashboard() {
             </div>
           )}
 
+          {/* Mejor y Peor Campaña */}
+          {(stats.meta_ads?.best_campaign || stats.meta_ads?.worst_campaign) && (
+            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 mt-5">
+              {stats.meta_ads?.best_campaign && (
+                <div className="bg-green-50 border-l-4 border-green-400 p-4">
+                  <div className="flex">
+                    <div className="ml-3">
+                      <h3 className="text-sm font-medium text-green-800">🏆 Mejor Campaña</h3>
+                      <p className="mt-2 text-sm text-green-700 font-medium">
+                        {stats.meta_ads.best_campaign.name}
+                      </p>
+                      <p className="mt-1 text-xs text-green-600">
+                        CTR: {stats.meta_ads.best_campaign.ctr.toFixed(2)}%
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+              {stats.meta_ads?.worst_campaign && (
+                <div className="bg-orange-50 border-l-4 border-orange-400 p-4">
+                  <div className="flex">
+                    <div className="ml-3">
+                      <h3 className="text-sm font-medium text-orange-800">⚠️ Campaña a Mejorar</h3>
+                      <p className="mt-2 text-sm text-orange-700 font-medium">
+                        {stats.meta_ads.worst_campaign.name}
+                      </p>
+                      <p className="mt-1 text-xs text-orange-600">
+                        CTR: {stats.meta_ads.worst_campaign.ctr.toFixed(2)}%
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Recomendaciones */}
           {stats.meta_ads?.recommendations && stats.meta_ads.recommendations.length > 0 && (
             <div className="mt-5 bg-yellow-50 border-l-4 border-yellow-400 p-4">
               <div className="flex">
                 <div className="ml-3">
-                  <h3 className="text-sm font-medium text-yellow-800">Recomendaciones</h3>
+                  <h3 className="text-sm font-medium text-yellow-800">💡 Recomendaciones</h3>
                   <div className="mt-2 text-sm text-yellow-700">
                     <ul className="list-disc pl-5 space-y-1">
                       {stats.meta_ads.recommendations.map((rec, idx) => (
@@ -159,6 +195,27 @@ export default async function JorgeDashboard() {
               icon={<ChartBarIcon className="h-6 w-6 text-green-600" />}
             />
           </div>
+
+          {/* Desglose de reservas por estado */}
+          {isBookingsReal && (bookings.paid || bookings.pending || bookings.partial) && (
+            <div className="grid grid-cols-1 gap-5 sm:grid-cols-3 mt-5">
+              <StatCard
+                title="Pagadas"
+                value={bookings.paid || 0}
+                subtitle="Confirmadas"
+              />
+              <StatCard
+                title="Pendientes"
+                value={bookings.pending || 0}
+                subtitle="Por confirmar"
+              />
+              <StatCard
+                title="Parciales"
+                value={bookings.partial || 0}
+                subtitle="Abono realizado"
+              />
+            </div>
+          )}
         </div>
 
         {/* Quick Actions */}
