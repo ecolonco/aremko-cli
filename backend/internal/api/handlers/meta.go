@@ -157,6 +157,76 @@ func GetMetaAccountSummary(cfg *config.Config) http.HandlerFunc {
 	}
 }
 
+// GetCampaignsWithInsights retorna campañas con sus métricas del período
+func GetCampaignsWithInsights(cfg *config.Config) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if !cfg.EnableMetaAds {
+			respondError(w, http.StatusServiceUnavailable, "Meta Ads integration is disabled")
+			return
+		}
+
+		// Obtener parámetros de fecha
+		dateStart := r.URL.Query().Get("date_start")
+		dateStop := r.URL.Query().Get("date_stop")
+
+		if dateStart == "" || dateStop == "" {
+			dateStop = time.Now().AddDate(0, 0, -1).Format("2006-01-02")
+			dateStart = time.Now().AddDate(0, 0, -8).Format("2006-01-02")
+		}
+
+		token, err := config.GetMetaToken()
+		if err != nil {
+			respondError(w, http.StatusInternalServerError, "Failed to get Meta token: "+err.Error())
+			return
+		}
+
+		client := meta.NewClient(token, cfg.MetaAdAccountID)
+
+		// Obtener insights (ya incluye campaign_id y campaign_name)
+		insights, err := client.GetAccountInsights(dateStart, dateStop)
+		if err != nil {
+			respondError(w, http.StatusInternalServerError, "Failed to fetch insights: "+err.Error())
+			return
+		}
+
+		// Convertir a formato enriquecido con métricas calculadas
+		type CampaignWithMetrics struct {
+			ID          string  `json:"id"`
+			Name        string  `json:"name"`
+			Spend       float64 `json:"spend"`
+			Impressions int64   `json:"impressions"`
+			Clicks      int64   `json:"clicks"`
+			Reach       int64   `json:"reach"`
+			CTR         float64 `json:"ctr"`
+			CPC         float64 `json:"cpc"`
+			CPM         float64 `json:"cpm"`
+		}
+
+		campaigns := make([]CampaignWithMetrics, 0, len(insights))
+		for _, insight := range insights {
+			campaigns = append(campaigns, CampaignWithMetrics{
+				ID:          insight.CampaignID,
+				Name:        insight.CampaignName,
+				Spend:       insight.Spend,
+				Impressions: insight.Impressions,
+				Clicks:      insight.Clicks,
+				Reach:       insight.Reach,
+				CTR:         insight.CalculateCTR(),
+				CPC:         insight.CalculateCPC(),
+				CPM:         insight.CalculateCPM(),
+			})
+		}
+
+		respondJSON(w, http.StatusOK, map[string]interface{}{
+			"success":    true,
+			"data":       campaigns,
+			"count":      len(campaigns),
+			"date_start": dateStart,
+			"date_stop":  dateStop,
+		})
+	}
+}
+
 // Helpers
 
 func respondJSON(w http.ResponseWriter, status int, data interface{}) {
