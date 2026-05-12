@@ -53,8 +53,11 @@ export default function MetaAdsPage() {
   const [error, setError] = useState<string | null>(null);
   const [summary, setSummary] = useState<MetaAdsSummary | null>(null);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
+
     async function fetchData() {
       try {
         setLoading(true);
@@ -72,7 +75,7 @@ export default function MetaAdsPage() {
         }
 
         if (campaignsResponse.success) {
-          setCampaigns(campaignsResponse.data.data);
+          setCampaigns(campaignsResponse.data.data || []);
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Error desconocido');
@@ -100,7 +103,7 @@ export default function MetaAdsPage() {
   const displaySummary = summary || defaultSummary;
   const hasRealData = summary !== null && !error;
 
-  if (loading) {
+  if (!mounted || loading) {
     return (
       <div className="py-6">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
