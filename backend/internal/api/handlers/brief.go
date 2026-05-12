@@ -101,8 +101,12 @@ func GetStatsOverview(cfg *config.Config) http.HandlerFunc {
 					"status":     "real_data",
 				}
 
-				// Obtener datos por familia de servicios
-				familyStats, err := bookingClient.GetServiceFamilyStats(dateStart, dateStop)
+				// Obtener datos por familia de servicios (primeros 11 días del mes)
+				now := time.Now()
+				familyDateStart := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location()).Format("2006-01-02")
+				familyDateStop := time.Date(now.Year(), now.Month(), 11, 23, 59, 59, 0, now.Location()).Format("2006-01-02")
+
+				familyStats, err := bookingClient.GetServiceFamilyStats(familyDateStart, familyDateStop)
 				if err == nil {
 					bookingsData["by_family"] = familyStats
 				}

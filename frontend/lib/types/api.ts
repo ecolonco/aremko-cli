@@ -83,8 +83,9 @@ export interface StatsOverview {
 // Service Family Stats
 export interface ServiceFamilyStats {
   family: string;
-  count: number;
-  revenue: number;
+  current_count: number;
+  previous_month_count: number;
+  previous_year_count: number;
 }
 
 // Brief types
