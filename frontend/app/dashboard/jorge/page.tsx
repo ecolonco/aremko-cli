@@ -23,13 +23,18 @@ export default async function JorgeDashboard() {
     meta_ads: {
       summary: { spend: 0, impressions: 0, clicks: 0, ctr: 0, cpc: 0, cpm: 0, reach: 0 },
       campaigns_count: 0,
-      recommendations: []
+      recommendations: [],
+      best_campaign: undefined,
+      worst_campaign: undefined
     },
     bookings: {
       total: 48,
       revenue: 2840000,
       avg_ticket: 59167,
-      status: 'mock_data'
+      status: 'mock_data',
+      paid: undefined,
+      pending: undefined,
+      partial: undefined
     }
   };
 
