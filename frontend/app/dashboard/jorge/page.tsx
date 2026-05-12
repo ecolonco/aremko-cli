@@ -227,7 +227,7 @@ export default async function JorgeDashboard() {
           {isBookingsReal && bookings.by_family && bookings.by_family.length > 0 && (
             <div className="mt-5">
               <h3 className="text-md font-medium text-gray-900 mb-3">
-                Ventas por Familia de Servicios (Primeros 11 días del mes)
+                Ventas por Familia de Servicios (Comparativa del mes)
               </h3>
               <div className="bg-white shadow overflow-hidden sm:rounded-lg">
                 <table className="min-w-full divide-y divide-gray-200">
@@ -243,19 +243,19 @@ export default async function JorgeDashboard() {
                         scope="col"
                         className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider"
                       >
-                        Mayo 2026
+                        Mes Actual
                       </th>
                       <th
                         scope="col"
                         className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider"
                       >
-                        Abril 2026
+                        Mes Anterior
                       </th>
                       <th
                         scope="col"
                         className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider"
                       >
-                        Mayo 2025
+                        Año Anterior
                       </th>
                     </tr>
                   </thead>
