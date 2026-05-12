@@ -73,6 +73,9 @@ export interface StatsOverview {
     revenue: number;
     avg_ticket: number;
     status?: string;
+    paid?: number;
+    pending?: number;
+    partial?: number;
   };
 }
 
