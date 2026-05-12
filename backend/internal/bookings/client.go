@@ -51,10 +51,13 @@ type ClientStats struct {
 
 // ServiceFamilyStats represents sales by service family with comparative data
 type ServiceFamilyStats struct {
-	Family              string `json:"family"`
-	CurrentCount        int    `json:"current_count"`
-	PreviousMonthCount  int    `json:"previous_month_count"`
-	PreviousYearCount   int    `json:"previous_year_count"`
+	Family               string  `json:"family"`
+	CurrentCount         int     `json:"current_count"`
+	CurrentRevenue       float64 `json:"current_revenue"`
+	PreviousMonthCount   int     `json:"previous_month_count"`
+	PreviousMonthRevenue float64 `json:"previous_month_revenue"`
+	PreviousYearCount    int     `json:"previous_year_count"`
+	PreviousYearRevenue  float64 `json:"previous_year_revenue"`
 }
 
 // Period represents a date range

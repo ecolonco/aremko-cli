@@ -269,17 +269,26 @@ export default async function JorgeDashboard() {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-right">
                           <div className="text-sm font-semibold text-gray-900">
-                            {family.current_count}
+                            ${(family.current_revenue / 1000).toFixed(0)}K
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            {family.current_count} reservas
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-right">
-                          <div className="text-sm text-gray-600">
-                            {family.previous_month_count}
+                          <div className="text-sm text-gray-700">
+                            ${(family.previous_month_revenue / 1000).toFixed(0)}K
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            {family.previous_month_count} reservas
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-right">
-                          <div className="text-sm text-gray-600">
-                            {family.previous_year_count}
+                          <div className="text-sm text-gray-700">
+                            ${(family.previous_year_revenue / 1000).toFixed(0)}K
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            {family.previous_year_count} reservas
                           </div>
                         </td>
                       </tr>
