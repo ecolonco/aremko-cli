@@ -298,6 +298,82 @@ export default async function JorgeDashboard() {
               </div>
             </div>
           )}
+
+          {/* Análisis por Forma de Pago */}
+          {isBookingsReal && bookings.by_payment_method && bookings.by_payment_method.length > 0 && (
+            <div className="mt-5">
+              <h3 className="text-md font-medium text-gray-900 mb-3">
+                Ventas por Forma de Pago (Comparativa del mes)
+              </h3>
+              <div className="bg-white shadow overflow-hidden sm:rounded-lg">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th
+                        scope="col"
+                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                      >
+                        Forma de Pago
+                      </th>
+                      <th
+                        scope="col"
+                        className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider"
+                      >
+                        Mes Actual
+                      </th>
+                      <th
+                        scope="col"
+                        className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider"
+                      >
+                        Mes Anterior
+                      </th>
+                      <th
+                        scope="col"
+                        className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider"
+                      >
+                        Año Anterior
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {bookings.by_payment_method.map((payment, idx) => (
+                      <tr key={idx} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm font-medium text-gray-900">
+                            {payment.payment_method}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-right">
+                          <div className="text-sm font-semibold text-gray-900">
+                            ${(payment.current_revenue / 1000).toFixed(0)}K
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            {payment.current_count} pagos
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-right">
+                          <div className="text-sm text-gray-700">
+                            ${(payment.previous_month_revenue / 1000).toFixed(0)}K
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            {payment.previous_month_count} pagos
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-right">
+                          <div className="text-sm text-gray-700">
+                            ${(payment.previous_year_revenue / 1000).toFixed(0)}K
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            {payment.previous_year_count} pagos
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Quick Actions */}

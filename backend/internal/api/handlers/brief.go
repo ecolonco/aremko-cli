@@ -111,6 +111,12 @@ func GetStatsOverview(cfg *config.Config) http.HandlerFunc {
 					bookingsData["by_family"] = familyStats
 				}
 
+				// Obtener datos por método de pago (desde día 1 hasta hoy)
+				paymentStats, err := bookingClient.GetPaymentMethodStats(familyDateStart, familyDateStop)
+				if err == nil {
+					bookingsData["by_payment_method"] = paymentStats
+				}
+
 				overview["bookings"] = bookingsData
 			} else {
 				// Fallback a datos de ejemplo si no hay conexión

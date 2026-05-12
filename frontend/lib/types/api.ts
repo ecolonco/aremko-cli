@@ -77,12 +77,24 @@ export interface StatsOverview {
     pending?: number;
     partial?: number;
     by_family?: ServiceFamilyStats[];
+    by_payment_method?: PaymentMethodStats[];
   };
 }
 
 // Service Family Stats
 export interface ServiceFamilyStats {
   family: string;
+  current_count: number;
+  current_revenue: number;
+  previous_month_count: number;
+  previous_month_revenue: number;
+  previous_year_count: number;
+  previous_year_revenue: number;
+}
+
+// Payment Method Stats
+export interface PaymentMethodStats {
+  payment_method: string;
   current_count: number;
   current_revenue: number;
   previous_month_count: number;
