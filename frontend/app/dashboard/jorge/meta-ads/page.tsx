@@ -74,8 +74,13 @@ export default function MetaAdsPage() {
           setError(summaryResponse.error || 'Error al cargar datos de Meta Ads');
         }
 
-        if (campaignsResponse.success) {
-          setCampaigns(campaignsResponse.data.data || []);
+        if (campaignsResponse.success && campaignsResponse.data) {
+          // El backend devuelve {success, data: [...], count}
+          // No {success, data: {data: [...], count}}
+          const campaignsData = Array.isArray(campaignsResponse.data)
+            ? campaignsResponse.data
+            : (campaignsResponse.data as any).data || [];
+          setCampaigns(campaignsData);
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Error desconocido');
