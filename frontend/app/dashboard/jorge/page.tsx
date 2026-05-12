@@ -34,7 +34,8 @@ export default async function JorgeDashboard() {
       status: 'mock_data',
       paid: undefined,
       pending: undefined,
-      partial: undefined
+      partial: undefined,
+      by_family: undefined
     }
   };
 
