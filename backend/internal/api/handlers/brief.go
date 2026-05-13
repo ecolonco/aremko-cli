@@ -20,10 +20,47 @@ func GetWeeklyBrief(cfg *config.Config) http.HandlerFunc {
 		dateStart := time.Now().AddDate(0, 0, -8).Format("2006-01-02")
 
 		brief := map[string]interface{}{
-			"title":      "Brief Semanal - Aremko Spa",
-			"date_start": dateStart,
-			"date_stop":  dateStop,
+			"title":        "Brief Semanal - Aremko Spa",
+			"date_start":   dateStart,
+			"date_stop":    dateStop,
 			"generated_at": time.Now().Format(time.RFC3339),
+		}
+
+		// Web Analytics (GA4)
+		if cfg.EnableGA4 {
+			ga4Client, err := analytics.NewGA4Client(cfg.GA4CredentialsPath, cfg.GA4PropertyID)
+			if err == nil {
+				ctx := context.Background()
+				ga4Stats, err := ga4Client.GetStats(ctx, dateStart, dateStop)
+				if err == nil {
+					brief["web_analytics"] = map[string]interface{}{
+						"active_users":         ga4Stats.ActiveUsers,
+						"total_users":          ga4Stats.TotalUsers,
+						"sessions":             ga4Stats.Sessions,
+						"page_views":           ga4Stats.PageViews,
+						"bounce_rate":          ga4Stats.BounceRate,
+						"avg_session_duration": ga4Stats.AvgSessionDuration,
+						"new_users":            ga4Stats.NewUsers,
+						"event_count":          ga4Stats.EventCount,
+					}
+				}
+			}
+		}
+
+		// Bookings data
+		if cfg.EnableBookings {
+			bookingClient := bookings.NewClient(cfg.BookingSystemURL)
+			bookingStats, err := bookingClient.GetBookingStats(dateStart, dateStop)
+			if err == nil {
+				brief["bookings"] = map[string]interface{}{
+					"total":      bookingStats.Total,
+					"revenue":    bookingStats.Revenue,
+					"avg_ticket": bookingStats.AvgTicket,
+					"paid":       bookingStats.Paid,
+					"pending":    bookingStats.Pending,
+					"partial":    bookingStats.Partial,
+				}
+			}
 		}
 
 		// Meta Ads section
