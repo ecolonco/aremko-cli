@@ -41,5 +41,5 @@ RUN file ./aremko && ldd ./aremko || true
 
 EXPOSE 8080
 
-# Use absolute path and verify before running
-CMD ["/root/aremko", "server", "--port", "8080"]
+# Use absolute path - port will be read from PORT env var
+CMD ["/root/aremko", "server"]
