@@ -169,9 +169,10 @@ func GetCampaignsWithInsights(cfg *config.Config) http.HandlerFunc {
 		dateStart := r.URL.Query().Get("date_start")
 		dateStop := r.URL.Query().Get("date_stop")
 
+		// Usar últimos 90 días por defecto para capturar métricas de campañas pausadas
 		if dateStart == "" || dateStop == "" {
 			dateStop = time.Now().AddDate(0, 0, -1).Format("2006-01-02")
-			dateStart = time.Now().AddDate(0, 0, -8).Format("2006-01-02")
+			dateStart = time.Now().AddDate(0, 0, -90).Format("2006-01-02")
 		}
 
 		token, err := config.GetMetaToken()
@@ -182,11 +183,24 @@ func GetCampaignsWithInsights(cfg *config.Config) http.HandlerFunc {
 
 		client := meta.NewClient(token, cfg.MetaAdAccountID)
 
-		// Obtener insights (ya incluye campaign_id y campaign_name)
+		// Obtener todas las campañas primero
+		allCampaigns, err := client.GetCampaigns()
+		if err != nil {
+			respondError(w, http.StatusInternalServerError, "Failed to fetch campaigns: "+err.Error())
+			return
+		}
+
+		// Obtener insights para el período
 		insights, err := client.GetAccountInsights(dateStart, dateStop)
 		if err != nil {
-			respondError(w, http.StatusInternalServerError, "Failed to fetch insights: "+err.Error())
-			return
+			// Si falla, devolver campañas con métricas en 0
+			insights = []meta.AdInsights{}
+		}
+
+		// Crear mapa de insights por campaign_id
+		insightsMap := make(map[string]*meta.AdInsights)
+		for i := range insights {
+			insightsMap[insights[i].CampaignID] = &insights[i]
 		}
 
 		// Convertir a formato enriquecido con métricas calculadas
@@ -200,21 +214,42 @@ func GetCampaignsWithInsights(cfg *config.Config) http.HandlerFunc {
 			CTR         float64 `json:"ctr"`
 			CPC         float64 `json:"cpc"`
 			CPM         float64 `json:"cpm"`
+			Status      string  `json:"status"`
 		}
 
-		campaigns := make([]CampaignWithMetrics, 0, len(insights))
-		for _, insight := range insights {
-			campaigns = append(campaigns, CampaignWithMetrics{
-				ID:          insight.CampaignID,
-				Name:        insight.CampaignName,
-				Spend:       insight.Spend,
-				Impressions: insight.Impressions,
-				Clicks:      insight.Clicks,
-				Reach:       insight.Reach,
-				CTR:         insight.CalculateCTR(),
-				CPC:         insight.CalculateCPC(),
-				CPM:         insight.CalculateCPM(),
-			})
+		campaigns := make([]CampaignWithMetrics, 0, len(allCampaigns))
+		for _, campaign := range allCampaigns {
+			// Buscar insights para esta campaña
+			insight, hasInsights := insightsMap[campaign.ID]
+
+			if hasInsights {
+				campaigns = append(campaigns, CampaignWithMetrics{
+					ID:          campaign.ID,
+					Name:        campaign.Name,
+					Spend:       insight.Spend,
+					Impressions: insight.Impressions,
+					Clicks:      insight.Clicks,
+					Reach:       insight.Reach,
+					CTR:         insight.CalculateCTR(),
+					CPC:         insight.CalculateCPC(),
+					CPM:         insight.CalculateCPM(),
+					Status:      campaign.Status,
+				})
+			} else {
+				// Campaña sin datos en el período - mostrar con 0s
+				campaigns = append(campaigns, CampaignWithMetrics{
+					ID:          campaign.ID,
+					Name:        campaign.Name,
+					Spend:       0,
+					Impressions: 0,
+					Clicks:      0,
+					Reach:       0,
+					CTR:         0,
+					CPC:         0,
+					CPM:         0,
+					Status:      campaign.Status,
+				})
+			}
 		}
 
 		respondJSON(w, http.StatusOK, map[string]interface{}{
