@@ -9,7 +9,7 @@ import {
 // Use Render backend in production, localhost in development
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ||
   (process.env.NODE_ENV === 'production'
-    ? 'https://aremko.onrender.com'
+    ? 'https://aremko-cli-backend.onrender.com'
     : 'http://localhost:8080');
 
 class APIClient {
