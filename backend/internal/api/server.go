@@ -65,6 +65,11 @@ func (s *Server) setupRoutes() {
 		r.Get("/meta-ads/account-summary", handlers.GetMetaAccountSummary(s.config))
 		r.Get("/meta-ads/campaigns-with-insights", handlers.GetCampaignsWithInsights(s.config))
 
+		// Google Analytics 4 endpoints
+		r.Get("/ga4/stats", handlers.GetGA4Stats(s.config))
+		r.Get("/ga4/top-pages", handlers.GetGA4TopPages(s.config))
+		r.Get("/ga4/traffic-sources", handlers.GetGA4TrafficSources(s.config))
+
 		// Brief endpoints
 		r.Get("/brief/weekly", handlers.GetWeeklyBrief(s.config))
 		r.Post("/brief/generate", handlers.GenerateBrief(s.config))
@@ -80,10 +85,11 @@ func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 		"version": "0.1.0-alpha",
 		"time":    time.Now().Format(time.RFC3339),
 		"services": map[string]bool{
-			"meta_ads":  s.config.EnableMetaAds,
+			"meta_ads":   s.config.EnableMetaAds,
 			"google_ads": s.config.EnableGoogleAds,
 			"linkedin":   s.config.EnableLinkedIn,
 			"bookings":   s.config.EnableBookings,
+			"ga4":        s.config.EnableGA4,
 		},
 	}
 

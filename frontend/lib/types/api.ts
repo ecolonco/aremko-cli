@@ -47,6 +47,17 @@ export interface StatsOverview {
     start: string;
     end: string;
   };
+  web_analytics?: {
+    active_users: number;
+    total_users: number;
+    sessions: number;
+    page_views: number;
+    bounce_rate: number;
+    avg_session_duration: number;
+    new_users: number;
+    event_count: number;
+    status?: string;
+  };
   meta_ads?: {
     summary: {
       spend: number;

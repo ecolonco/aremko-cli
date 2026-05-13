@@ -12,6 +12,10 @@ type Config struct {
 	MetaAccessToken string
 	MetaAdAccountID string
 
+	// Google Analytics 4
+	GA4PropertyID      string
+	GA4CredentialsPath string
+
 	// Booking System (Django)
 	BookingSystemURL string
 
@@ -27,6 +31,7 @@ type Config struct {
 	EnableGoogleAds   bool
 	EnableLinkedIn    bool
 	EnableBookings    bool
+	EnableGA4         bool
 }
 
 var AppConfig *Config
@@ -37,16 +42,19 @@ func LoadConfig() (*Config, error) {
 	_ = godotenv.Load()
 
 	config := &Config{
-		MetaAccessToken:  getEnvOrDefault("META_ACCESS_TOKEN", ""),
-		MetaAdAccountID:  getEnvOrDefault("META_AD_ACCOUNT_ID", ""),
-		BookingSystemURL: getEnvOrDefault("BOOKING_SYSTEM_URL", "http://localhost:8002"),
-		DatabaseURL:      getEnvOrDefault("DATABASE_URL", "postgres://localhost/aremko?sslmode=disable"),
-		Port:             getEnvOrDefault("PORT", "8080"),
-		Environment:      getEnvOrDefault("ENVIRONMENT", "development"),
-		EnableMetaAds:    getEnvOrDefault("ENABLE_META_ADS", "true") == "true",
-		EnableGoogleAds:  getEnvOrDefault("ENABLE_GOOGLE_ADS", "false") == "true",
-		EnableLinkedIn:   getEnvOrDefault("ENABLE_LINKEDIN", "false") == "true",
-		EnableBookings:   getEnvOrDefault("ENABLE_BOOKINGS", "true") == "true",
+		MetaAccessToken:    getEnvOrDefault("META_ACCESS_TOKEN", ""),
+		MetaAdAccountID:    getEnvOrDefault("META_AD_ACCOUNT_ID", ""),
+		GA4PropertyID:      getEnvOrDefault("GA4_PROPERTY_ID", ""),
+		GA4CredentialsPath: getEnvOrDefault("GA4_CREDENTIALS_PATH", "ga4-credentials.json"),
+		BookingSystemURL:   getEnvOrDefault("BOOKING_SYSTEM_URL", "http://localhost:8002"),
+		DatabaseURL:        getEnvOrDefault("DATABASE_URL", "postgres://localhost/aremko?sslmode=disable"),
+		Port:               getEnvOrDefault("PORT", "8080"),
+		Environment:        getEnvOrDefault("ENVIRONMENT", "development"),
+		EnableMetaAds:      getEnvOrDefault("ENABLE_META_ADS", "true") == "true",
+		EnableGoogleAds:    getEnvOrDefault("ENABLE_GOOGLE_ADS", "false") == "true",
+		EnableLinkedIn:     getEnvOrDefault("ENABLE_LINKEDIN", "false") == "true",
+		EnableBookings:     getEnvOrDefault("ENABLE_BOOKINGS", "true") == "true",
+		EnableGA4:          getEnvOrDefault("ENABLE_GA4", "true") == "true",
 	}
 
 	// Validar configuración mínima

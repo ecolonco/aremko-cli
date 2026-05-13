@@ -1,9 +1,11 @@
 package handlers
 
 import (
+	"context"
 	"net/http"
 	"time"
 
+	"github.com/aremko/aremko-cli/internal/analytics"
 	"github.com/aremko/aremko-cli/internal/bookings"
 	"github.com/aremko/aremko-cli/internal/config"
 	"github.com/aremko/aremko-cli/internal/meta"
@@ -83,6 +85,28 @@ func GetStatsOverview(cfg *config.Config) http.HandlerFunc {
 			metaData, err := getMetaAdsData(cfg, dateStart, dateStop)
 			if err == nil {
 				overview["meta_ads"] = metaData
+			}
+		}
+
+		// GA4 Web Analytics stats
+		if cfg.EnableGA4 {
+			ga4Client, err := analytics.NewGA4Client(cfg.GA4CredentialsPath, cfg.GA4PropertyID)
+			if err == nil {
+				ctx := context.Background()
+				ga4Stats, err := ga4Client.GetStats(ctx, dateStart, dateStop)
+				if err == nil {
+					overview["web_analytics"] = map[string]interface{}{
+						"active_users":         ga4Stats.ActiveUsers,
+						"total_users":          ga4Stats.TotalUsers,
+						"sessions":             ga4Stats.Sessions,
+						"page_views":           ga4Stats.PageViews,
+						"bounce_rate":          ga4Stats.BounceRate,
+						"avg_session_duration": ga4Stats.AvgSessionDuration,
+						"new_users":            ga4Stats.NewUsers,
+						"event_count":          ga4Stats.EventCount,
+						"status":               "real_data",
+					}
+				}
 			}
 		}
 

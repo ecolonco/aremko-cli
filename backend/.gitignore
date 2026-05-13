@@ -1,0 +1,7 @@
+ga4-credentials.json
+*.json
+
+# Binaries
+aremko
+aremko-test
+*.exe
