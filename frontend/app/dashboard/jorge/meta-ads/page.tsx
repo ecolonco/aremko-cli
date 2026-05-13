@@ -1,16 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import {
-  MegaphoneIcon,
-  CurrencyDollarIcon,
-  ChartBarIcon,
-  EyeIcon,
-  CursorArrowRaysIcon,
-} from '@heroicons/react/24/outline';
-import StatCard from '@/components/ui/StatCard';
 import { apiClient } from '@/lib/api/client';
-import type { MetaAdsSummary, Campaign } from '@/lib/types/api';
+import type { MetaAdsSummary } from '@/lib/types/api';
 
 // Tipo extendido para campañas con métricas
 interface CampaignWithMetrics {
@@ -23,13 +15,14 @@ interface CampaignWithMetrics {
   ctr: number;
   cpc: number;
   cpm: number;
+  status?: string;
 }
 
 // Helper para formatear números grandes
 function formatNumber(n: number): string {
-  if (n < 1000) return n.toString();
+  if (n < 1000) return n.toLocaleString();
   if (n < 1000000) return `${(n / 1000).toFixed(1)}K`;
-  return `${(n / 1000000).toFixed(1)}M`;
+  return `${(n / 1000000).toFixed(2)}M`;
 }
 
 // Helper para formatear dinero
@@ -37,28 +30,19 @@ function formatCurrency(n: number): string {
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency: 'USD',
-    minimumFractionDigits: 2,
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
   }).format(n);
 }
 
-// Badge de estado de campaña
-function CampaignStatusBadge({ status }: { status: string }) {
-  const colors: Record<string, string> = {
-    ACTIVE: 'bg-green-100 text-green-800',
-    PAUSED: 'bg-yellow-100 text-yellow-800',
-    DELETED: 'bg-red-100 text-red-800',
-    ARCHIVED: 'bg-gray-100 text-gray-800',
-  };
-
-  return (
-    <span
-      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-        colors[status] || 'bg-gray-100 text-gray-800'
-      }`}
-    >
-      {status}
-    </span>
-  );
+// Helper para formatear dinero con decimales
+function formatCurrencyDetailed(n: number): string {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(n);
 }
 
 export default function MetaAdsPage() {
@@ -88,7 +72,6 @@ export default function MetaAdsPage() {
         }
 
         if (campaignsResponse.success && campaignsResponse.data) {
-          // El backend devuelve {success, data: [...], count}
           const campaignsData = Array.isArray(campaignsResponse.data)
             ? campaignsResponse.data
             : (campaignsResponse.data as any).data || [];
@@ -122,129 +105,177 @@ export default function MetaAdsPage() {
 
   if (!mounted || loading) {
     return (
-      <div className="py-6">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
-          <div className="flex items-center justify-center h-96">
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-              <p className="text-gray-500">Cargando datos de Meta Ads...</p>
-            </div>
-          </div>
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-slate-900 mx-auto mb-4"></div>
+          <p className="text-gray-600 font-medium">Cargando datos...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="py-6">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
-        <div className="mb-6">
-          <div className="flex items-center justify-between">
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Header */}
+        <div className="mb-8">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">Meta Ads</h1>
-              <p className="mt-1 text-sm text-gray-500">
-                Monitoreo y análisis de campañas publicitarias en Facebook e Instagram
+              <h1 className="text-3xl font-bold text-gray-900 tracking-tight">
+                Meta Ads
+              </h1>
+              <p className="mt-2 text-sm text-gray-600">
+                Análisis de campañas publicitarias en Facebook e Instagram
               </p>
               {displaySummary.period.start && (
-                <p className="mt-1 text-xs text-gray-400">
-                  Período: {new Date(displaySummary.period.start).toLocaleDateString('es-CL')} -{' '}
-                  {new Date(displaySummary.period.end).toLocaleDateString('es-CL')}
+                <p className="mt-1 text-xs text-gray-500">
+                  Período: {new Date(displaySummary.period.start).toLocaleDateString('es-CL')} - {new Date(displaySummary.period.end).toLocaleDateString('es-CL')}
                 </p>
               )}
             </div>
             {hasRealData && (
-              <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
-                🔄 Datos en vivo
-              </span>
+              <div className="flex items-center gap-2 px-3 py-2 bg-white border border-gray-200 rounded-lg shadow-sm">
+                <div className="h-2 w-2 bg-green-500 rounded-full animate-pulse"></div>
+                <span className="text-sm font-medium text-gray-700">En vivo</span>
+              </div>
             )}
           </div>
         </div>
 
-        {/* Mensaje de error si no hay datos */}
+        {/* Error Alert */}
         {error && (
-          <div className="mb-6 bg-yellow-50 border-l-4 border-yellow-400 p-4">
+          <div className="mb-6 bg-amber-50 border border-amber-200 rounded-lg p-4">
             <div className="flex">
+              <div className="flex-shrink-0">
+                <svg className="h-5 w-5 text-amber-400" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                </svg>
+              </div>
               <div className="ml-3">
-                <p className="text-sm text-yellow-700">
-                  <span className="font-medium">⚠️ No se pudieron cargar los datos de Meta Ads.</span>
-                  {' '}Verifica que las credenciales estén configuradas correctamente en el backend.
-                  <br />
-                  <span className="text-xs mt-1 block">
-                    Error: {error}
-                  </span>
-                </p>
+                <h3 className="text-sm font-medium text-amber-800">
+                  No se pudieron cargar los datos
+                </h3>
+                <div className="mt-1 text-sm text-amber-700">
+                  <p>Verifica la configuración de credenciales en el backend.</p>
+                  <p className="mt-1 text-xs">{error}</p>
+                </div>
               </div>
             </div>
           </div>
         )}
 
-        {/* Métricas principales */}
-        <div className="mb-8">
-          <h2 className="text-lg font-medium text-gray-900 mb-4">Resumen de Rendimiento</h2>
-          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-            <StatCard
-              title="Gasto Total"
-              value={formatCurrency(displaySummary.spend)}
-              subtitle="USD"
-              icon={<CurrencyDollarIcon className="h-6 w-6 text-blue-600" />}
-            />
-            <StatCard
-              title="Impresiones"
-              value={formatNumber(displaySummary.impressions)}
-              icon={<EyeIcon className="h-6 w-6 text-purple-600" />}
-            />
-            <StatCard
-              title="Clicks"
-              value={formatNumber(displaySummary.clicks)}
-              icon={<CursorArrowRaysIcon className="h-6 w-6 text-green-600" />}
-            />
-            <StatCard
-              title="Alcance"
-              value={formatNumber(displaySummary.reach)}
-              subtitle="Usuarios únicos"
-              icon={<MegaphoneIcon className="h-6 w-6 text-orange-600" />}
-            />
+        {/* Métricas Principales - Grid Responsivo */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          {/* Gasto Total */}
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Gasto Total</p>
+                <p className="mt-2 text-3xl font-bold text-gray-900">
+                  {formatCurrency(displaySummary.spend)}
+                </p>
+                <p className="mt-1 text-xs text-gray-500">USD</p>
+              </div>
+              <div className="h-12 w-12 bg-blue-100 rounded-full flex items-center justify-center">
+                <svg className="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+            </div>
           </div>
 
-          {/* Métricas secundarias */}
-          <div className="grid grid-cols-1 gap-5 sm:grid-cols-3 mt-5">
-            <StatCard
-              title="CTR"
-              value={`${displaySummary.ctr.toFixed(2)}%`}
-              subtitle="Click-Through Rate"
-              icon={<ChartBarIcon className="h-6 w-6 text-indigo-600" />}
-            />
-            <StatCard
-              title="CPC"
-              value={formatCurrency(displaySummary.cpc)}
-              subtitle="Cost Per Click"
-              icon={<CurrencyDollarIcon className="h-6 w-6 text-blue-600" />}
-            />
-            <StatCard
-              title="CPM"
-              value={formatCurrency(displaySummary.cpm)}
-              subtitle="Cost Per 1000 Impressions"
-              icon={<CurrencyDollarIcon className="h-6 w-6 text-blue-600" />}
-            />
+          {/* Impresiones */}
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Impresiones</p>
+                <p className="mt-2 text-3xl font-bold text-gray-900">
+                  {formatNumber(displaySummary.impressions)}
+                </p>
+                <p className="mt-1 text-xs text-gray-500">Vistas</p>
+              </div>
+              <div className="h-12 w-12 bg-purple-100 rounded-full flex items-center justify-center">
+                <svg className="h-6 w-6 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                </svg>
+              </div>
+            </div>
+          </div>
+
+          {/* Clicks */}
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Clicks</p>
+                <p className="mt-2 text-3xl font-bold text-gray-900">
+                  {formatNumber(displaySummary.clicks)}
+                </p>
+                <p className="mt-1 text-xs text-gray-500">Interacciones</p>
+              </div>
+              <div className="h-12 w-12 bg-green-100 rounded-full flex items-center justify-center">
+                <svg className="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122" />
+                </svg>
+              </div>
+            </div>
+          </div>
+
+          {/* Alcance */}
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Alcance</p>
+                <p className="mt-2 text-3xl font-bold text-gray-900">
+                  {formatNumber(displaySummary.reach)}
+                </p>
+                <p className="mt-1 text-xs text-gray-500">Usuarios únicos</p>
+              </div>
+              <div className="h-12 w-12 bg-orange-100 rounded-full flex items-center justify-center">
+                <svg className="h-6 w-6 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* Tabla de campañas */}
-        <div>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-medium text-gray-900">
-              Campañas Activas ({campaigns.length})
+        {/* Métricas Secundarias */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+          <div className="bg-gradient-to-br from-slate-50 to-slate-100 rounded-lg border border-slate-200 p-6">
+            <p className="text-sm font-medium text-slate-600">CTR</p>
+            <p className="mt-2 text-2xl font-bold text-slate-900">{displaySummary.ctr.toFixed(2)}%</p>
+            <p className="mt-1 text-xs text-slate-500">Click-Through Rate</p>
+          </div>
+          <div className="bg-gradient-to-br from-slate-50 to-slate-100 rounded-lg border border-slate-200 p-6">
+            <p className="text-sm font-medium text-slate-600">CPC</p>
+            <p className="mt-2 text-2xl font-bold text-slate-900">{formatCurrencyDetailed(displaySummary.cpc)}</p>
+            <p className="mt-1 text-xs text-slate-500">Cost Per Click</p>
+          </div>
+          <div className="bg-gradient-to-br from-slate-50 to-slate-100 rounded-lg border border-slate-200 p-6">
+            <p className="text-sm font-medium text-slate-600">CPM</p>
+            <p className="mt-2 text-2xl font-bold text-slate-900">{formatCurrencyDetailed(displaySummary.cpm)}</p>
+            <p className="mt-1 text-xs text-slate-500">Cost Per 1000 Impressions</p>
+          </div>
+        </div>
+
+        {/* Campañas */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+          <div className="px-6 py-4 border-b border-gray-200">
+            <h2 className="text-lg font-semibold text-gray-900">
+              Campañas ({campaigns.length})
             </h2>
           </div>
 
           {campaigns.length > 0 ? (
-            <div className="bg-white shadow overflow-hidden sm:rounded-lg">
-              <div className="overflow-x-auto">
+            <>
+              {/* Vista Desktop - Tabla */}
+              <div className="hidden lg:block overflow-x-auto">
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
                     <tr>
                       <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Nombre de Campaña
+                        Campaña
                       </th>
                       <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Gasto
@@ -256,16 +287,10 @@ export default function MetaAdsPage() {
                         Clicks
                       </th>
                       <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Alcance
-                      </th>
-                      <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                         CTR
                       </th>
                       <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                         CPC
-                      </th>
-                      <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        CPM
                       </th>
                       <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Acciones
@@ -274,47 +299,43 @@ export default function MetaAdsPage() {
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
                     {campaigns.map((campaign) => (
-                      <tr key={campaign.id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 text-sm font-medium text-gray-900">
-                          {campaign.name}
+                      <tr key={campaign.id} className="hover:bg-gray-50 transition-colors">
+                        <td className="px-6 py-4">
+                          <div className="text-sm font-medium text-gray-900 max-w-md truncate">
+                            {campaign.name}
+                          </div>
                         </td>
-                        <td className="px-6 py-4 text-sm text-gray-900 text-right font-semibold">
+                        <td className="px-6 py-4 text-sm text-right font-semibold text-gray-900">
                           {formatCurrency(campaign.spend)}
                         </td>
-                        <td className="px-6 py-4 text-sm text-gray-500 text-right">
+                        <td className="px-6 py-4 text-sm text-right text-gray-600">
                           {formatNumber(campaign.impressions)}
                         </td>
-                        <td className="px-6 py-4 text-sm text-gray-500 text-right">
+                        <td className="px-6 py-4 text-sm text-right text-gray-600">
                           {formatNumber(campaign.clicks)}
                         </td>
-                        <td className="px-6 py-4 text-sm text-gray-500 text-right">
-                          {formatNumber(campaign.reach)}
-                        </td>
-                        <td className="px-6 py-4 text-sm text-right">
-                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                        <td className="px-6 py-4 text-right">
+                          <span className={`inline-flex px-2.5 py-1 text-xs font-semibold rounded-full ${
                             campaign.ctr > 3.0
                               ? 'bg-green-100 text-green-800'
-                              : campaign.ctr > 1.0
-                              ? 'bg-yellow-100 text-yellow-800'
-                              : 'bg-red-100 text-red-800'
+                              : campaign.ctr > 1.5
+                              ? 'bg-amber-100 text-amber-800'
+                              : 'bg-gray-100 text-gray-800'
                           }`}>
                             {campaign.ctr.toFixed(2)}%
                           </span>
                         </td>
-                        <td className="px-6 py-4 text-sm text-gray-900 text-right">
-                          {formatCurrency(campaign.cpc)}
-                        </td>
-                        <td className="px-6 py-4 text-sm text-gray-900 text-right">
-                          {formatCurrency(campaign.cpm)}
+                        <td className="px-6 py-4 text-sm text-right text-gray-900">
+                          {formatCurrencyDetailed(campaign.cpc)}
                         </td>
                         <td className="px-6 py-4 text-sm text-right">
                           <a
                             href={`https://business.facebook.com/adsmanager/manage/campaigns?act=${campaign.id.split('_')[0]}&selected_campaign_ids=${campaign.id}`}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-blue-600 hover:text-blue-900 text-xs"
+                            className="text-blue-600 hover:text-blue-800 font-medium"
                           >
-                            Ver en Meta
+                            Ver detalles
                           </a>
                         </td>
                       </tr>
@@ -322,10 +343,61 @@ export default function MetaAdsPage() {
                   </tbody>
                 </table>
               </div>
-            </div>
+
+              {/* Vista Móvil - Cards */}
+              <div className="lg:hidden divide-y divide-gray-200">
+                {campaigns.map((campaign) => (
+                  <div key={campaign.id} className="p-4 hover:bg-gray-50 transition-colors">
+                    <h3 className="text-sm font-medium text-gray-900 mb-3">
+                      {campaign.name}
+                    </h3>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <p className="text-xs text-gray-500">Gasto</p>
+                        <p className="text-sm font-semibold text-gray-900">{formatCurrency(campaign.spend)}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500">Impresiones</p>
+                        <p className="text-sm font-semibold text-gray-900">{formatNumber(campaign.impressions)}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500">Clicks</p>
+                        <p className="text-sm font-semibold text-gray-900">{formatNumber(campaign.clicks)}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500">CTR</p>
+                        <p className="text-sm font-semibold">
+                          <span className={`inline-flex px-2 py-0.5 text-xs font-semibold rounded-full ${
+                            campaign.ctr > 3.0
+                              ? 'bg-green-100 text-green-800'
+                              : campaign.ctr > 1.5
+                              ? 'bg-amber-100 text-amber-800'
+                              : 'bg-gray-100 text-gray-800'
+                          }`}>
+                            {campaign.ctr.toFixed(2)}%
+                          </span>
+                        </p>
+                      </div>
+                    </div>
+                    <div className="mt-3 pt-3 border-t border-gray-100">
+                      <a
+                        href={`https://business.facebook.com/adsmanager/manage/campaigns?act=${campaign.id.split('_')[0]}&selected_campaign_ids=${campaign.id}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+                      >
+                        Ver detalles en Meta →
+                      </a>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
           ) : (
-            <div className="bg-white shadow sm:rounded-lg p-6 text-center">
-              <MegaphoneIcon className="mx-auto h-12 w-12 text-gray-400" />
+            <div className="p-12 text-center">
+              <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
               <h3 className="mt-2 text-sm font-medium text-gray-900">
                 No hay campañas disponibles
               </h3>
@@ -336,28 +408,6 @@ export default function MetaAdsPage() {
               </p>
             </div>
           )}
-        </div>
-
-        {/* Próximamente */}
-        <div className="mt-8">
-          <div className="bg-blue-50 border-l-4 border-blue-400 p-4">
-            <div className="flex">
-              <div className="ml-3">
-                <h3 className="text-sm font-medium text-blue-800">
-                  Próximas funcionalidades
-                </h3>
-                <div className="mt-2 text-sm text-blue-700">
-                  <ul className="list-disc pl-5 space-y-1">
-                    <li>Análisis detallado por campaña con gráficos históricos</li>
-                    <li>Comparación de rendimiento entre campañas</li>
-                    <li>Alertas automáticas para bajo rendimiento</li>
-                    <li>Recomendaciones de optimización basadas en IA</li>
-                    <li>Exportar reportes en PDF y Excel</li>
-                  </ul>
-                </div>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
     </div>
