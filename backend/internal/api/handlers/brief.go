@@ -90,11 +90,19 @@ func GetStatsOverview(cfg *config.Config) http.HandlerFunc {
 
 		// GA4 Web Analytics stats
 		if cfg.EnableGA4 {
+			fmt.Printf("[GA4] Intentando conectar con credenciales: %s\n", cfg.GA4CredentialsPath)
+			fmt.Printf("[GA4] Property ID: %s\n", cfg.GA4PropertyID)
 			ga4Client, err := analytics.NewGA4Client(cfg.GA4CredentialsPath, cfg.GA4PropertyID)
-			if err == nil {
+			if err != nil {
+				fmt.Printf("[GA4] ERROR al crear cliente: %v\n", err)
+			} else {
+				fmt.Println("[GA4] Cliente creado exitosamente")
 				ctx := context.Background()
 				ga4Stats, err := ga4Client.GetStats(ctx, dateStart, dateStop)
-				if err == nil {
+				if err != nil {
+					fmt.Printf("[GA4] ERROR al obtener stats: %v\n", err)
+				} else {
+					fmt.Println("[GA4] Stats obtenidas exitosamente")
 					overview["web_analytics"] = map[string]interface{}{
 						"active_users":         ga4Stats.ActiveUsers,
 						"total_users":          ga4Stats.TotalUsers,
