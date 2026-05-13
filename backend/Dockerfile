@@ -1,5 +1,5 @@
-# Build stage - usar debian con Go 1.24
-FROM golang:1.24-bullseye AS builder
+# Build stage - usar debian con Go 1.25
+FROM golang:1.25-bullseye AS builder
 
 # Install file command for diagnostics
 RUN apt-get update && apt-get install -y file && rm -rf /var/lib/apt/lists/*
