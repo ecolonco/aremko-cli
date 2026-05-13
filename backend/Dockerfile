@@ -1,5 +1,5 @@
-# Build stage - usar debian con Go 1.25
-FROM golang:1.25-bullseye AS builder
+# Build stage - usar la última versión estable de Go
+FROM golang:latest AS builder
 
 # Install file command for diagnostics
 RUN apt-get update && apt-get install -y file && rm -rf /var/lib/apt/lists/*
@@ -8,13 +8,14 @@ WORKDIR /app
 
 # Copy dependency files
 COPY go.mod go.sum ./
-RUN go mod download
+# Permitir que Go descargue automáticamente la versión correcta si es necesaria
+RUN GOTOOLCHAIN=auto go mod download
 
 # Copy source code
 COPY . .
 
 # Build static binary
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
+RUN GOTOOLCHAIN=auto CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
     -a -installsuffix cgo \
     -ldflags="-w -s" \
     -o aremko \
