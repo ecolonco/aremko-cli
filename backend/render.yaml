@@ -13,9 +13,13 @@ services:
       - key: ENABLE_BOOKINGS
         value: true
       - key: ENABLE_META_ADS
-        value: false
+        value: true
       - key: ENABLE_GOOGLE_ADS
         value: false
       - key: ENABLE_LINKEDIN
         value: false
+      - key: META_ACCESS_TOKEN
+        sync: false
+      - key: META_AD_ACCOUNT_ID
+        sync: false
     healthCheckPath: /health
