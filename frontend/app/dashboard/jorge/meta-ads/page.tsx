@@ -12,6 +12,19 @@ import StatCard from '@/components/ui/StatCard';
 import { apiClient } from '@/lib/api/client';
 import type { MetaAdsSummary, Campaign } from '@/lib/types/api';
 
+// Tipo extendido para campañas con métricas
+interface CampaignWithMetrics {
+  id: string;
+  name: string;
+  spend: number;
+  impressions: number;
+  clicks: number;
+  reach: number;
+  ctr: number;
+  cpc: number;
+  cpm: number;
+}
+
 // Helper para formatear números grandes
 function formatNumber(n: number): string {
   if (n < 1000) return n.toString();
@@ -52,7 +65,7 @@ export default function MetaAdsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [summary, setSummary] = useState<MetaAdsSummary | null>(null);
-  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+  const [campaigns, setCampaigns] = useState<CampaignWithMetrics[]>([]);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -65,7 +78,7 @@ export default function MetaAdsPage() {
 
         const [summaryResponse, campaignsResponse] = await Promise.all([
           apiClient.getMetaAccountSummary(),
-          apiClient.getMetaCampaigns(),
+          apiClient.getCampaignsWithInsights(),
         ]);
 
         if (summaryResponse.success) {
@@ -76,7 +89,6 @@ export default function MetaAdsPage() {
 
         if (campaignsResponse.success && campaignsResponse.data) {
           // El backend devuelve {success, data: [...], count}
-          // No {success, data: {data: [...], count}}
           const campaignsData = Array.isArray(campaignsResponse.data)
             ? campaignsResponse.data
             : (campaignsResponse.data as any).data || [];
@@ -227,63 +239,89 @@ export default function MetaAdsPage() {
 
           {campaigns.length > 0 ? (
             <div className="bg-white shadow overflow-hidden sm:rounded-lg">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th
-                      scope="col"
-                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                    >
-                      Nombre de Campaña
-                    </th>
-                    <th
-                      scope="col"
-                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                    >
-                      ID
-                    </th>
-                    <th
-                      scope="col"
-                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                    >
-                      Estado
-                    </th>
-                    <th
-                      scope="col"
-                      className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider"
-                    >
-                      Acciones
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {campaigns.map((campaign) => (
-                    <tr key={campaign.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-medium text-gray-900">
-                          {campaign.name}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-500">{campaign.id}</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <CampaignStatusBadge status={campaign.status} />
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <a
-                          href={`https://business.facebook.com/adsmanager/manage/campaigns?act=${campaign.id.split('_')[0]}&selected_campaign_ids=${campaign.id}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-blue-600 hover:text-blue-900"
-                        >
-                          Ver en Meta
-                        </a>
-                      </td>
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Nombre de Campaña
+                      </th>
+                      <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Gasto
+                      </th>
+                      <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Impresiones
+                      </th>
+                      <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Clicks
+                      </th>
+                      <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Alcance
+                      </th>
+                      <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        CTR
+                      </th>
+                      <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        CPC
+                      </th>
+                      <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        CPM
+                      </th>
+                      <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Acciones
+                      </th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {campaigns.map((campaign) => (
+                      <tr key={campaign.id} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 text-sm font-medium text-gray-900">
+                          {campaign.name}
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-900 text-right font-semibold">
+                          {formatCurrency(campaign.spend)}
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-500 text-right">
+                          {formatNumber(campaign.impressions)}
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-500 text-right">
+                          {formatNumber(campaign.clicks)}
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-500 text-right">
+                          {formatNumber(campaign.reach)}
+                        </td>
+                        <td className="px-6 py-4 text-sm text-right">
+                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                            campaign.ctr > 3.0
+                              ? 'bg-green-100 text-green-800'
+                              : campaign.ctr > 1.0
+                              ? 'bg-yellow-100 text-yellow-800'
+                              : 'bg-red-100 text-red-800'
+                          }`}>
+                            {campaign.ctr.toFixed(2)}%
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-900 text-right">
+                          {formatCurrency(campaign.cpc)}
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-900 text-right">
+                          {formatCurrency(campaign.cpm)}
+                        </td>
+                        <td className="px-6 py-4 text-sm text-right">
+                          <a
+                            href={`https://business.facebook.com/adsmanager/manage/campaigns?act=${campaign.id.split('_')[0]}&selected_campaign_ids=${campaign.id}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-600 hover:text-blue-900 text-xs"
+                          >
+                            Ver en Meta
+                          </a>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           ) : (
             <div className="bg-white shadow sm:rounded-lg p-6 text-center">

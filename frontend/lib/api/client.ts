@@ -54,6 +54,15 @@ class APIClient {
     return this.fetch<{ data: Campaign[]; count: number }>('/api/v1/meta-ads/campaigns');
   }
 
+  async getCampaignsWithInsights(dateStart?: string, dateStop?: string) {
+    const params = new URLSearchParams();
+    if (dateStart) params.append('date_start', dateStart);
+    if (dateStop) params.append('date_stop', dateStop);
+
+    const query = params.toString();
+    return this.fetch<any>(`/api/v1/meta-ads/campaigns-with-insights${query ? `?${query}` : ''}`);
+  }
+
   async getMetaAccountSummary(dateStart?: string, dateStop?: string) {
     const params = new URLSearchParams();
     if (dateStart) params.append('date_start', dateStart);
