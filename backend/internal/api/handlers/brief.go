@@ -11,6 +11,7 @@ import (
 	"github.com/aremko/aremko-cli/internal/bookings"
 	"github.com/aremko/aremko-cli/internal/config"
 	"github.com/aremko/aremko-cli/internal/meta"
+	"github.com/aremko/aremko-cli/internal/reviews"
 )
 
 // GetWeeklyBrief retorna el brief semanal en formato JSON
@@ -217,11 +218,32 @@ func GetStatsOverview(cfg *config.Config) http.HandlerFunc {
 			}
 		}
 
+
+	// Reviews/Opinions section
+	if cfg.EnableBookings {
+		reviewsClient := reviews.NewClient(cfg.BookingSystemURL)
+		reviewsSummary, err := reviewsClient.GetReviewsSummary()
+		if err == nil {
+			overview["reviews"] = map[string]interface{}{
+				"surveys":   reviewsSummary.Surveys,
+				"snapshots": reviewsSummary.Snapshots,
+				"recent":    reviewsSummary.Recent,
+				"period":    reviewsSummary.Period,
+				"status":    "real_data",
+			}
+		} else {
+			overview["reviews"] = map[string]interface{}{
+				"status": "error",
+				"error":  err.Error(),
+			}
+		}
+	}
 		respondJSON(w, http.StatusOK, map[string]interface{}{
 			"success": true,
 			"data":    overview,
 		})
 	}
+
 }
 
 // Helper para obtener datos de Meta Ads
