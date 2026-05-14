@@ -72,6 +72,7 @@ func (s *Server) setupRoutes() {
 
 		// Brief endpoints
 		r.Get("/brief/weekly", handlers.GetWeeklyBrief(s.config))
+		r.Get("/brief/weekly-ai", handlers.GetWeeklyBriefWithAI(s.config))
 		r.Post("/brief/generate", handlers.GenerateBrief(s.config))
 
 		// Stats endpoints (próximamente)
@@ -90,6 +91,7 @@ func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 			"linkedin":   s.config.EnableLinkedIn,
 			"bookings":   s.config.EnableBookings,
 			"ga4":        s.config.EnableGA4,
+			"ai":         s.config.EnableAI,
 		},
 	}
 

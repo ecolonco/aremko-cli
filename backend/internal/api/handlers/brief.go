@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/aremko/aremko-cli/internal/ai"
 	"github.com/aremko/aremko-cli/internal/analytics"
 	"github.com/aremko/aremko-cli/internal/bookings"
 	"github.com/aremko/aremko-cli/internal/config"
@@ -318,4 +319,130 @@ func getMetaAdsData(cfg *config.Config, dateStart, dateStop string) (map[string]
 	}
 
 	return result, nil
+}
+
+// GetWeeklyBriefWithAI retorna el brief semanal con análisis de IA
+func GetWeeklyBriefWithAI(cfg *config.Config) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		// Primero, obtener todos los datos del brief
+		dateStop := time.Now().AddDate(0, 0, -1).Format("2006-01-02")
+		dateStart := time.Now().AddDate(0, 0, -8).Format("2006-01-02")
+
+		briefData := map[string]interface{}{
+			"title":        "Brief Semanal - Aremko Spa",
+			"date_start":   dateStart,
+			"date_stop":    dateStop,
+			"generated_at": time.Now().Format(time.RFC3339),
+		}
+
+		// Web Analytics (GA4)
+		if cfg.EnableGA4 {
+			ga4Client, err := analytics.NewGA4Client(cfg.GA4CredentialsPath, cfg.GA4PropertyID)
+			if err == nil {
+				ctx := context.Background()
+				ga4Stats, err := ga4Client.GetStats(ctx, dateStart, dateStop)
+				if err == nil {
+					topPages, _ := ga4Client.GetTopPages(ctx, dateStart, dateStop, 10)
+					trafficSources, _ := ga4Client.GetTrafficSources(ctx, dateStart, dateStop)
+
+					briefData["web_analytics"] = map[string]interface{}{
+						"active_users":         ga4Stats.ActiveUsers,
+						"total_users":          ga4Stats.TotalUsers,
+						"sessions":             ga4Stats.Sessions,
+						"page_views":           ga4Stats.PageViews,
+						"bounce_rate":          ga4Stats.BounceRate,
+						"avg_session_duration": ga4Stats.AvgSessionDuration,
+						"new_users":            ga4Stats.NewUsers,
+						"event_count":          ga4Stats.EventCount,
+						"top_pages":            topPages,
+						"traffic_sources":      trafficSources,
+					}
+				}
+			}
+		}
+
+		// Bookings data
+		if cfg.EnableBookings {
+			bookingClient := bookings.NewClient(cfg.BookingSystemURL)
+			bookingStats, err := bookingClient.GetBookingStats(dateStart, dateStop)
+			if err == nil {
+				briefData["bookings"] = map[string]interface{}{
+					"total":      bookingStats.Total,
+					"revenue":    bookingStats.Revenue,
+					"avg_ticket": bookingStats.AvgTicket,
+					"paid":       bookingStats.Paid,
+					"pending":    bookingStats.Pending,
+					"partial":    bookingStats.Partial,
+				}
+
+				// Datos por familia de servicios
+				now := time.Now()
+				familyDateStart := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location()).Format("2006-01-02")
+				familyDateStop := now.Format("2006-01-02")
+
+				familyStats, err := bookingClient.GetServiceFamilyStats(familyDateStart, familyDateStop)
+				if err == nil {
+					briefData["bookings"].(map[string]interface{})["by_family"] = familyStats
+				}
+
+				paymentStats, err := bookingClient.GetPaymentMethodStats(familyDateStart, familyDateStop)
+				if err == nil {
+					briefData["bookings"].(map[string]interface{})["by_payment_method"] = paymentStats
+				}
+			}
+		}
+
+		// Meta Ads section
+		if cfg.EnableMetaAds {
+			metaData, err := getMetaAdsData(cfg, dateStart, dateStop)
+			if err == nil {
+				briefData["meta_ads"] = metaData
+			}
+		}
+
+		// Generar análisis con IA si está habilitado
+		var aiAnalysis *ai.LLMResult
+		var contentCalendar *ai.LLMResult
+
+		if cfg.EnableAI && cfg.OpenRouterAPIKey != "" {
+			aiClient := ai.NewOpenRouterClient(cfg.OpenRouterAPIKey, cfg.OpenRouterBaseURL)
+			ctx := context.Background()
+
+			// Generar análisis del brief
+			fmt.Println("[AI] Generando análisis del brief...")
+			aiAnalysis, _ = aiClient.GenerateBriefAnalysis(ctx, briefData)
+
+			// Generar calendario de contenido
+			fmt.Println("[AI] Generando calendario de contenido...")
+			contentCalendar, _ = aiClient.GenerateContentCalendar(ctx, briefData, 7)
+		}
+
+		// Construir respuesta final
+		response := map[string]interface{}{
+			"success": true,
+			"data":    briefData,
+		}
+
+		if aiAnalysis != nil && aiAnalysis.Error == "" {
+			response["ai_analysis"] = map[string]interface{}{
+				"content":       aiAnalysis.Text,
+				"model":         aiAnalysis.Model,
+				"input_tokens":  aiAnalysis.InputTokens,
+				"output_tokens": aiAnalysis.OutputTokens,
+				"latency_ms":    aiAnalysis.LatencyMs,
+			}
+		}
+
+		if contentCalendar != nil && contentCalendar.Error == "" {
+			response["content_calendar"] = map[string]interface{}{
+				"content":       contentCalendar.Text,
+				"model":         contentCalendar.Model,
+				"input_tokens":  contentCalendar.InputTokens,
+				"output_tokens": contentCalendar.OutputTokens,
+				"latency_ms":    contentCalendar.LatencyMs,
+			}
+		}
+
+		respondJSON(w, http.StatusOK, response)
+	}
 }

@@ -16,6 +16,10 @@ type Config struct {
 	GA4PropertyID      string
 	GA4CredentialsPath string
 
+	// OpenRouter (AI)
+	OpenRouterAPIKey string
+	OpenRouterBaseURL string
+
 	// Booking System (Django)
 	BookingSystemURL string
 
@@ -32,6 +36,7 @@ type Config struct {
 	EnableLinkedIn    bool
 	EnableBookings    bool
 	EnableGA4         bool
+	EnableAI          bool
 }
 
 var AppConfig *Config
@@ -46,6 +51,8 @@ func LoadConfig() (*Config, error) {
 		MetaAdAccountID:    getEnvOrDefault("META_AD_ACCOUNT_ID", ""),
 		GA4PropertyID:      getEnvOrDefault("GA4_PROPERTY_ID", ""),
 		GA4CredentialsPath: getEnvOrDefault("GA4_CREDENTIALS_PATH", "ga4-credentials.json"),
+		OpenRouterAPIKey:   getEnvOrDefault("OPENROUTER_API_KEY", ""),
+		OpenRouterBaseURL:  getEnvOrDefault("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1"),
 		BookingSystemURL:   getEnvOrDefault("BOOKING_SYSTEM_URL", "http://localhost:8002"),
 		DatabaseURL:        getEnvOrDefault("DATABASE_URL", "postgres://localhost/aremko?sslmode=disable"),
 		Port:               getEnvOrDefault("PORT", "8080"),
@@ -55,6 +62,7 @@ func LoadConfig() (*Config, error) {
 		EnableLinkedIn:     getEnvOrDefault("ENABLE_LINKEDIN", "false") == "true",
 		EnableBookings:     getEnvOrDefault("ENABLE_BOOKINGS", "true") == "true",
 		EnableGA4:          getEnvOrDefault("ENABLE_GA4", "true") == "true",
+		EnableAI:           getEnvOrDefault("ENABLE_AI", "true") == "true",
 	}
 
 	// Validar configuración mínima
