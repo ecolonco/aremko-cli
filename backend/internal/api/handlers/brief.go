@@ -141,6 +141,13 @@ func GetStatsOverview(cfg *config.Config) http.HandlerFunc {
 					fmt.Printf("[GA4] ERROR al obtener stats: %v\n", err)
 				} else {
 					fmt.Println("[GA4] Stats obtenidas exitosamente")
+
+					// Obtener páginas más visitadas
+					topPages, _ := ga4Client.GetTopPages(ctx, dateStart, dateStop, 10)
+
+					// Obtener fuentes de tráfico
+					trafficSources, _ := ga4Client.GetTrafficSources(ctx, dateStart, dateStop)
+
 					overview["web_analytics"] = map[string]interface{}{
 						"active_users":         ga4Stats.ActiveUsers,
 						"total_users":          ga4Stats.TotalUsers,
@@ -150,6 +157,8 @@ func GetStatsOverview(cfg *config.Config) http.HandlerFunc {
 						"avg_session_duration": ga4Stats.AvgSessionDuration,
 						"new_users":            ga4Stats.NewUsers,
 						"event_count":          ga4Stats.EventCount,
+						"top_pages":            topPages,
+						"traffic_sources":      trafficSources,
 						"status":               "real_data",
 					}
 				}
