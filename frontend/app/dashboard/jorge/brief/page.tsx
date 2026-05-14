@@ -16,8 +16,8 @@ import {
   MessageSquare,
   BarChart3,
   Globe,
-  Instagram,
-  Facebook,
+  Image,
+  Share2,
   ShoppingBag,
   Calendar,
   Sparkles,
@@ -162,7 +162,7 @@ export default function BriefPage() {
             Web
           </TabsTrigger>
           <TabsTrigger value="social">
-            <Instagram className="h-4 w-4 mr-2" />
+            <Image className="h-4 w-4 mr-2" />
             Social
           </TabsTrigger>
           <TabsTrigger value="sales">
@@ -278,7 +278,7 @@ export default function BriefPage() {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center">
-                  <Facebook className="h-5 w-5 mr-2 text-blue-600" />
+                  <Share2 className="h-5 w-5 mr-2 text-blue-600" />
                   Meta Ads - Resumen de Campañas
                 </CardTitle>
               </CardHeader>
@@ -363,14 +363,14 @@ export default function BriefPage() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center">
-                <Instagram className="h-5 w-5 mr-2 text-pink-600" />
+                <Image className="h-5 w-5 mr-2 text-pink-600" />
                 Instagram Orgánico
               </CardTitle>
               <CardDescription>Alcance y engagement orgánico</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="p-8 text-center border-2 border-dashed rounded-lg">
-                <Instagram className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                <Image className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
                 <p className="text-sm text-muted-foreground mb-2">Próximamente</p>
                 <p className="text-xs text-muted-foreground">
                   Integración con Instagram Graph API para métricas orgánicas
@@ -382,7 +382,7 @@ export default function BriefPage() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center">
-                <Facebook className="h-5 w-5 mr-2 text-blue-600" />
+                <Share2 className="h-5 w-5 mr-2 text-blue-600" />
                 Meta Ads (Facebook/Instagram)
               </CardTitle>
               <CardDescription>Publicidad pagada en redes sociales</CardDescription>
