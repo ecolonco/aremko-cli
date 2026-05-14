@@ -448,61 +448,198 @@ export default function BriefPage() {
 
         {/* OPINIONES */}
         <TabsContent value="reviews" className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-3">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center text-base">
-                  <Star className="h-4 w-4 mr-2 text-yellow-500" />
-                  Google Maps
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="p-8 text-center border-2 border-dashed rounded-lg">
-                  <Star className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                  <p className="text-sm text-muted-foreground mb-2">Próximamente</p>
-                  <p className="text-xs text-muted-foreground">
-                    Endpoint Django en desarrollo
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
+          {data.reviews && data.reviews.status === 'real_data' ? (
+            <>
+              {/* Snapshots de Google y TripAdvisor */}
+              {data.reviews.snapshots && (
+                <div className="grid gap-4 md:grid-cols-2">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center text-base">
+                        <Star className="h-4 w-4 mr-2 text-yellow-500" />
+                        Google Maps
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-muted-foreground">Rating Actual</span>
+                          <span className="text-2xl font-bold">
+                            {data.reviews.snapshots.google.rating.toFixed(1)} ⭐
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-muted-foreground">Total Reviews</span>
+                          <span className="text-xl font-semibold">
+                            {data.reviews.snapshots.google.total}
+                            {data.reviews.snapshots.google.total_delta > 0 && (
+                              <span className="text-sm text-green-600 ml-2">
+                                +{data.reviews.snapshots.google.total_delta}
+                              </span>
+                            )}
+                          </span>
+                        </div>
+                        {data.reviews.snapshots.google.rating_delta !== 0 && (
+                          <div className="text-sm">
+                            Cambio: {data.reviews.snapshots.google.rating_delta > 0 ? '+' : ''}
+                            {data.reviews.snapshots.google.rating_delta.toFixed(2)} vs semana anterior
+                          </div>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
 
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center text-base">
-                  <Star className="h-4 w-4 mr-2 text-green-600" />
-                  TripAdvisor
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="p-8 text-center border-2 border-dashed rounded-lg">
-                  <Star className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                  <p className="text-sm text-muted-foreground mb-2">Próximamente</p>
-                  <p className="text-xs text-muted-foreground">
-                    Endpoint Django en desarrollo
-                  </p>
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center text-base">
+                        <Star className="h-4 w-4 mr-2 text-green-600" />
+                        TripAdvisor
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-muted-foreground">Rating Actual</span>
+                          <span className="text-2xl font-bold">
+                            {data.reviews.snapshots.tripadvisor.rating.toFixed(1)} ⭐
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-muted-foreground">Total Reviews</span>
+                          <span className="text-xl font-semibold">
+                            {data.reviews.snapshots.tripadvisor.total}
+                            {data.reviews.snapshots.tripadvisor.total_delta > 0 && (
+                              <span className="text-sm text-green-600 ml-2">
+                                +{data.reviews.snapshots.tripadvisor.total_delta}
+                              </span>
+                            )}
+                          </span>
+                        </div>
+                        {data.reviews.snapshots.tripadvisor.rating_delta !== 0 && (
+                          <div className="text-sm">
+                            Cambio: {data.reviews.snapshots.tripadvisor.rating_delta > 0 ? '+' : ''}
+                            {data.reviews.snapshots.tripadvisor.rating_delta.toFixed(2)} vs semana anterior
+                          </div>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
                 </div>
-              </CardContent>
-            </Card>
+              )}
 
+              {/* Encuestas de Satisfacción */}
+              {data.reviews.surveys && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center">
+                      <MessageSquare className="h-5 w-5 mr-2 text-blue-600" />
+                      Encuestas de Satisfacción (Últimas 4 semanas)
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      <div className="grid gap-4 md:grid-cols-4">
+                        <div className="p-4 border rounded-lg">
+                          <p className="text-sm text-muted-foreground mb-1">Total Respuestas</p>
+                          <p className="text-3xl font-bold">{data.reviews.surveys.total}</p>
+                        </div>
+                        {data.reviews.surveys.nps.score !== null && (
+                          <div className="p-4 border rounded-lg">
+                            <p className="text-sm text-muted-foreground mb-1">NPS Score</p>
+                            <p className={`text-3xl font-bold ${data.reviews.surveys.nps.score >= 50 ? 'text-green-600' : data.reviews.surveys.nps.score >= 0 ? 'text-yellow-600' : 'text-red-600'}`}>
+                              {data.reviews.surveys.nps.score}
+                            </p>
+                          </div>
+                        )}
+                        <div className="p-4 border rounded-lg">
+                          <p className="text-sm text-muted-foreground mb-1">Promotores</p>
+                          <p className="text-2xl font-bold text-green-600">{data.reviews.surveys.nps.promotores}</p>
+                        </div>
+                        <div className="p-4 border rounded-lg">
+                          <p className="text-sm text-muted-foreground mb-1">Detractores</p>
+                          <p className="text-2xl font-bold text-red-600">{data.reviews.surveys.nps.detractores}</p>
+                        </div>
+                      </div>
+
+                      {/* Reviews Destacadas */}
+                      {data.reviews.surveys.reviews_destacadas && data.reviews.surveys.reviews_destacadas.length > 0 && (
+                        <div className="mt-6">
+                          <h4 className="font-semibold mb-3">Reviews Destacadas (NPS 9-10)</h4>
+                          <div className="space-y-3">
+                            {data.reviews.surveys.reviews_destacadas.map((review: any, idx: number) => (
+                              <div key={idx} className="p-4 border rounded-lg bg-green-50">
+                                <div className="flex items-start justify-between mb-2">
+                                  <span className="font-medium">{review.autor}</span>
+                                  <span className="text-sm text-muted-foreground">{review.fecha}</span>
+                                </div>
+                                <p className="text-sm text-gray-700 italic">"{review.comentario}"</p>
+                                <div className="mt-2 flex gap-2">
+                                  <span className="text-xs px-2 py-1 bg-green-100 rounded">NPS: {review.nps_score}</span>
+                                  <span className="text-xs px-2 py-1 bg-blue-100 rounded">Exp: {review.experiencia_general}/5</span>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Reviews Recientes */}
+              {data.reviews.recent && data.reviews.recent.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Reviews Individuales Recientes</CardTitle>
+                    <CardDescription>Últimas reviews capturadas de Google y TripAdvisor</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      {data.reviews.recent.slice(0, 5).map((review: any) => (
+                        <div key={review.id} className="p-4 border rounded-lg">
+                          <div className="flex items-start justify-between mb-2">
+                            <div className="flex items-center gap-2">
+                              <Badge variant={review.fuente === 'google' ? 'default' : 'secondary'}>
+                                {review.fuente === 'google' ? 'Google' : 'TripAdvisor'}
+                              </Badge>
+                              <span className="font-medium">{review.autor}</span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              {Array.from({length: review.rating}).map((_, i) => (
+                                <Star key={i} className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+                              ))}
+                            </div>
+                          </div>
+                          {review.texto && (
+                            <p className="text-sm text-gray-700 mb-2">{review.texto}</p>
+                          )}
+                          <div className="flex items-center justify-between text-xs text-muted-foreground">
+                            <span>{review.fecha}</span>
+                            {review.respuesta_publicada && (
+                              <span className="text-green-600">✓ Respondida</span>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </>
+          ) : (
             <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center text-base">
-                  <MessageSquare className="h-4 w-4 mr-2 text-blue-600" />
-                  Encuestas NPS
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="p-8 text-center border-2 border-dashed rounded-lg">
-                  <MessageSquare className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                  <p className="text-sm text-muted-foreground mb-2">Próximamente</p>
-                  <p className="text-xs text-muted-foreground">
-                    Endpoint Django en desarrollo
+              <CardContent className="p-12">
+                <div className="text-center">
+                  <MessageSquare className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
+                  <p className="text-lg font-medium mb-2">Datos de opiniones no disponibles</p>
+                  <p className="text-sm text-muted-foreground">
+                    {data.reviews?.error || 'Error al cargar datos de reviews'}
                   </p>
                 </div>
               </CardContent>
             </Card>
-          </div>
+          )}
         </TabsContent>
 
         {/* COMPETENCIA */}
