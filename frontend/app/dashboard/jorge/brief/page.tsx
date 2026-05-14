@@ -35,6 +35,7 @@ interface BriefData {
     web_analytics?: any;
     bookings?: any;
     meta_ads?: any;
+    reviews?: any;
   };
   ai_analysis?: {
     content: string;
