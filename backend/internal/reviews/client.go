@@ -96,7 +96,7 @@ type Review struct {
 
 // GetReviewsSummary fetches the comprehensive reviews summary
 func (c *Client) GetReviewsSummary() (*ReviewsSummary, error) {
-	url := fmt.Sprintf("%s/api/reviews-summary/", c.BaseURL)
+	url := fmt.Sprintf("%s/ventas/api/reviews-summary/", c.BaseURL)
 
 	resp, err := c.HTTPClient.Get(url)
 	if err != nil {
