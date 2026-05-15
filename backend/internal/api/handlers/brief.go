@@ -77,6 +77,26 @@ func GetWeeklyBrief(cfg *config.Config) http.HandlerFunc {
 			}
 		}
 
+		// Reviews/Opinions section
+		if cfg.EnableBookings {
+			reviewsClient := reviews.NewClient(cfg.BookingSystemURL)
+			reviewsSummary, err := reviewsClient.GetReviewsSummary()
+			if err == nil {
+				brief["reviews"] = map[string]interface{}{
+					"surveys":   reviewsSummary.Surveys,
+					"snapshots": reviewsSummary.Snapshots,
+					"recent":    reviewsSummary.Recent,
+					"period":    reviewsSummary.Period,
+					"status":    "real_data",
+				}
+			} else {
+				brief["reviews"] = map[string]interface{}{
+					"status": "error",
+					"error":  err.Error(),
+				}
+			}
+		}
+
 		// Google Ads section (placeholder)
 		if cfg.EnableGoogleAds {
 			brief["google_ads"] = map[string]interface{}{
@@ -419,6 +439,26 @@ func GetWeeklyBriefWithAI(cfg *config.Config) http.HandlerFunc {
 			metaData, err := getMetaAdsData(cfg, dateStart, dateStop)
 			if err == nil {
 				briefData["meta_ads"] = metaData
+			}
+		}
+
+		// Reviews/Opinions section
+		if cfg.EnableBookings {
+			reviewsClient := reviews.NewClient(cfg.BookingSystemURL)
+			reviewsSummary, err := reviewsClient.GetReviewsSummary()
+			if err == nil {
+				briefData["reviews"] = map[string]interface{}{
+					"surveys":   reviewsSummary.Surveys,
+					"snapshots": reviewsSummary.Snapshots,
+					"recent":    reviewsSummary.Recent,
+					"period":    reviewsSummary.Period,
+					"status":    "real_data",
+				}
+			} else {
+				briefData["reviews"] = map[string]interface{}{
+					"status": "error",
+					"error":  err.Error(),
+				}
 			}
 		}
 
