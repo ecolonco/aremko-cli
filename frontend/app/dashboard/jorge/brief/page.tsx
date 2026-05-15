@@ -65,7 +65,8 @@ export default function BriefPage() {
     setLoading(true);
     try {
       const endpoint = withAI ? '/api/v1/brief/weekly-ai' : '/api/v1/brief/weekly';
-      const response = await fetch(`http://localhost:8080${endpoint}`);
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+      const response = await fetch(`${apiUrl}${endpoint}`);
       const data = await response.json();
       setBriefData(data);
     } catch (error) {
