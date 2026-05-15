@@ -9,6 +9,7 @@ import (
 	"github.com/aremko/aremko-cli/internal/ai"
 	"github.com/aremko/aremko-cli/internal/analytics"
 	"github.com/aremko/aremko-cli/internal/bookings"
+	"github.com/aremko/aremko-cli/internal/competitors"
 	"github.com/aremko/aremko-cli/internal/config"
 	"github.com/aremko/aremko-cli/internal/meta"
 	"github.com/aremko/aremko-cli/internal/reviews"
@@ -258,6 +259,26 @@ func GetStatsOverview(cfg *config.Config) http.HandlerFunc {
 			}
 		}
 	}
+
+	// Competitors Analysis section
+	if cfg.EnableBookings {
+		competitorsClient := competitors.NewClient(cfg.BookingSystemURL)
+		competitorsSummary, err := competitorsClient.GetCompetitorsSummary()
+		if err == nil {
+			overview["competitors"] = map[string]interface{}{
+				"competitors":              competitorsSummary.Competitors,
+				"aremko_precio_referencia": competitorsSummary.AremkoPrecio,
+				"generated_at":             competitorsSummary.GeneratedAt,
+				"status":                   "real_data",
+			}
+		} else {
+			overview["competitors"] = map[string]interface{}{
+				"status": "error",
+				"error":  err.Error(),
+			}
+		}
+	}
+
 		respondJSON(w, http.StatusOK, map[string]interface{}{
 			"success": true,
 			"data":    overview,
