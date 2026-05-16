@@ -1,5 +1,6 @@
 package main
 
+// Aremko CLI - Management tool for Aremko Spa business operations
 import (
 	"fmt"
 	"os"
