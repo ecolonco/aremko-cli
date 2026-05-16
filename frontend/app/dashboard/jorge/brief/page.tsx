@@ -36,6 +36,7 @@ interface BriefData {
     bookings?: any;
     meta_ads?: any;
     reviews?: any;
+    competitors?: any;
   };
   ai_analysis?: {
     content: string;
@@ -646,25 +647,186 @@ export default function BriefPage() {
 
         {/* COMPETENCIA */}
         <TabsContent value="competition" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Análisis de Competencia</CardTitle>
-              <CardDescription>Monitoreo de 4 competidores principales en Puerto Varas</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="p-12 text-center border-2 border-dashed rounded-lg">
-                <Users className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
-                <p className="text-lg font-medium mb-2">Análisis de Competencia</p>
-                <p className="text-sm text-muted-foreground mb-4">
-                  Próximamente - Fase 3 del roadmap
-                </p>
-                <p className="text-xs text-muted-foreground max-w-md mx-auto">
-                  Incluirá: precios, ofertas, reviews comparativas, presencia online,
-                  y ranking en búsquedas locales
-                </p>
-              </div>
-            </CardContent>
-          </Card>
+          {data.competitors && data.competitors.status === 'real_data' ? (
+            <>
+              {/* Comparativa de Precios */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center">
+                    <DollarSign className="h-5 w-5 mr-2 text-green-600" />
+                    Comparativa de Precios - Entrada Adulto
+                  </CardTitle>
+                  <CardDescription>
+                    Última actualización: {data.competitors.generated_at}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {/* Aremko */}
+                    {data.competitors.aremko_precio_referencia?.precio_entrada_adulto && (
+                      <div className="flex items-center justify-between p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                        <div>
+                          <p className="font-bold text-lg">Aremko (Nosotros)</p>
+                          <p className="text-sm text-muted-foreground">Precio de referencia</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-2xl font-bold text-blue-600">
+                            {formatCurrency(data.competitors.aremko_precio_referencia.precio_entrada_adulto)}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Competidores */}
+                    {data.competitors.competitors?.map((competitor: any) => (
+                      <div key={competitor.id} className="flex items-center justify-between p-4 border rounded-lg">
+                        <div className="flex-1">
+                          <p className="font-semibold">{competitor.nombre}</p>
+                          <a
+                            href={competitor.website}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs text-blue-600 hover:underline"
+                          >
+                            {competitor.website}
+                          </a>
+                        </div>
+                        <div className="text-right">
+                          {competitor.snapshot?.precio_entrada_adulto ? (
+                            <>
+                              <p className="text-xl font-bold">
+                                {formatCurrency(competitor.snapshot.precio_entrada_adulto)}
+                              </p>
+                              {data.competitors.aremko_precio_referencia?.precio_entrada_adulto && (
+                                <p className="text-xs text-muted-foreground">
+                                  {competitor.snapshot.precio_entrada_adulto < data.competitors.aremko_precio_referencia.precio_entrada_adulto ? (
+                                    <span className="text-red-600">▼ Más barato que nosotros</span>
+                                  ) : competitor.snapshot.precio_entrada_adulto > data.competitors.aremko_precio_referencia.precio_entrada_adulto ? (
+                                    <span className="text-green-600">▲ Más caro que nosotros</span>
+                                  ) : (
+                                    <span className="text-gray-600">= Igual que nosotros</span>
+                                  )}
+                                </p>
+                              )}
+                            </>
+                          ) : (
+                            <p className="text-sm text-muted-foreground">Sin datos</p>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Servicios Ofrecidos */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center">
+                    <ShoppingBag className="h-5 w-5 mr-2 text-purple-600" />
+                    Servicios Ofrecidos
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b">
+                          <th className="text-left p-2">Competidor</th>
+                          <th className="text-center p-2">Piscinas Termales</th>
+                          <th className="text-center p-2">Masajes</th>
+                          <th className="text-center p-2">Restaurant</th>
+                          <th className="text-center p-2">Alojamiento</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {data.competitors.competitors?.map((competitor: any) => (
+                          <tr key={competitor.id} className="border-b">
+                            <td className="p-2 font-medium">{competitor.nombre}</td>
+                            <td className="text-center p-2">
+                              {competitor.snapshot?.servicios?.piscinas_termales ? '✅' : '❌'}
+                            </td>
+                            <td className="text-center p-2">
+                              {competitor.snapshot?.servicios?.masajes ? '✅' : '❌'}
+                            </td>
+                            <td className="text-center p-2">
+                              {competitor.snapshot?.servicios?.restaurant ? '✅' : '❌'}
+                            </td>
+                            <td className="text-center p-2">
+                              {competitor.snapshot?.servicios?.alojamiento ? '✅' : '❌'}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Redes Sociales */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center">
+                    <Share2 className="h-5 w-5 mr-2 text-blue-600" />
+                    Presencia en Redes Sociales
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    {data.competitors.competitors?.map((competitor: any) => (
+                      competitor.social_media && (
+                        <div key={competitor.id} className="p-4 border rounded-lg">
+                          <p className="font-semibold mb-3">{competitor.nombre}</p>
+                          <div className="space-y-2 text-sm">
+                            {competitor.social_media.facebook_seguidores && (
+                              <div className="flex justify-between">
+                                <span className="text-muted-foreground">Facebook:</span>
+                                <span className="font-medium">{formatNumber(competitor.social_media.facebook_seguidores)} seguidores</span>
+                              </div>
+                            )}
+                            {competitor.social_media.instagram_seguidores && (
+                              <div className="flex justify-between">
+                                <span className="text-muted-foreground">Instagram:</span>
+                                <span className="font-medium">{formatNumber(competitor.social_media.instagram_seguidores)} seguidores</span>
+                              </div>
+                            )}
+                            {competitor.social_media.engagement_rate && (
+                              <div className="flex justify-between">
+                                <span className="text-muted-foreground">Engagement:</span>
+                                <span className="font-medium">{(competitor.social_media.engagement_rate * 100).toFixed(1)}%</span>
+                              </div>
+                            )}
+                            {competitor.social_media.posts_ultima_semana !== null && (
+                              <div className="flex justify-between">
+                                <span className="text-muted-foreground">Posts (última semana):</span>
+                                <span className="font-medium">{competitor.social_media.posts_ultima_semana}</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </>
+          ) : (
+            <Card>
+              <CardHeader>
+                <CardTitle>Análisis de Competencia</CardTitle>
+                <CardDescription>Monitoreo de competidores principales en Puerto Varas</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="p-12 text-center border-2 border-dashed rounded-lg">
+                  <Users className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
+                  <p className="text-lg font-medium mb-2">Datos no disponibles</p>
+                  <p className="text-sm text-muted-foreground">
+                    {data.competitors?.error || 'Esperando datos de competidores...'}
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
 
         {/* ANÁLISIS IA */}
