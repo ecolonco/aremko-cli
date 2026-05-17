@@ -322,43 +322,158 @@ export default function BriefPage() {
 
         {/* WEB ANALYTICS */}
         <TabsContent value="web" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Análisis Web - Google Analytics 4</CardTitle>
-              <CardDescription>Tráfico y comportamiento en www.aremko.cl</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {data.web_analytics ? (
-                <div className="space-y-4">
+          {data.web_analytics ? (
+            <>
+              {/* Métricas Principales */}
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Usuarios Activos</CardTitle>
+                    <Users className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{formatNumber(data.web_analytics.active_users)}</div>
+                    <p className="text-xs text-muted-foreground">
+                      {formatNumber(data.web_analytics.new_users)} nuevos ({formatPercentage(data.web_analytics.new_users / data.web_analytics.total_users)})
+                    </p>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Sesiones</CardTitle>
+                    <Eye className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{formatNumber(data.web_analytics.sessions)}</div>
+                    <p className="text-xs text-muted-foreground">
+                      {(data.web_analytics.page_views / data.web_analytics.sessions).toFixed(1)} páginas por sesión
+                    </p>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Páginas Vistas</CardTitle>
+                    <MousePointer className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{formatNumber(data.web_analytics.page_views)}</div>
+                    <p className="text-xs text-muted-foreground">
+                      {formatNumber(data.web_analytics.event_count)} eventos totales
+                    </p>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Tasa de Rebote</CardTitle>
+                    <TrendingDown className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{formatPercentage(data.web_analytics.bounce_rate)}</div>
+                    <p className="text-xs text-muted-foreground">
+                      {data.web_analytics.bounce_rate < 0.5 ? '✅ Buena retención' : '⚠️ Revisar contenido'}
+                    </p>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Páginas Más Visitadas */}
+              {data.web_analytics.top_pages && data.web_analytics.top_pages.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Páginas Más Visitadas</CardTitle>
+                    <CardDescription>Top 10 páginas por número de visitas</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      {data.web_analytics.top_pages.map((page: any, idx: number) => (
+                        <div key={idx} className="flex items-center justify-between p-3 border rounded-lg">
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium truncate">{page.title}</p>
+                            <p className="text-xs text-muted-foreground truncate">{page.path}</p>
+                          </div>
+                          <div className="text-right ml-4">
+                            <p className="text-lg font-bold">{formatNumber(page.page_views)}</p>
+                            <p className="text-xs text-muted-foreground">{formatNumber(page.users)} usuarios</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Fuentes de Tráfico */}
+              {data.web_analytics.traffic_sources && data.web_analytics.traffic_sources.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Fuentes de Tráfico</CardTitle>
+                    <CardDescription>De dónde vienen tus visitantes</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      {data.web_analytics.traffic_sources.map((source: any, idx: number) => (
+                        <div key={idx} className="flex items-center justify-between p-3 border rounded-lg">
+                          <div className="flex items-center gap-3">
+                            <div className="w-2 h-2 rounded-full bg-blue-600" />
+                            <div>
+                              <p className="font-medium">{source.source}</p>
+                              <p className="text-xs text-muted-foreground">{source.medium}</p>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-lg font-bold">{formatNumber(source.sessions)}</p>
+                            <p className="text-xs text-muted-foreground">{formatNumber(source.new_users)} nuevos</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Métricas de Comportamiento */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Métricas de Comportamiento</CardTitle>
+                  <CardDescription>Cómo interactúan los usuarios con tu sitio</CardDescription>
+                </CardHeader>
+                <CardContent>
                   <div className="grid gap-4 md:grid-cols-3">
-                    <div className="space-y-2">
-                      <p className="text-sm text-muted-foreground">Usuarios Activos</p>
-                      <p className="text-3xl font-bold">{formatNumber(data.web_analytics.active_users)}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {formatNumber(data.web_analytics.new_users)} nuevos ({formatPercentage(data.web_analytics.new_users / data.web_analytics.total_users)})
-                      </p>
+                    <div className="p-4 border rounded-lg">
+                      <p className="text-sm text-muted-foreground mb-1">Duración Promedio</p>
+                      <p className="text-2xl font-bold">{Math.round(data.web_analytics.avg_session_duration / 60)} min</p>
+                      <p className="text-xs text-muted-foreground">{Math.round(data.web_analytics.avg_session_duration)}s por sesión</p>
                     </div>
-                    <div className="space-y-2">
-                      <p className="text-sm text-muted-foreground">Tasa de Rebote</p>
-                      <p className="text-3xl font-bold">{formatPercentage(data.web_analytics.bounce_rate)}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {data.web_analytics.bounce_rate < 0.5 ? '✅ Buena retención' : '⚠️ Revisar contenido'}
-                      </p>
+                    <div className="p-4 border rounded-lg">
+                      <p className="text-sm text-muted-foreground mb-1">Total Usuarios</p>
+                      <p className="text-2xl font-bold">{formatNumber(data.web_analytics.total_users)}</p>
+                      <p className="text-xs text-muted-foreground">{formatPercentage(data.web_analytics.new_users / data.web_analytics.total_users)} son nuevos</p>
                     </div>
-                    <div className="space-y-2">
-                      <p className="text-sm text-muted-foreground">Duración Promedio</p>
-                      <p className="text-3xl font-bold">{Math.round(data.web_analytics.avg_session_duration)}s</p>
-                      <p className="text-xs text-muted-foreground">
-                        {Math.round(data.web_analytics.avg_session_duration / 60)} minutos por sesión
-                      </p>
+                    <div className="p-4 border rounded-lg">
+                      <p className="text-sm text-muted-foreground mb-1">Eventos Totales</p>
+                      <p className="text-2xl font-bold">{formatNumber(data.web_analytics.event_count)}</p>
+                      <p className="text-xs text-muted-foreground">{(data.web_analytics.event_count / data.web_analytics.sessions).toFixed(1)} por sesión</p>
                     </div>
                   </div>
+                </CardContent>
+              </Card>
+            </>
+          ) : (
+            <Card>
+              <CardContent className="p-12">
+                <div className="text-center">
+                  <Globe className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
+                  <p className="text-lg font-medium mb-2">Datos de web analytics no disponibles</p>
+                  <p className="text-sm text-muted-foreground">
+                    Verifica la configuración de Google Analytics 4
+                  </p>
                 </div>
-              ) : (
-                <p className="text-muted-foreground">Datos de web analytics no disponibles</p>
-              )}
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
 
         {/* REDES SOCIALES */}

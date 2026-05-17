@@ -36,6 +36,12 @@ func GetWeeklyBrief(cfg *config.Config) http.HandlerFunc {
 				ctx := context.Background()
 				ga4Stats, err := ga4Client.GetStats(ctx, dateStart, dateStop)
 				if err == nil {
+					// Obtener páginas más visitadas
+					topPages, _ := ga4Client.GetTopPages(ctx, dateStart, dateStop, 10)
+
+					// Obtener fuentes de tráfico
+					trafficSources, _ := ga4Client.GetTrafficSources(ctx, dateStart, dateStop)
+
 					brief["web_analytics"] = map[string]interface{}{
 						"active_users":         ga4Stats.ActiveUsers,
 						"total_users":          ga4Stats.TotalUsers,
@@ -45,6 +51,8 @@ func GetWeeklyBrief(cfg *config.Config) http.HandlerFunc {
 						"avg_session_duration": ga4Stats.AvgSessionDuration,
 						"new_users":            ga4Stats.NewUsers,
 						"event_count":          ga4Stats.EventCount,
+						"top_pages":            topPages,
+						"traffic_sources":      trafficSources,
 					}
 				}
 			}
