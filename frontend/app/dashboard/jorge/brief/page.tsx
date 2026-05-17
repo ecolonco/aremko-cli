@@ -476,56 +476,211 @@ export default function BriefPage() {
                 </Card>
               </div>
 
-              {/* Páginas Más Visitadas */}
-              {data.web_analytics.top_pages && data.web_analytics.top_pages.length > 0 && (
+              {/* Páginas Más Visitadas - Evolución Semanal */}
+              {data.web_analytics.top_pages_weekly && (
                 <Card>
                   <CardHeader>
-                    <CardTitle>Páginas Más Visitadas</CardTitle>
-                    <CardDescription>Top 10 páginas por número de visitas</CardDescription>
+                    <CardTitle>Páginas Más Visitadas - Últimas 4 Semanas</CardTitle>
+                    <CardDescription>Evolución de las top 5 páginas semana a semana</CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <div className="space-y-3">
-                      {data.web_analytics.top_pages.map((page: any, idx: number) => (
-                        <div key={idx} className="flex items-center justify-between p-3 border rounded-lg">
-                          <div className="flex-1 min-w-0">
-                            <p className="font-medium truncate">{page.title}</p>
-                            <p className="text-xs text-muted-foreground truncate">{page.path}</p>
-                          </div>
-                          <div className="text-right ml-4">
-                            <p className="text-lg font-bold">{formatNumber(page.page_views)}</p>
-                            <p className="text-xs text-muted-foreground">{formatNumber(page.users)} usuarios</p>
-                          </div>
-                        </div>
-                      ))}
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b">
+                            <th className="text-left p-2 font-medium">Página</th>
+                            <th className="text-right p-2 font-medium">Semana 1</th>
+                            <th className="text-right p-2 font-medium">Semana 2</th>
+                            <th className="text-right p-2 font-medium">Sem. Pasada</th>
+                            <th className="text-right p-2 font-medium">Esta Semana</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {/* Obtener lista única de todas las páginas */}
+                          {(() => {
+                            const allPages = new Map();
+                            ['week_1', 'week_2', 'week_3', 'week_4'].forEach(week => {
+                              (data.web_analytics.top_pages_weekly[week] || []).forEach((page: any) => {
+                                if (!allPages.has(page.path)) {
+                                  allPages.set(page.path, { title: page.title, path: page.path });
+                                }
+                              });
+                            });
+
+                            return Array.from(allPages.values()).slice(0, 5).map((pageInfo: any, idx: number) => {
+                              const week1 = (data.web_analytics.top_pages_weekly.week_1 || []).find((p: any) => p.path === pageInfo.path);
+                              const week2 = (data.web_analytics.top_pages_weekly.week_2 || []).find((p: any) => p.path === pageInfo.path);
+                              const week3 = (data.web_analytics.top_pages_weekly.week_3 || []).find((p: any) => p.path === pageInfo.path);
+                              const week4 = (data.web_analytics.top_pages_weekly.week_4 || []).find((p: any) => p.path === pageInfo.path);
+
+                              return (
+                                <tr key={idx} className="border-b hover:bg-gray-50">
+                                  <td className="p-2">
+                                    <div className="max-w-xs">
+                                      <p className="font-medium truncate text-sm">{pageInfo.title}</p>
+                                      <p className="text-xs text-muted-foreground truncate">{pageInfo.path}</p>
+                                    </div>
+                                  </td>
+                                  <td className="text-right p-2">
+                                    {week1 ? (
+                                      <div>
+                                        <p className="font-medium">{formatNumber(week1.page_views)}</p>
+                                        <p className="text-xs text-muted-foreground">{formatNumber(week1.users)} users</p>
+                                      </div>
+                                    ) : <span className="text-gray-400">-</span>}
+                                  </td>
+                                  <td className="text-right p-2">
+                                    {week2 ? (
+                                      <div>
+                                        <p className="font-medium">{formatNumber(week2.page_views)}</p>
+                                        <p className="text-xs text-muted-foreground">{formatNumber(week2.users)} users</p>
+                                        {week1 && (
+                                          <p className={`text-xs ${week2.page_views > week1.page_views ? 'text-green-600' : week2.page_views < week1.page_views ? 'text-red-600' : 'text-gray-600'}`}>
+                                            {week2.page_views > week1.page_views ? '▲' : week2.page_views < week1.page_views ? '▼' : '='} {Math.abs(((week2.page_views - week1.page_views) / week1.page_views) * 100).toFixed(0)}%
+                                          </p>
+                                        )}
+                                      </div>
+                                    ) : <span className="text-gray-400">-</span>}
+                                  </td>
+                                  <td className="text-right p-2">
+                                    {week3 ? (
+                                      <div>
+                                        <p className="font-medium">{formatNumber(week3.page_views)}</p>
+                                        <p className="text-xs text-muted-foreground">{formatNumber(week3.users)} users</p>
+                                        {week2 && (
+                                          <p className={`text-xs ${week3.page_views > week2.page_views ? 'text-green-600' : week3.page_views < week2.page_views ? 'text-red-600' : 'text-gray-600'}`}>
+                                            {week3.page_views > week2.page_views ? '▲' : week3.page_views < week2.page_views ? '▼' : '='} {Math.abs(((week3.page_views - week2.page_views) / week2.page_views) * 100).toFixed(0)}%
+                                          </p>
+                                        )}
+                                      </div>
+                                    ) : <span className="text-gray-400">-</span>}
+                                  </td>
+                                  <td className="text-right p-2 bg-blue-50">
+                                    {week4 ? (
+                                      <div>
+                                        <p className="font-bold">{formatNumber(week4.page_views)}</p>
+                                        <p className="text-xs text-muted-foreground">{formatNumber(week4.users)} users</p>
+                                        {week3 && (
+                                          <p className={`text-xs font-medium ${week4.page_views > week3.page_views ? 'text-green-600' : week4.page_views < week3.page_views ? 'text-red-600' : 'text-gray-600'}`}>
+                                            {week4.page_views > week3.page_views ? '▲' : week4.page_views < week3.page_views ? '▼' : '='} {Math.abs(((week4.page_views - week3.page_views) / week3.page_views) * 100).toFixed(0)}%
+                                          </p>
+                                        )}
+                                      </div>
+                                    ) : <span className="text-gray-400">-</span>}
+                                  </td>
+                                </tr>
+                              );
+                            });
+                          })()}
+                        </tbody>
+                      </table>
                     </div>
                   </CardContent>
                 </Card>
               )}
 
-              {/* Fuentes de Tráfico */}
-              {data.web_analytics.traffic_sources && data.web_analytics.traffic_sources.length > 0 && (
+              {/* Fuentes de Tráfico - Evolución Semanal */}
+              {data.web_analytics.traffic_sources_weekly && (
                 <Card>
                   <CardHeader>
-                    <CardTitle>Fuentes de Tráfico</CardTitle>
-                    <CardDescription>De dónde vienen tus visitantes</CardDescription>
+                    <CardTitle>Fuentes de Tráfico - Últimas 4 Semanas</CardTitle>
+                    <CardDescription>Evolución de las principales fuentes de tráfico</CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <div className="space-y-3">
-                      {data.web_analytics.traffic_sources.map((source: any, idx: number) => (
-                        <div key={idx} className="flex items-center justify-between p-3 border rounded-lg">
-                          <div className="flex items-center gap-3">
-                            <div className="w-2 h-2 rounded-full bg-blue-600" />
-                            <div>
-                              <p className="font-medium">{source.source}</p>
-                              <p className="text-xs text-muted-foreground">{source.medium}</p>
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <p className="text-lg font-bold">{formatNumber(source.sessions)}</p>
-                            <p className="text-xs text-muted-foreground">{formatNumber(source.new_users)} nuevos</p>
-                          </div>
-                        </div>
-                      ))}
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b">
+                            <th className="text-left p-2 font-medium">Fuente / Medio</th>
+                            <th className="text-right p-2 font-medium">Semana 1</th>
+                            <th className="text-right p-2 font-medium">Semana 2</th>
+                            <th className="text-right p-2 font-medium">Sem. Pasada</th>
+                            <th className="text-right p-2 font-medium">Esta Semana</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {(() => {
+                            const allSources = new Map();
+                            ['week_1', 'week_2', 'week_3', 'week_4'].forEach(week => {
+                              (data.web_analytics.traffic_sources_weekly[week] || []).forEach((source: any) => {
+                                const key = `${source.source}/${source.medium}`;
+                                if (!allSources.has(key)) {
+                                  allSources.set(key, { source: source.source, medium: source.medium });
+                                }
+                              });
+                            });
+
+                            return Array.from(allSources.values()).slice(0, 6).map((sourceInfo: any, idx: number) => {
+                              const key = `${sourceInfo.source}/${sourceInfo.medium}`;
+                              const week1 = (data.web_analytics.traffic_sources_weekly.week_1 || []).find((s: any) => `${s.source}/${s.medium}` === key);
+                              const week2 = (data.web_analytics.traffic_sources_weekly.week_2 || []).find((s: any) => `${s.source}/${s.medium}` === key);
+                              const week3 = (data.web_analytics.traffic_sources_weekly.week_3 || []).find((s: any) => `${s.source}/${s.medium}` === key);
+                              const week4 = (data.web_analytics.traffic_sources_weekly.week_4 || []).find((s: any) => `${s.source}/${s.medium}` === key);
+
+                              return (
+                                <tr key={idx} className="border-b hover:bg-gray-50">
+                                  <td className="p-2">
+                                    <div className="flex items-center gap-2">
+                                      <div className="w-2 h-2 rounded-full bg-blue-600" />
+                                      <div>
+                                        <p className="font-medium text-sm">{sourceInfo.source}</p>
+                                        <p className="text-xs text-muted-foreground">{sourceInfo.medium}</p>
+                                      </div>
+                                    </div>
+                                  </td>
+                                  <td className="text-right p-2">
+                                    {week1 ? (
+                                      <div>
+                                        <p className="font-medium">{formatNumber(week1.sessions)}</p>
+                                        <p className="text-xs text-muted-foreground">{formatNumber(week1.new_users)} nuevos</p>
+                                      </div>
+                                    ) : <span className="text-gray-400">-</span>}
+                                  </td>
+                                  <td className="text-right p-2">
+                                    {week2 ? (
+                                      <div>
+                                        <p className="font-medium">{formatNumber(week2.sessions)}</p>
+                                        <p className="text-xs text-muted-foreground">{formatNumber(week2.new_users)} nuevos</p>
+                                        {week1 && (
+                                          <p className={`text-xs ${week2.sessions > week1.sessions ? 'text-green-600' : week2.sessions < week1.sessions ? 'text-red-600' : 'text-gray-600'}`}>
+                                            {week2.sessions > week1.sessions ? '▲' : week2.sessions < week1.sessions ? '▼' : '='} {Math.abs(((week2.sessions - week1.sessions) / week1.sessions) * 100).toFixed(0)}%
+                                          </p>
+                                        )}
+                                      </div>
+                                    ) : <span className="text-gray-400">-</span>}
+                                  </td>
+                                  <td className="text-right p-2">
+                                    {week3 ? (
+                                      <div>
+                                        <p className="font-medium">{formatNumber(week3.sessions)}</p>
+                                        <p className="text-xs text-muted-foreground">{formatNumber(week3.new_users)} nuevos</p>
+                                        {week2 && (
+                                          <p className={`text-xs ${week3.sessions > week2.sessions ? 'text-green-600' : week3.sessions < week2.sessions ? 'text-red-600' : 'text-gray-600'}`}>
+                                            {week3.sessions > week2.sessions ? '▲' : week3.sessions < week2.sessions ? '▼' : '='} {Math.abs(((week3.sessions - week2.sessions) / week2.sessions) * 100).toFixed(0)}%
+                                          </p>
+                                        )}
+                                      </div>
+                                    ) : <span className="text-gray-400">-</span>}
+                                  </td>
+                                  <td className="text-right p-2 bg-blue-50">
+                                    {week4 ? (
+                                      <div>
+                                        <p className="font-bold">{formatNumber(week4.sessions)}</p>
+                                        <p className="text-xs text-muted-foreground">{formatNumber(week4.new_users)} nuevos</p>
+                                        {week3 && (
+                                          <p className={`text-xs font-medium ${week4.sessions > week3.sessions ? 'text-green-600' : week4.sessions < week3.sessions ? 'text-red-600' : 'text-gray-600'}`}>
+                                            {week4.sessions > week3.sessions ? '▲' : week4.sessions < week3.sessions ? '▼' : '='} {Math.abs(((week4.sessions - week3.sessions) / week3.sessions) * 100).toFixed(0)}%
+                                          </p>
+                                        )}
+                                      </div>
+                                    ) : <span className="text-gray-400">-</span>}
+                                  </td>
+                                </tr>
+                              );
+                            });
+                          })()}
+                        </tbody>
+                      </table>
                     </div>
                   </CardContent>
                 </Card>

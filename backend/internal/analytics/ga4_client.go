@@ -278,3 +278,71 @@ func (c *GA4Client) GetWeeklyTrends(ctx context.Context) ([]WeeklyStats, error) 
 
 	return weeks, nil
 }
+
+// GetTopPagesWeekly obtiene las páginas más visitadas para las últimas 4 semanas
+func (c *GA4Client) GetTopPagesWeekly(ctx context.Context, limit int) (map[string][]map[string]interface{}, error) {
+	now := time.Now()
+	weeklyPages := make(map[string][]map[string]interface{})
+
+	// Obtener datos para cada una de las últimas 4 semanas
+	for i := 0; i < 4; i++ {
+		weekEnd := now.AddDate(0, 0, -1-(i*7))
+		weekStart := weekEnd.AddDate(0, 0, -6)
+
+		startDate := weekStart.Format("2006-01-02")
+		endDate := weekEnd.Format("2006-01-02")
+
+		weekLabel := fmt.Sprintf("week_%d", 4-i)
+		if i == 0 {
+			weekLabel = "week_4" // Esta semana
+		} else if i == 1 {
+			weekLabel = "week_3" // Semana pasada
+		} else if i == 2 {
+			weekLabel = "week_2"
+		} else {
+			weekLabel = "week_1"
+		}
+
+		// Obtener top pages para esta semana
+		pages, err := c.GetTopPages(ctx, startDate, endDate, limit)
+		if err == nil {
+			weeklyPages[weekLabel] = pages
+		}
+	}
+
+	return weeklyPages, nil
+}
+
+// GetTrafficSourcesWeekly obtiene las fuentes de tráfico para las últimas 4 semanas
+func (c *GA4Client) GetTrafficSourcesWeekly(ctx context.Context) (map[string][]map[string]interface{}, error) {
+	now := time.Now()
+	weeklySources := make(map[string][]map[string]interface{})
+
+	// Obtener datos para cada una de las últimas 4 semanas
+	for i := 0; i < 4; i++ {
+		weekEnd := now.AddDate(0, 0, -1-(i*7))
+		weekStart := weekEnd.AddDate(0, 0, -6)
+
+		startDate := weekStart.Format("2006-01-02")
+		endDate := weekEnd.Format("2006-01-02")
+
+		weekLabel := fmt.Sprintf("week_%d", 4-i)
+		if i == 0 {
+			weekLabel = "week_4" // Esta semana
+		} else if i == 1 {
+			weekLabel = "week_3" // Semana pasada
+		} else if i == 2 {
+			weekLabel = "week_2"
+		} else {
+			weekLabel = "week_1"
+		}
+
+		// Obtener traffic sources para esta semana
+		sources, err := c.GetTrafficSources(ctx, startDate, endDate)
+		if err == nil {
+			weeklySources[weekLabel] = sources
+		}
+	}
+
+	return weeklySources, nil
+}

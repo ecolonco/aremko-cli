@@ -44,6 +44,8 @@ func GetWeeklyBrief(cfg *config.Config) http.HandlerFunc {
 
 				// Obtener tendencias semanales (últimas 4 semanas)
 				weeklyTrends, _ := ga4Client.GetWeeklyTrends(ctx)
+				topPagesWeekly, _ := ga4Client.GetTopPagesWeekly(ctx, 5)
+				trafficSourcesWeekly, _ := ga4Client.GetTrafficSourcesWeekly(ctx)
 
 					brief["web_analytics"] = map[string]interface{}{
 						"active_users":         ga4Stats.ActiveUsers,
@@ -57,6 +59,8 @@ func GetWeeklyBrief(cfg *config.Config) http.HandlerFunc {
 						"top_pages":            topPages,
 						"traffic_sources":      trafficSources,
 						"weekly_trends":        weeklyTrends,
+						"top_pages_weekly":        topPagesWeekly,
+						"traffic_sources_weekly":  trafficSourcesWeekly,
 					}
 				}
 			}
@@ -440,6 +444,8 @@ func GetWeeklyBriefWithAI(cfg *config.Config) http.HandlerFunc {
 					topPages, _ := ga4Client.GetTopPages(ctx, dateStart, dateStop, 10)
 					trafficSources, _ := ga4Client.GetTrafficSources(ctx, dateStart, dateStop)
 					weeklyTrends, _ := ga4Client.GetWeeklyTrends(ctx)
+					topPagesWeekly, _ := ga4Client.GetTopPagesWeekly(ctx, 5)
+					trafficSourcesWeekly, _ := ga4Client.GetTrafficSourcesWeekly(ctx)
 
 					briefData["web_analytics"] = map[string]interface{}{
 						"active_users":         ga4Stats.ActiveUsers,
@@ -453,6 +459,8 @@ func GetWeeklyBriefWithAI(cfg *config.Config) http.HandlerFunc {
 						"top_pages":            topPages,
 						"traffic_sources":      trafficSources,
 						"weekly_trends":        weeklyTrends,
+						"top_pages_weekly":        topPagesWeekly,
+						"traffic_sources_weekly":  trafficSourcesWeekly,
 					}
 				}
 			}
