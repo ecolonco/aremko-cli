@@ -98,24 +98,44 @@ func GetWeeklyBrief(cfg *config.Config) http.HandlerFunc {
 			}
 		}
 
-		// Google Ads section (placeholder)
-		if cfg.EnableGoogleAds {
-			brief["google_ads"] = map[string]interface{}{
-				"status": "coming_soon",
+
+	// Competitors Analysis section
+	if cfg.EnableBookings {
+		competitorsClient := competitors.NewClient(cfg.BookingSystemURL)
+		competitorsSummary, err := competitorsClient.GetCompetitorsSummary()
+		if err == nil {
+			brief["competitors"] = map[string]interface{}{
+				"competitors":              competitorsSummary.Competitors,
+				"aremko_precio_referencia": competitorsSummary.AremkoPrecio,
+				"generated_at":             competitorsSummary.GeneratedAt,
+				"status":                   "real_data",
+			}
+		} else {
+			brief["competitors"] = map[string]interface{}{
+				"status": "error",
+				"error":  err.Error(),
 			}
 		}
+	}
 
-		// LinkedIn section (placeholder)
-		if cfg.EnableLinkedIn {
-			brief["linkedin"] = map[string]interface{}{
-				"status": "coming_soon",
-			}
+	// Google Ads section (placeholder)
+	if cfg.EnableGoogleAds {
+		brief["google_ads"] = map[string]interface{}{
+			"status": "coming_soon",
 		}
+	}
 
-		respondJSON(w, http.StatusOK, map[string]interface{}{
-			"success": true,
-			"data":    brief,
-		})
+	// LinkedIn section (placeholder)
+	if cfg.EnableLinkedIn {
+		brief["linkedin"] = map[string]interface{}{
+			"status": "coming_soon",
+		}
+	}
+
+	respondJSON(w, http.StatusOK, map[string]interface{}{
+		"success": true,
+		"data":    brief,
+	})
 	}
 }
 
@@ -483,13 +503,32 @@ func GetWeeklyBriefWithAI(cfg *config.Config) http.HandlerFunc {
 			}
 		}
 
-		// Generar análisis con IA si está habilitado
-		var aiAnalysis *ai.LLMResult
-		var contentCalendar *ai.LLMResult
+	// Competitors Analysis section
+	if cfg.EnableBookings {
+		competitorsClient := competitors.NewClient(cfg.BookingSystemURL)
+		competitorsSummary, err := competitorsClient.GetCompetitorsSummary()
+		if err == nil {
+			briefData["competitors"] = map[string]interface{}{
+				"competitors":              competitorsSummary.Competitors,
+				"aremko_precio_referencia": competitorsSummary.AremkoPrecio,
+				"generated_at":             competitorsSummary.GeneratedAt,
+				"status":                   "real_data",
+			}
+		} else {
+			briefData["competitors"] = map[string]interface{}{
+				"status": "error",
+				"error":  err.Error(),
+			}
+		}
+	}
 
-		if cfg.EnableAI && cfg.OpenRouterAPIKey != "" {
-			aiClient := ai.NewOpenRouterClient(cfg.OpenRouterAPIKey, cfg.OpenRouterBaseURL)
-			ctx := context.Background()
+	// Generar análisis con IA si está habilitado
+	var aiAnalysis *ai.LLMResult
+	var contentCalendar *ai.LLMResult
+
+	if cfg.EnableAI && cfg.OpenRouterAPIKey != "" {
+		aiClient := ai.NewOpenRouterClient(cfg.OpenRouterAPIKey, cfg.OpenRouterBaseURL)
+		ctx := context.Background()
 
 			// Generar análisis del brief
 			fmt.Println("[AI] Generando análisis del brief...")
