@@ -213,3 +213,68 @@ func (c *GA4Client) GetTrafficSources(ctx context.Context, startDate, endDate st
 
 	return sources, nil
 }
+
+// WeeklyStats representa las estadísticas de una semana
+type WeeklyStats struct {
+	WeekLabel         string  `json:"week_label"`
+	StartDate         string  `json:"start_date"`
+	EndDate           string  `json:"end_date"`
+	ActiveUsers       int64   `json:"active_users"`
+	TotalUsers        int64   `json:"total_users"`
+	Sessions          int64   `json:"sessions"`
+	PageViews         int64   `json:"page_views"`
+	BounceRate        float64 `json:"bounce_rate"`
+	AvgSessionDuration float64 `json:"avg_session_duration"`
+	NewUsers          int64   `json:"new_users"`
+	EventCount        int64   `json:"event_count"`
+}
+
+// GetWeeklyTrends obtiene estadísticas de las últimas 4 semanas
+func (c *GA4Client) GetWeeklyTrends(ctx context.Context) ([]WeeklyStats, error) {
+	now := time.Now()
+	var weeks []WeeklyStats
+
+	// Obtener datos para cada una de las últimas 4 semanas
+	for i := 0; i < 4; i++ {
+		// Calcular fechas de la semana (de lunes a domingo)
+		weekEnd := now.AddDate(0, 0, -1-(i*7)) // Ayer menos i semanas
+		weekStart := weekEnd.AddDate(0, 0, -6)  // 6 días antes
+
+		startDate := weekStart.Format("2006-01-02")
+		endDate := weekEnd.Format("2006-01-02")
+
+		// Obtener estadísticas para esta semana
+		stats, err := c.GetStats(ctx, startDate, endDate)
+		if err != nil {
+			continue // Continuar con la siguiente semana si hay error
+		}
+
+		weekLabel := fmt.Sprintf("Semana %d", 4-i)
+		if i == 0 {
+			weekLabel = "Esta semana"
+		} else if i == 1 {
+			weekLabel = "Semana pasada"
+		}
+
+		weeks = append(weeks, WeeklyStats{
+			WeekLabel:          weekLabel,
+			StartDate:          startDate,
+			EndDate:            endDate,
+			ActiveUsers:        stats.ActiveUsers,
+			TotalUsers:         stats.TotalUsers,
+			Sessions:           stats.Sessions,
+			PageViews:          stats.PageViews,
+			BounceRate:         stats.BounceRate,
+			AvgSessionDuration: stats.AvgSessionDuration,
+			NewUsers:           stats.NewUsers,
+			EventCount:         stats.EventCount,
+		})
+	}
+
+	// Invertir el orden para que la semana más antigua esté primero
+	for i, j := 0, len(weeks)-1; i < j; i, j = i+1, j-1 {
+		weeks[i], weeks[j] = weeks[j], weeks[i]
+	}
+
+	return weeks, nil
+}

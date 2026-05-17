@@ -324,6 +324,103 @@ export default function BriefPage() {
         <TabsContent value="web" className="space-y-4">
           {data.web_analytics ? (
             <>
+              {/* Tendencias Semanales */}
+              {data.web_analytics.weekly_trends && data.web_analytics.weekly_trends.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Tendencias de las Últimas 4 Semanas</CardTitle>
+                    <CardDescription>Evolución de métricas clave semana a semana</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b">
+                            <th className="text-left p-2 font-medium">Semana</th>
+                            <th className="text-right p-2 font-medium">Usuarios</th>
+                            <th className="text-right p-2 font-medium">Sesiones</th>
+                            <th className="text-right p-2 font-medium">Pageviews</th>
+                            <th className="text-right p-2 font-medium">Tasa Rebote</th>
+                            <th className="text-right p-2 font-medium">Duración Avg</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {data.web_analytics.weekly_trends.map((week: any, idx: number) => {
+                            const prevWeek = idx > 0 ? data.web_analytics.weekly_trends[idx - 1] : null;
+                            const usersTrend = prevWeek ? ((week.active_users - prevWeek.active_users) / prevWeek.active_users) * 100 : 0;
+                            const sessionsTrend = prevWeek ? ((week.sessions - prevWeek.sessions) / prevWeek.sessions) * 100 : 0;
+                            const pageViewsTrend = prevWeek ? ((week.page_views - prevWeek.page_views) / prevWeek.page_views) * 100 : 0;
+                            const bounceRateTrend = prevWeek ? ((week.bounce_rate - prevWeek.bounce_rate) / prevWeek.bounce_rate) * 100 : 0;
+
+                            return (
+                              <tr key={idx} className={`border-b ${idx === data.web_analytics.weekly_trends.length - 1 ? 'bg-blue-50 font-medium' : ''}`}>
+                                <td className="p-2">
+                                  <div>
+                                    <p className="font-medium">{week.week_label}</p>
+                                    <p className="text-xs text-muted-foreground">{week.start_date} - {week.end_date}</p>
+                                  </div>
+                                </td>
+                                <td className="text-right p-2">
+                                  <div>
+                                    <p>{formatNumber(week.active_users)}</p>
+                                    {prevWeek && (
+                                      <p className={`text-xs ${usersTrend > 0 ? 'text-green-600' : usersTrend < 0 ? 'text-red-600' : 'text-gray-600'}`}>
+                                        {usersTrend > 0 ? '▲' : usersTrend < 0 ? '▼' : '='} {Math.abs(usersTrend).toFixed(1)}%
+                                      </p>
+                                    )}
+                                  </div>
+                                </td>
+                                <td className="text-right p-2">
+                                  <div>
+                                    <p>{formatNumber(week.sessions)}</p>
+                                    {prevWeek && (
+                                      <p className={`text-xs ${sessionsTrend > 0 ? 'text-green-600' : sessionsTrend < 0 ? 'text-red-600' : 'text-gray-600'}`}>
+                                        {sessionsTrend > 0 ? '▲' : sessionsTrend < 0 ? '▼' : '='} {Math.abs(sessionsTrend).toFixed(1)}%
+                                      </p>
+                                    )}
+                                  </div>
+                                </td>
+                                <td className="text-right p-2">
+                                  <div>
+                                    <p>{formatNumber(week.page_views)}</p>
+                                    {prevWeek && (
+                                      <p className={`text-xs ${pageViewsTrend > 0 ? 'text-green-600' : pageViewsTrend < 0 ? 'text-red-600' : 'text-gray-600'}`}>
+                                        {pageViewsTrend > 0 ? '▲' : pageViewsTrend < 0 ? '▼' : '='} {Math.abs(pageViewsTrend).toFixed(1)}%
+                                      </p>
+                                    )}
+                                  </div>
+                                </td>
+                                <td className="text-right p-2">
+                                  <div>
+                                    <p>{formatPercentage(week.bounce_rate)}</p>
+                                    {prevWeek && (
+                                      <p className={`text-xs ${bounceRateTrend < 0 ? 'text-green-600' : bounceRateTrend > 0 ? 'text-red-600' : 'text-gray-600'}`}>
+                                        {bounceRateTrend > 0 ? '▲' : bounceRateTrend < 0 ? '▼' : '='} {Math.abs(bounceRateTrend).toFixed(1)}%
+                                      </p>
+                                    )}
+                                  </div>
+                                </td>
+                                <td className="text-right p-2">
+                                  <p>{Math.round(week.avg_session_duration)}s</p>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                    <div className="mt-4 p-3 bg-gray-50 rounded-lg text-sm">
+                      <p className="text-muted-foreground">
+                        <span className="text-green-600 font-medium">▲ Verde</span> = Mejora ·
+                        <span className="text-red-600 font-medium ml-2">▼ Rojo</span> = Empeora ·
+                        <span className="text-gray-600 font-medium ml-2">= Gris</span> = Sin cambio ·
+                        <span className="font-medium ml-2">Última semana destacada</span>
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
               {/* Métricas Principales */}
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                 <Card>
