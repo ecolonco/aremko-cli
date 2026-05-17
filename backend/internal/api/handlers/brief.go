@@ -590,3 +590,102 @@ func GetWeeklyBriefWithAI(cfg *config.Config) http.HandlerFunc {
 		respondJSON(w, http.StatusOK, response)
 	}
 }
+
+// AnalyzeWebAnalytics genera un análisis completo con IA de los datos de web analytics
+func AnalyzeWebAnalytics(cfg *config.Config) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		// Verificar que la IA está habilitada
+		if !cfg.EnableAI || cfg.OpenRouterAPIKey == "" {
+			respondJSON(w, http.StatusServiceUnavailable, map[string]interface{}{
+				"success": false,
+				"error":   "AI analysis is not enabled",
+			})
+			return
+		}
+
+		// Obtener datos de web analytics completos
+		dateStop := time.Now().AddDate(0, 0, -1).Format("2006-01-02")
+		dateStart := time.Now().AddDate(0, 0, -8).Format("2006-01-02")
+
+		var webAnalyticsData map[string]interface{}
+
+		if cfg.EnableGA4 {
+			ga4Client, err := analytics.NewGA4Client(cfg.GA4CredentialsPath, cfg.GA4PropertyID)
+			if err == nil {
+				ctx := context.Background()
+				ga4Stats, err := ga4Client.GetStats(ctx, dateStart, dateStop)
+				if err == nil {
+					topPages, _ := ga4Client.GetTopPages(ctx, dateStart, dateStop, 10)
+					trafficSources, _ := ga4Client.GetTrafficSources(ctx, dateStart, dateStop)
+					weeklyTrends, _ := ga4Client.GetWeeklyTrends(ctx)
+					topPagesWeekly, _ := ga4Client.GetTopPagesWeekly(ctx, 5)
+					trafficSourcesWeekly, _ := ga4Client.GetTrafficSourcesWeekly(ctx)
+
+					webAnalyticsData = map[string]interface{}{
+						"period": map[string]string{
+							"start": dateStart,
+							"end":   dateStop,
+						},
+						"summary": map[string]interface{}{
+							"active_users":         ga4Stats.ActiveUsers,
+							"total_users":          ga4Stats.TotalUsers,
+							"sessions":             ga4Stats.Sessions,
+							"page_views":           ga4Stats.PageViews,
+							"bounce_rate":          ga4Stats.BounceRate,
+							"avg_session_duration": ga4Stats.AvgSessionDuration,
+							"new_users":            ga4Stats.NewUsers,
+							"event_count":          ga4Stats.EventCount,
+						},
+						"weekly_trends":          weeklyTrends,
+						"top_pages":              topPages,
+						"top_pages_weekly":       topPagesWeekly,
+						"traffic_sources":        trafficSources,
+						"traffic_sources_weekly": trafficSourcesWeekly,
+					}
+				}
+			}
+		}
+
+		if webAnalyticsData == nil {
+			respondJSON(w, http.StatusInternalServerError, map[string]interface{}{
+				"success": false,
+				"error":   "Failed to fetch web analytics data",
+			})
+			return
+		}
+
+		// Generar análisis con IA
+		aiClient := ai.NewOpenRouterClient(cfg.OpenRouterAPIKey, cfg.OpenRouterBaseURL)
+		ctx := context.Background()
+
+		fmt.Println("[AI] Generando análisis de web analytics...")
+		analysis, err := aiClient.GenerateWebAnalyticsAnalysis(ctx, webAnalyticsData)
+		if err != nil {
+			respondJSON(w, http.StatusInternalServerError, map[string]interface{}{
+				"success": false,
+				"error":   fmt.Sprintf("Failed to generate analysis: %v", err),
+			})
+			return
+		}
+
+		if analysis.Error != "" {
+			respondJSON(w, http.StatusInternalServerError, map[string]interface{}{
+				"success": false,
+				"error":   analysis.Error,
+			})
+			return
+		}
+
+		// Retornar análisis
+		respondJSON(w, http.StatusOK, map[string]interface{}{
+			"success": true,
+			"analysis": map[string]interface{}{
+				"content":       analysis.Text,
+				"model":         analysis.Model,
+				"input_tokens":  analysis.InputTokens,
+				"output_tokens": analysis.OutputTokens,
+				"latency_ms":    analysis.LatencyMs,
+			},
+		})
+	}
+}

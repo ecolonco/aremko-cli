@@ -75,6 +75,9 @@ func (s *Server) setupRoutes() {
 		r.Get("/brief/weekly-ai", handlers.GetWeeklyBriefWithAI(s.config))
 		r.Post("/brief/generate", handlers.GenerateBrief(s.config))
 
+		// Web Analytics AI Analysis
+		r.Post("/analytics/web/analyze", handlers.AnalyzeWebAnalytics(s.config))
+
 		// Stats endpoints (próximamente)
 		r.Get("/stats/overview", handlers.GetStatsOverview(s.config))
 	})

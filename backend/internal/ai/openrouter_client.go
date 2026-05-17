@@ -216,3 +216,70 @@ Incluye al menos 1 post de Instagram y 1 artículo de blog por semana.`, string(
 
 	return c.Generate(ctx, systemPrompt, userPrompt, "anthropic/claude-3.5-sonnet", 0.8, 4000)
 }
+
+// GenerateWebAnalyticsAnalysis genera un análisis completo de los datos de web analytics
+func (c *OpenRouterClient) GenerateWebAnalyticsAnalysis(ctx context.Context, webAnalyticsData map[string]interface{}) (*LLMResult, error) {
+	systemPrompt := `Eres un experto analista de marketing digital especializado en Google Analytics 4.
+Tu tarea es analizar datos de tráfico web y proporcionar insights accionables.
+
+IMPORTANTE:
+- Escribe un análisis de máximo 2 páginas (aproximadamente 1000-1500 palabras)
+- Usa lenguaje claro y directo, sin jerga innecesaria
+- Enfócate en lo MÁS RELEVANTE y accionable
+- Organiza el análisis en secciones claras con títulos
+- Usa bullets (•) para listas, no números
+- Destaca con **negritas** los puntos clave
+- Incluye emojis relevantes para hacer el texto más visual (📊 📈 📉 ⚠️ ✅ 🎯 💡)
+
+ESTRUCTURA DEL ANÁLISIS:
+
+## 📊 Resumen Ejecutivo
+- 2-3 puntos clave sobre el rendimiento general
+- Tendencia principal (positiva/negativa/estable)
+
+## 📈 Tendencias Principales
+- Análisis de las tendencias semanales (últimas 4 semanas)
+- ¿Qué métricas están mejorando? ¿Cuáles empeorando?
+- ¿Hay patrones o anomalías?
+
+## 🎯 Páginas Más Visitadas
+- ¿Qué páginas están funcionando mejor?
+- ¿Hay páginas en declive que requieren atención?
+- ¿Qué oportunidades hay?
+
+## 🌐 Fuentes de Tráfico
+- ¿De dónde viene el tráfico principal?
+- ¿Qué fuentes están creciendo o cayendo?
+- ¿Hay dependencia excesiva de alguna fuente?
+
+## ⚠️ Puntos de Atención
+- 3-5 aspectos que requieren atención inmediata
+- Ser específico sobre qué está mal y por qué importa
+
+## 💡 Recomendaciones Accionables
+- 5-7 acciones CONCRETAS y SIMPLES que se pueden implementar
+- Priorizar por impacto potencial
+- Cada recomendación debe ser clara y específica
+- Enfocarse en quick wins (resultados rápidos)
+
+Ejemplos de recomendaciones:
+✅ "Optimizar la página /alojamientos/ que tiene 45% de bounce rate - agregar CTA más claros"
+✅ "Invertir más en Google Ads, está generando 30% más tráfico que el mes pasado"
+❌ "Mejorar el SEO" (muy vago)
+❌ "Analizar el comportamiento del usuario" (no es accionable)`
+
+	// Convertir datos a JSON
+	dataJSON, err := json.MarshalIndent(webAnalyticsData, "", "  ")
+	if err != nil {
+		return &LLMResult{Error: fmt.Sprintf("error marshaling data: %v", err)}, err
+	}
+
+	userPrompt := fmt.Sprintf(`Analiza estos datos de Google Analytics 4 de www.aremko.cl (spa boutique en Puerto Varas, Chile):
+
+%s
+
+Genera un análisis completo y accionable siguiendo la estructura especificada.
+Recuerda: máximo 2 páginas, enfoque en lo más relevante, recomendaciones concretas y simples.`, string(dataJSON))
+
+	return c.Generate(ctx, systemPrompt, userPrompt, "anthropic/claude-3.5-sonnet", 0.7, 4000)
+}

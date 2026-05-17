@@ -56,6 +56,8 @@ export default function BriefPage() {
   const [loading, setLoading] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
+  const [webAnalysisAI, setWebAnalysisAI] = useState<any>(null);
+  const [generatingWebAnalysis, setGeneratingWebAnalysis] = useState(false);
 
   // Cargar brief al montar
   useEffect(() => {
@@ -81,6 +83,29 @@ export default function BriefPage() {
   const handleGenerateWithAI = async () => {
     setGenerating(true);
     await fetchBrief(true);
+  };
+
+  const handleGenerateWebAnalysis = async () => {
+    setGeneratingWebAnalysis(true);
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+      const response = await fetch(`${apiUrl}/api/v1/analytics/web/analyze`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      const data = await response.json();
+      if (data.success) {
+        setWebAnalysisAI(data.analysis);
+      } else {
+        console.error('Error generating web analysis:', data.error);
+      }
+    } catch (error) {
+      console.error('Error generating web analysis:', error);
+    } finally {
+      setGeneratingWebAnalysis(false);
+    }
   };
 
   const formatCurrency = (value: number) => {
@@ -324,6 +349,75 @@ export default function BriefPage() {
         <TabsContent value="web" className="space-y-4">
           {data.web_analytics ? (
             <>
+              {/* Botón de Análisis con IA */}
+              <Card className="border-purple-200 bg-gradient-to-r from-purple-50 to-blue-50">
+                <CardContent className="pt-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-lg font-semibold flex items-center gap-2">
+                        <Sparkles className="h-5 w-5 text-purple-600" />
+                        Análisis Inteligente con IA
+                      </h3>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Obtén un análisis completo de ~2 páginas con insights clave y recomendaciones accionables
+                      </p>
+                    </div>
+                    <Button
+                      onClick={handleGenerateWebAnalysis}
+                      disabled={generatingWebAnalysis}
+                      className="bg-gradient-to-r from-purple-600 to-blue-600"
+                    >
+                      <Sparkles className={`h-4 w-4 mr-2 ${generatingWebAnalysis ? 'animate-pulse' : ''}`} />
+                      {generatingWebAnalysis ? 'Generando...' : 'Generar Análisis IA'}
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Resultado del Análisis IA */}
+              {webAnalysisAI && (
+                <Card className="border-purple-200">
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="flex items-center gap-2">
+                        <Sparkles className="h-5 w-5 text-purple-600" />
+                        Análisis IA - Web Analytics
+                      </CardTitle>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setWebAnalysisAI(null)}
+                      >
+                        <span className="text-xs">Cerrar ✕</span>
+                      </Button>
+                    </div>
+                    <CardDescription>
+                      Generado por {webAnalysisAI.model} en {(webAnalysisAI.latency_ms / 1000).toFixed(1)}s
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="prose prose-sm max-w-none">
+                      <div className="whitespace-pre-wrap" dangerouslySetInnerHTML={{
+                        __html: webAnalysisAI.content
+                          .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                          .replace(/^## (.*$)/gim, '<h2 class="text-xl font-bold mt-6 mb-3">$1</h2>')
+                          .replace(/^### (.*$)/gim, '<h3 class="text-lg font-semibold mt-4 mb-2">$1</h3>')
+                          .replace(/^• (.*$)/gim, '<li class="ml-4">$1</li>')
+                          .replace(/\n\n/g, '</p><p class="mt-2">')
+                      }} />
+                    </div>
+                    <div className="mt-6 pt-4 border-t flex items-center text-xs text-muted-foreground gap-4">
+                      <Badge variant="outline">{webAnalysisAI.model}</Badge>
+                      <span>{webAnalysisAI.input_tokens} tokens in</span>
+                      <span>•</span>
+                      <span>{webAnalysisAI.output_tokens} tokens out</span>
+                      <span>•</span>
+                      <span>{(webAnalysisAI.latency_ms / 1000).toFixed(1)}s</span>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
               {/* Tendencias Semanales */}
               {data.web_analytics.weekly_trends && data.web_analytics.weekly_trends.length > 0 && (
                 <Card>
