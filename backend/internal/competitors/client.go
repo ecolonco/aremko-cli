@@ -33,22 +33,30 @@ type CompetitorsSummary struct {
 
 // CompetitorInfo represents competitor data from Django
 type CompetitorInfo struct {
-	ID             int                    `json:"id"`
-	Nombre         string                 `json:"nombre"`
-	Website        string                 `json:"website"`
-	Snapshot       *SnapshotInfo          `json:"snapshot"`
-	SocialMedia    *SocialMediaInfo       `json:"social_media"`
+	ID              int              `json:"id"`
+	Nombre          string           `json:"nombre"`
+	Website         string           `json:"website"`
+	Snapshot        *SnapshotInfo    `json:"snapshot"`
+	SocialMedia     *SocialMediaInfo `json:"social_media"`
+	LastScrapeError *ScrapeError     `json:"last_scrape_error"`
+}
+
+// ScrapeError describes the last failed scraping attempt
+type ScrapeError struct {
+	FechaCaptura string `json:"fecha_captura"`
+	ErrorMensaje string `json:"error_mensaje"`
 }
 
 // SnapshotInfo represents a competitor snapshot
 type SnapshotInfo struct {
-	FechaCaptura        string                 `json:"fecha_captura"`
-	PrecioEntradaAdulto *float64               `json:"precio_entrada_adulto"`
-	PrecioEntradaNino   *float64               `json:"precio_entrada_nino"`
-	Servicios           ServiciosInfo          `json:"servicios"`
-	Horario             string                 `json:"horario"`
-	Promociones         string                 `json:"promociones"`
-	MetaDescription     string                 `json:"meta_description"`
+	FechaCaptura        string        `json:"fecha_captura"`
+	ScrapingExitoso     bool          `json:"scraping_exitoso"`
+	PrecioEntradaAdulto *float64      `json:"precio_entrada_adulto"`
+	PrecioEntradaNino   *float64      `json:"precio_entrada_nino"`
+	Servicios           ServiciosInfo `json:"servicios"`
+	Horario             string        `json:"horario"`
+	Promociones         string        `json:"promociones"`
+	MetaDescription     string        `json:"meta_description"`
 }
 
 // ServiciosInfo represents services offered

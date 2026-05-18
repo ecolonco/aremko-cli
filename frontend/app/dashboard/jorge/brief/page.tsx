@@ -2248,48 +2248,73 @@ export default function BriefPage() {
                           <p className="text-2xl font-bold text-blue-600">
                             {formatCurrency(data.competitors.aremko_precio_referencia.precio_entrada_adulto)}
                           </p>
+                          {data.competitors.aremko_precio_referencia.fuente && (
+                            <p className="text-xs text-muted-foreground mt-1">
+                              {data.competitors.aremko_precio_referencia.fuente}
+                            </p>
+                          )}
                         </div>
                       </div>
                     )}
 
                     {/* Competidores */}
-                    {data.competitors.competitors?.map((competitor: any) => (
-                      <div key={competitor.id} className="flex items-center justify-between p-4 border rounded-lg">
-                        <div className="flex-1">
-                          <p className="font-semibold">{competitor.nombre}</p>
-                          <a
-                            href={competitor.website}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-xs text-blue-600 hover:underline"
-                          >
-                            {competitor.website}
-                          </a>
-                        </div>
-                        <div className="text-right">
-                          {competitor.snapshot?.precio_entrada_adulto ? (
-                            <>
-                              <p className="text-xl font-bold">
-                                {formatCurrency(competitor.snapshot.precio_entrada_adulto)}
-                              </p>
-                              {data.competitors.aremko_precio_referencia?.precio_entrada_adulto && (
-                                <p className="text-xs text-muted-foreground">
-                                  {competitor.snapshot.precio_entrada_adulto < data.competitors.aremko_precio_referencia.precio_entrada_adulto ? (
-                                    <span className="text-red-600">▼ Más barato que nosotros</span>
-                                  ) : competitor.snapshot.precio_entrada_adulto > data.competitors.aremko_precio_referencia.precio_entrada_adulto ? (
-                                    <span className="text-green-600">▲ Más caro que nosotros</span>
-                                  ) : (
-                                    <span className="text-gray-600">= Igual que nosotros</span>
-                                  )}
+                    {data.competitors.competitors?.map((competitor: any) => {
+                      const aremkoPrecio = data.competitors.aremko_precio_referencia?.precio_entrada_adulto;
+                      const precio = competitor.snapshot?.precio_entrada_adulto;
+                      const scrapingFailed = competitor.last_scrape_error != null;
+                      const snapshotOk = competitor.snapshot?.scraping_exitoso === true;
+                      const truncErr = (competitor.last_scrape_error?.error_mensaje || '').slice(0, 80);
+                      return (
+                        <div key={competitor.id} className={`flex items-center justify-between p-4 border rounded-lg ${scrapingFailed ? 'bg-red-50/50 border-red-100' : ''}`}>
+                          <div className="flex-1">
+                            <p className="font-semibold">{competitor.nombre}</p>
+                            <a
+                              href={competitor.website}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-xs text-blue-600 hover:underline"
+                            >
+                              {competitor.website}
+                            </a>
+                          </div>
+                          <div className="text-right max-w-xs">
+                            {precio ? (
+                              <>
+                                <p className="text-xl font-bold">{formatCurrency(precio)}</p>
+                                {aremkoPrecio && (
+                                  <p className="text-xs text-muted-foreground">
+                                    {precio < aremkoPrecio ? (
+                                      <span className="text-red-600">▼ Más barato que nosotros</span>
+                                    ) : precio > aremkoPrecio ? (
+                                      <span className="text-green-600">▲ Más caro que nosotros</span>
+                                    ) : (
+                                      <span className="text-gray-600">= Igual que nosotros</span>
+                                    )}
+                                  </p>
+                                )}
+                              </>
+                            ) : scrapingFailed ? (
+                              <>
+                                <p className="text-sm text-red-600 font-medium flex items-center justify-end gap-1">
+                                  <span>🔴</span>
+                                  Sin datos
                                 </p>
-                              )}
-                            </>
-                          ) : (
-                            <p className="text-sm text-muted-foreground">Sin datos</p>
-                          )}
+                                <p className="text-xs text-red-500 mt-1">{truncErr || 'Error al capturar información'}</p>
+                                {competitor.last_scrape_error?.fecha_captura && (
+                                  <p className="text-[10px] text-muted-foreground mt-1">
+                                    último intento: {competitor.last_scrape_error.fecha_captura}
+                                  </p>
+                                )}
+                              </>
+                            ) : snapshotOk ? (
+                              <p className="text-sm text-muted-foreground italic">Precio no público en su sitio</p>
+                            ) : (
+                              <p className="text-sm text-muted-foreground">Sin datos</p>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </CardContent>
               </Card>
@@ -2315,23 +2340,27 @@ export default function BriefPage() {
                         </tr>
                       </thead>
                       <tbody>
-                        {data.competitors.competitors?.map((competitor: any) => (
-                          <tr key={competitor.id} className="border-b">
-                            <td className="p-2 font-medium">{competitor.nombre}</td>
-                            <td className="text-center p-2">
-                              {competitor.snapshot?.servicios?.piscinas_termales ? '✅' : '❌'}
-                            </td>
-                            <td className="text-center p-2">
-                              {competitor.snapshot?.servicios?.masajes ? '✅' : '❌'}
-                            </td>
-                            <td className="text-center p-2">
-                              {competitor.snapshot?.servicios?.restaurant ? '✅' : '❌'}
-                            </td>
-                            <td className="text-center p-2">
-                              {competitor.snapshot?.servicios?.alojamiento ? '✅' : '❌'}
-                            </td>
-                          </tr>
-                        ))}
+                        {data.competitors.competitors?.map((competitor: any) => {
+                          const known = competitor.snapshot?.scraping_exitoso === true;
+                          const cell = (val: boolean | undefined) =>
+                            known ? (val ? '✅' : '❌') : <span className="text-muted-foreground">—</span>;
+                          return (
+                            <tr key={competitor.id} className={`border-b ${!known ? 'opacity-40' : ''}`}>
+                              <td className="p-2 font-medium">
+                                {competitor.nombre}
+                                {!known && (
+                                  <span className="ml-2 text-[10px] text-red-600" title="Información no capturada">
+                                    sin info
+                                  </span>
+                                )}
+                              </td>
+                              <td className="text-center p-2">{cell(competitor.snapshot?.servicios?.piscinas_termales)}</td>
+                              <td className="text-center p-2">{cell(competitor.snapshot?.servicios?.masajes)}</td>
+                              <td className="text-center p-2">{cell(competitor.snapshot?.servicios?.restaurant)}</td>
+                              <td className="text-center p-2">{cell(competitor.snapshot?.servicios?.alojamiento)}</td>
+                            </tr>
+                          );
+                        })}
                       </tbody>
                     </table>
                   </div>
