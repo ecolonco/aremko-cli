@@ -1508,8 +1508,9 @@ export default function BriefPage() {
               <CardDescription>Sistema de reservas Aremko</CardDescription>
             </CardHeader>
             <CardContent>
-              {data.bookings && (
-                <div className="space-y-4">
+              {data.bookings ? (
+                <div className="space-y-6">
+                  {/* Métricas principales */}
                   <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                     <div className="p-4 border rounded-lg">
                       <p className="text-sm text-muted-foreground mb-1">Total Reservas</p>
@@ -1533,9 +1534,203 @@ export default function BriefPage() {
                     </div>
                   </div>
                 </div>
+              ) : (
+                <div className="p-8 text-center border-2 border-dashed rounded-lg">
+                  <ShoppingBag className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                  <p className="text-sm text-muted-foreground">Cargando datos de reservas...</p>
+                </div>
               )}
             </CardContent>
           </Card>
+
+          {/* Clientes */}
+          {data.bookings?.client_stats && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center text-base">
+                  <Users className="h-4 w-4 mr-2 text-blue-600" />
+                  Clientes
+                </CardTitle>
+                <CardDescription>Composición de la base y movimiento de la semana</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid gap-4 md:grid-cols-3">
+                  <div className="p-4 border rounded-lg">
+                    <p className="text-sm text-muted-foreground mb-1">Base total</p>
+                    <p className="text-3xl font-bold">{formatNumber(data.bookings.client_stats.total_clients)}</p>
+                    <p className="text-xs text-muted-foreground mt-1">Clientes registrados</p>
+                  </div>
+                  <div className="p-4 border rounded-lg bg-green-50 border-green-200">
+                    <p className="text-sm text-muted-foreground mb-1">🆕 Nuevos esta semana</p>
+                    <p className="text-3xl font-bold text-green-700">{data.bookings.client_stats.new_clients_week}</p>
+                  </div>
+                  <div className="p-4 border rounded-lg bg-blue-50 border-blue-200">
+                    <p className="text-sm text-muted-foreground mb-1">🔁 Recurrentes esta semana</p>
+                    <p className="text-3xl font-bold text-blue-700">{data.bookings.client_stats.returning_clients_week}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Ventas por familia de servicios */}
+          {data.bookings?.by_family && data.bookings.by_family.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center text-base">
+                  <BarChart3 className="h-4 w-4 mr-2 text-purple-600" />
+                  Ventas por Familia de Servicios
+                </CardTitle>
+                <CardDescription>Esta semana vs. mismo período del mes anterior y del año anterior</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b">
+                        <th className="text-left py-3 px-2 font-medium">Familia</th>
+                        <th className="text-right py-3 px-2 font-medium">Esta semana</th>
+                        <th className="text-right py-3 px-2 font-medium">vs. mes anterior</th>
+                        <th className="text-right py-3 px-2 font-medium">vs. año anterior</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {data.bookings.by_family.map((f: any) => {
+                        const monthChange = f.previous_month_revenue > 0
+                          ? ((f.current_revenue - f.previous_month_revenue) / f.previous_month_revenue) * 100
+                          : null;
+                        const yearChange = f.previous_year_revenue > 0
+                          ? ((f.current_revenue - f.previous_year_revenue) / f.previous_year_revenue) * 100
+                          : null;
+                        return (
+                          <tr key={f.family} className="border-b hover:bg-muted/50">
+                            <td className="py-3 px-2 font-medium">{f.family}</td>
+                            <td className="py-3 px-2 text-right">
+                              <div className="font-semibold">{formatCurrency(f.current_revenue)}</div>
+                              <div className="text-xs text-muted-foreground">{f.current_count} reservas</div>
+                            </td>
+                            <td className="py-3 px-2 text-right">
+                              <div>{formatCurrency(f.previous_month_revenue)}</div>
+                              {monthChange !== null && (
+                                <div className={`text-xs ${monthChange > 0 ? 'text-green-600' : monthChange < 0 ? 'text-red-600' : 'text-gray-500'}`}>
+                                  {monthChange > 0 ? '▲' : monthChange < 0 ? '▼' : '─'} {Math.abs(monthChange).toFixed(0)}%
+                                </div>
+                              )}
+                            </td>
+                            <td className="py-3 px-2 text-right">
+                              <div>{formatCurrency(f.previous_year_revenue)}</div>
+                              {yearChange !== null && (
+                                <div className={`text-xs ${yearChange > 0 ? 'text-green-600' : yearChange < 0 ? 'text-red-600' : 'text-gray-500'}`}>
+                                  {yearChange > 0 ? '▲' : yearChange < 0 ? '▼' : '─'} {Math.abs(yearChange).toFixed(0)}%
+                                </div>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Ventas por método de pago */}
+          {data.bookings?.by_payment_method && data.bookings.by_payment_method.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center text-base">
+                  <DollarSign className="h-4 w-4 mr-2 text-emerald-600" />
+                  Ventas por Método de Pago
+                </CardTitle>
+                <CardDescription>Distribución del ingreso por canal de pago, con comparativa</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b">
+                        <th className="text-left py-3 px-2 font-medium">Método</th>
+                        <th className="text-right py-3 px-2 font-medium">Esta semana</th>
+                        <th className="text-right py-3 px-2 font-medium">vs. mes anterior</th>
+                        <th className="text-right py-3 px-2 font-medium">vs. año anterior</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {data.bookings.by_payment_method.map((p: any) => {
+                        const monthChange = p.previous_month_revenue > 0
+                          ? ((p.current_revenue - p.previous_month_revenue) / p.previous_month_revenue) * 100
+                          : null;
+                        const yearChange = p.previous_year_revenue > 0
+                          ? ((p.current_revenue - p.previous_year_revenue) / p.previous_year_revenue) * 100
+                          : null;
+                        return (
+                          <tr key={p.payment_method} className="border-b hover:bg-muted/50">
+                            <td className="py-3 px-2 font-medium">{p.payment_method}</td>
+                            <td className="py-3 px-2 text-right">
+                              <div className="font-semibold">{formatCurrency(p.current_revenue)}</div>
+                              <div className="text-xs text-muted-foreground">{p.current_count} reservas</div>
+                            </td>
+                            <td className="py-3 px-2 text-right">
+                              <div>{formatCurrency(p.previous_month_revenue)}</div>
+                              {monthChange !== null && (
+                                <div className={`text-xs ${monthChange > 0 ? 'text-green-600' : monthChange < 0 ? 'text-red-600' : 'text-gray-500'}`}>
+                                  {monthChange > 0 ? '▲' : monthChange < 0 ? '▼' : '─'} {Math.abs(monthChange).toFixed(0)}%
+                                </div>
+                              )}
+                            </td>
+                            <td className="py-3 px-2 text-right">
+                              <div>{formatCurrency(p.previous_year_revenue)}</div>
+                              {yearChange !== null && (
+                                <div className={`text-xs ${yearChange > 0 ? 'text-green-600' : yearChange < 0 ? 'text-red-600' : 'text-gray-500'}`}>
+                                  {yearChange > 0 ? '▲' : yearChange < 0 ? '▼' : '─'} {Math.abs(yearChange).toFixed(0)}%
+                                </div>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Detalle día por día */}
+          {data.bookings?.daily && data.bookings.daily.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center text-base">
+                  <Calendar className="h-4 w-4 mr-2 text-orange-600" />
+                  Reservas Día por Día
+                </CardTitle>
+                <CardDescription>Detalle diario de la semana</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b">
+                        <th className="text-left py-3 px-2 font-medium">Fecha</th>
+                        <th className="text-right py-3 px-2 font-medium">Reservas</th>
+                        <th className="text-right py-3 px-2 font-medium">Ingresos</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {data.bookings.daily.map((d: any) => (
+                        <tr key={d.date} className="border-b hover:bg-muted/50">
+                          <td className="py-3 px-2 font-medium">{d.date}</td>
+                          <td className="py-3 px-2 text-right">{d.count}</td>
+                          <td className="py-3 px-2 text-right">{formatCurrency(d.revenue)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
 
         {/* OPINIONES */}

@@ -73,14 +73,40 @@ func GetWeeklyBrief(cfg *config.Config) http.HandlerFunc {
 			bookingClient := bookings.NewClient(cfg.BookingSystemURL)
 			bookingStats, err := bookingClient.GetBookingStats(dateStart, dateStop)
 			if err == nil {
-				brief["bookings"] = map[string]interface{}{
+				bookingsData := map[string]interface{}{
 					"total":      bookingStats.Total,
 					"revenue":    bookingStats.Revenue,
 					"avg_ticket": bookingStats.AvgTicket,
 					"paid":       bookingStats.Paid,
 					"pending":    bookingStats.Pending,
 					"partial":    bookingStats.Partial,
+					"period": map[string]string{
+						"start": dateStart,
+						"end":   dateStop,
+					},
 				}
+
+				// Ventas por familia de servicios (con comparativa mes/año anterior)
+				if familyStats, ferr := bookingClient.GetServiceFamilyStats(dateStart, dateStop); ferr == nil {
+					bookingsData["by_family"] = familyStats
+				}
+
+				// Ventas por método de pago (con comparativa)
+				if paymentStats, perr := bookingClient.GetPaymentMethodStats(dateStart, dateStop); perr == nil {
+					bookingsData["by_payment_method"] = paymentStats
+				}
+
+				// Estadísticas de clientes (total, nuevos esta semana, recurrentes)
+				if clientStats, cerr := bookingClient.GetClientStats(); cerr == nil {
+					bookingsData["client_stats"] = clientStats
+				}
+
+				// Reservas día por día de la semana
+				if dailyBookings, derr := bookingClient.GetDailyBookings(dateStart, dateStop); derr == nil {
+					bookingsData["daily"] = dailyBookings
+				}
+
+				brief["bookings"] = bookingsData
 			}
 		}
 
