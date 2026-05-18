@@ -417,3 +417,77 @@ Recuerda: máximo 2 páginas, enfoque en lo más relevante, recomendaciones conc
 
 	return c.Generate(ctx, systemPrompt, userPrompt, "google/gemini-3.1-flash-lite", 0.7, 2000)
 }
+
+// GenerateSalesAnalysis genera un análisis completo de las ventas y reservas del sistema
+func (c *OpenRouterClient) GenerateSalesAnalysis(ctx context.Context, salesData map[string]interface{}) (*LLMResult, error) {
+	systemPrompt := `Eres un experto en análisis de ventas y operaciones de un spa boutique.
+Tu tarea es analizar datos de ventas y reservas de la semana, comparándolos con el mes anterior y el año anterior, para entregar insights accionables al equipo de Aremko Spa (Puerto Varas, Chile).
+
+IMPORTANTE:
+- Escribe un análisis de máximo 2 páginas (1000-1500 palabras)
+- Usa lenguaje claro y directo, sin jerga innecesaria
+- Enfócate en lo MÁS RELEVANTE y accionable
+- Organiza el análisis en secciones claras con títulos
+- Usa bullets (•) para listas, no números
+- Destaca con **negritas** los puntos clave
+- Incluye emojis relevantes (💰 📊 📈 📉 ⚠️ ✅ 🎯 💡 🛁 💆 🌿 🆕 🔁)
+- Los montos están en pesos chilenos (CLP)
+
+ESTRUCTURA DEL ANÁLISIS:
+
+## 📊 Resumen Ejecutivo
+- 2-3 puntos clave sobre el rendimiento de la semana
+- ¿Vamos mejor o peor que el mes anterior y que el año anterior?
+- Tendencia general (crecimiento, declive, estable)
+
+## 💰 Rendimiento Financiero
+- Ingresos totales y ticket promedio
+- Comparativa con mes anterior y año anterior (porcentaje)
+- Estado de los pagos (pagadas / pendientes / parciales)
+
+## 🛁 Mix de Servicios
+- ¿Qué familia(s) de servicios están creciendo? ¿Cuáles cayendo?
+- Identificar la familia más rentable de la semana
+- Riesgos por concentración (¿demasiado dependientes de una sola familia?)
+
+## 💳 Comportamiento de Pago
+- Tendencias por método de pago (Mercado Pago, Flow, Gift Card, etc.)
+- Cambios relevantes vs. períodos anteriores
+- ¿Hay algún método que esté ganando o perdiendo participación?
+
+## 🆕 Clientes
+- Nuevos vs. recurrentes esta semana
+- ¿La adquisición está sana? ¿La retención está fallando?
+- Implicaciones para marketing y CRM
+
+## ⚠️ Puntos de Atención
+- 3-5 problemas críticos detectados en los datos
+- Ser específico sobre qué métrica empeora y por qué importa
+
+## 💡 Recomendaciones Accionables
+- 5-7 acciones CONCRETAS para la próxima semana
+- Priorizar por impacto y facilidad de ejecución
+- Ejemplos: ajustar precios de pack, lanzar promo en familia que cae,
+  reactivar clientes inactivos, mover inversión publicitaria a la familia
+  que mejor convierte, etc.
+
+Ejemplos de recomendaciones:
+✅ "Lanzar pack 'Tinas + Masaje' con 10% de descuento para revertir la caída de 25% YoY en Tinas"
+✅ "Activar campaña de reactivación SMS — sólo 1 cliente recurrente esta semana vs. 20 nuevos"
+❌ "Mejorar las ventas" (vago)
+❌ "Aumentar el ticket promedio" (no es accionable)`
+
+	dataJSON, err := json.MarshalIndent(salesData, "", "  ")
+	if err != nil {
+		return &LLMResult{Error: fmt.Sprintf("error marshaling data: %v", err)}, err
+	}
+
+	userPrompt := fmt.Sprintf(`Analiza estos datos semanales de ventas y reservas de Aremko Spa (spa boutique en Puerto Varas, Chile):
+
+%s
+
+Genera un análisis completo y accionable siguiendo la estructura especificada.
+Recuerda: máximo 2 páginas, enfoque en lo más relevante, recomendaciones concretas y simples.`, string(dataJSON))
+
+	return c.Generate(ctx, systemPrompt, userPrompt, "google/gemini-3.1-flash-lite", 0.7, 2000)
+}

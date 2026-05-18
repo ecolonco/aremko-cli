@@ -1011,3 +1011,98 @@ func AnalyzeMetaAds(cfg *config.Config) http.HandlerFunc {
 		})
 	}
 }
+
+// AnalyzeSales genera un análisis completo con IA de los datos de ventas y reservas
+func AnalyzeSales(cfg *config.Config) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if !cfg.EnableAI || cfg.OpenRouterAPIKey == "" {
+			respondJSON(w, http.StatusServiceUnavailable, map[string]interface{}{
+				"success": false,
+				"error":   "AI analysis is not enabled",
+			})
+			return
+		}
+
+		if !cfg.EnableBookings {
+			respondJSON(w, http.StatusServiceUnavailable, map[string]interface{}{
+				"success": false,
+				"error":   "Bookings integration is not enabled",
+			})
+			return
+		}
+
+		// Mismo rango que el brief semanal
+		dateStop := time.Now().AddDate(0, 0, -1).Format("2006-01-02")
+		dateStart := time.Now().AddDate(0, 0, -8).Format("2006-01-02")
+
+		bookingClient := bookings.NewClient(cfg.BookingSystemURL)
+		stats, err := bookingClient.GetBookingStats(dateStart, dateStop)
+		if err != nil {
+			respondJSON(w, http.StatusInternalServerError, map[string]interface{}{
+				"success": false,
+				"error":   fmt.Sprintf("Failed to fetch booking stats: %v", err),
+			})
+			return
+		}
+
+		salesData := map[string]interface{}{
+			"period": map[string]string{
+				"start": dateStart,
+				"end":   dateStop,
+			},
+			"summary": map[string]interface{}{
+				"total":      stats.Total,
+				"revenue":    stats.Revenue,
+				"avg_ticket": stats.AvgTicket,
+				"paid":       stats.Paid,
+				"pending":    stats.Pending,
+				"partial":    stats.Partial,
+			},
+		}
+
+		if familyStats, ferr := bookingClient.GetServiceFamilyStats(dateStart, dateStop); ferr == nil {
+			salesData["by_family"] = familyStats
+		}
+		if paymentStats, perr := bookingClient.GetPaymentMethodStats(dateStart, dateStop); perr == nil {
+			salesData["by_payment_method"] = paymentStats
+		}
+		if clientStats, cerr := bookingClient.GetClientStats(); cerr == nil {
+			salesData["client_stats"] = clientStats
+		}
+		if dailyBookings, derr := bookingClient.GetDailyBookings(dateStart, dateStop); derr == nil {
+			salesData["daily"] = dailyBookings
+		}
+
+		aiClient := ai.NewOpenRouterClient(cfg.OpenRouterAPIKey, cfg.OpenRouterBaseURL)
+		ctx := context.Background()
+
+		fmt.Println("[AI] Generando análisis de Ventas...")
+		analysis, err := aiClient.GenerateSalesAnalysis(ctx, salesData)
+		if err != nil {
+			respondJSON(w, http.StatusInternalServerError, map[string]interface{}{
+				"success": false,
+				"error":   fmt.Sprintf("Failed to generate analysis: %v", err),
+			})
+			return
+		}
+
+		if analysis.Error != "" {
+			respondJSON(w, http.StatusInternalServerError, map[string]interface{}{
+				"success": false,
+				"error":   analysis.Error,
+			})
+			return
+		}
+
+		respondJSON(w, http.StatusOK, map[string]interface{}{
+			"success": true,
+			"analysis": map[string]interface{}{
+				"content":       analysis.Text,
+				"model":         analysis.Model,
+				"input_tokens":  analysis.InputTokens,
+				"output_tokens": analysis.OutputTokens,
+				"latency_ms":    analysis.LatencyMs,
+			},
+		})
+	}
+}

@@ -84,6 +84,9 @@ func (s *Server) setupRoutes() {
 		// Meta Ads AI Analysis
 		r.Post("/analytics/meta-ads/analyze", handlers.AnalyzeMetaAds(s.config))
 
+		// Sales AI Analysis
+		r.Post("/analytics/sales/analyze", handlers.AnalyzeSales(s.config))
+
 		// Stats endpoints (próximamente)
 		r.Get("/stats/overview", handlers.GetStatsOverview(s.config))
 	})

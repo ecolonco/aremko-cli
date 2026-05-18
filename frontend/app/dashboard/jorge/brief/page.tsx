@@ -67,6 +67,9 @@ export default function BriefPage() {
   const [generatingMetaAdsAnalysis, setGeneratingMetaAdsAnalysis] = useState(false);
   const [metaAdsAnalysisError, setMetaAdsAnalysisError] = useState<string | null>(null);
   const [instagramAnalysisError, setInstagramAnalysisError] = useState<string | null>(null);
+  const [salesAnalysisAI, setSalesAnalysisAI] = useState<any>(null);
+  const [generatingSalesAnalysis, setGeneratingSalesAnalysis] = useState(false);
+  const [salesAnalysisError, setSalesAnalysisError] = useState<string | null>(null);
 
   // Cargar brief al montar
   useEffect(() => {
@@ -114,6 +117,32 @@ export default function BriefPage() {
       console.error('Error generating web analysis:', error);
     } finally {
       setGeneratingWebAnalysis(false);
+    }
+  };
+
+  const handleGenerateSalesAnalysis = async () => {
+    setGeneratingSalesAnalysis(true);
+    setSalesAnalysisError(null);
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+      const response = await fetch(`${apiUrl}/api/v1/analytics/sales/analyze`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      const data = await response.json();
+      if (data.success && data.analysis) {
+        setSalesAnalysisAI(data.analysis);
+      } else {
+        const msg = data.error || `HTTP ${response.status}`;
+        console.error('Error generating Sales analysis:', msg);
+        setSalesAnalysisError(msg);
+      }
+    } catch (error: any) {
+      const msg = error?.message || 'Error de red al generar el análisis';
+      console.error('Error generating Sales analysis:', error);
+      setSalesAnalysisError(msg);
+    } finally {
+      setGeneratingSalesAnalysis(false);
     }
   };
 
@@ -1502,6 +1531,88 @@ export default function BriefPage() {
 
         {/* VENTAS */}
         <TabsContent value="sales" className="space-y-4">
+          {/* AI Analysis Card */}
+          <Card className="bg-gradient-to-br from-emerald-50 to-teal-50 border-emerald-200">
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center">
+                <Sparkles className="h-5 w-5 mr-2 text-emerald-600" />
+                Análisis con IA
+              </CardTitle>
+              <CardDescription>
+                Análisis inteligente de las ventas, mix de servicios, métodos de pago y clientes
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button
+                onClick={handleGenerateSalesAnalysis}
+                disabled={generatingSalesAnalysis}
+                className="w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700"
+              >
+                {generatingSalesAnalysis ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Generando análisis...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="mr-2 h-4 w-4" />
+                    Generar Análisis IA
+                  </>
+                )}
+              </Button>
+              {salesAnalysisError && (
+                <div className="mt-3 p-3 rounded-md bg-red-50 border border-red-200 text-sm text-red-700 flex items-start gap-2">
+                  <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
+                  <div>
+                    <p className="font-medium">No se pudo generar el análisis</p>
+                    <p className="text-xs mt-1">{salesAnalysisError}</p>
+                    {salesAnalysisError.toLowerCase().includes('ai analysis is not enabled') && (
+                      <p className="text-xs mt-2">
+                        Falta configurar <code className="px-1 bg-red-100 rounded">OPENROUTER_API_KEY</code> en <code className="px-1 bg-red-100 rounded">backend/.env</code>.
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* AI Analysis Results */}
+          {salesAnalysisAI && (
+            <Card className="bg-gradient-to-br from-emerald-50 to-teal-50 border-emerald-200">
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center">
+                  <Sparkles className="h-5 w-5 mr-2 text-emerald-600" />
+                  Resultados del Análisis IA
+                </CardTitle>
+                <CardDescription>
+                  Análisis generado por {salesAnalysisAI.model || 'IA'}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="prose prose-sm max-w-none">
+                  <div className="whitespace-pre-wrap" dangerouslySetInnerHTML={{
+                    __html: salesAnalysisAI.content
+                      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                      .replace(/^## (.*$)/gim, '<h2 class="text-xl font-bold mt-6 mb-3">$1</h2>')
+                      .replace(/^### (.*$)/gim, '<h3 class="text-lg font-semibold mt-4 mb-2">$1</h3>')
+                      .replace(/^• (.*$)/gim, '<li class="ml-4">$1</li>')
+                      .replace(/\n\n/g, '</p><p class="mt-2">')
+                  }} />
+                </div>
+                {salesAnalysisAI.input_tokens && (
+                  <div className="mt-4 pt-4 border-t text-xs text-muted-foreground">
+                    <p>
+                      Tokens: {salesAnalysisAI.input_tokens.toLocaleString()} entrada,{' '}
+                      {salesAnalysisAI.output_tokens.toLocaleString()} salida
+                      {salesAnalysisAI.latency_ms && ` • ${(salesAnalysisAI.latency_ms / 1000).toFixed(1)}s`}
+                    </p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
           <Card>
             <CardHeader>
               <CardTitle>Gestión de Ventas y Reservas</CardTitle>
