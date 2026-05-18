@@ -114,25 +114,37 @@ export default function BriefPage() {
   };
 
   const handleGenerateInstagramAnalysis = async () => {
+    console.log('🔄 [Instagram IA] Iniciando generación de análisis...');
     setGeneratingInstagramAnalysis(true);
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+      console.log('🌐 [Instagram IA] API URL:', apiUrl);
+      console.log('📡 [Instagram IA] Llamando a:', `${apiUrl}/api/v1/analytics/instagram/analyze`);
+
       const response = await fetch(`${apiUrl}/api/v1/analytics/instagram/analyze`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
       });
+
+      console.log('📥 [Instagram IA] Response status:', response.status);
       const data = await response.json();
+      console.log('📦 [Instagram IA] Data recibida:', data);
+
       if (data.success) {
+        console.log('✅ [Instagram IA] Análisis generado exitosamente');
+        console.log('📄 [Instagram IA] Contenido del análisis:', data.analysis);
         setInstagramAnalysisAI(data.analysis);
+        console.log('✨ [Instagram IA] Estado actualizado con análisis');
       } else {
-        console.error('Error generating Instagram analysis:', data.error);
+        console.error('❌ [Instagram IA] Error en respuesta:', data.error);
       }
     } catch (error) {
-      console.error('Error generating Instagram analysis:', error);
+      console.error('💥 [Instagram IA] Error al generar análisis:', error);
     } finally {
       setGeneratingInstagramAnalysis(false);
+      console.log('🏁 [Instagram IA] Proceso finalizado');
     }
   };
 
