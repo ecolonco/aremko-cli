@@ -70,6 +70,9 @@ export default function BriefPage() {
   const [salesAnalysisAI, setSalesAnalysisAI] = useState<any>(null);
   const [generatingSalesAnalysis, setGeneratingSalesAnalysis] = useState(false);
   const [salesAnalysisError, setSalesAnalysisError] = useState<string | null>(null);
+  const [reviewsAnalysisAI, setReviewsAnalysisAI] = useState<any>(null);
+  const [generatingReviewsAnalysis, setGeneratingReviewsAnalysis] = useState(false);
+  const [reviewsAnalysisError, setReviewsAnalysisError] = useState<string | null>(null);
 
   // Cargar brief al montar
   useEffect(() => {
@@ -117,6 +120,32 @@ export default function BriefPage() {
       console.error('Error generating web analysis:', error);
     } finally {
       setGeneratingWebAnalysis(false);
+    }
+  };
+
+  const handleGenerateReviewsAnalysis = async () => {
+    setGeneratingReviewsAnalysis(true);
+    setReviewsAnalysisError(null);
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+      const response = await fetch(`${apiUrl}/api/v1/analytics/reviews/analyze`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      const data = await response.json();
+      if (data.success && data.analysis) {
+        setReviewsAnalysisAI(data.analysis);
+      } else {
+        const msg = data.error || `HTTP ${response.status}`;
+        console.error('Error generating Reviews analysis:', msg);
+        setReviewsAnalysisError(msg);
+      }
+    } catch (error: any) {
+      const msg = error?.message || 'Error de red al generar el análisis';
+      console.error('Error generating Reviews analysis:', error);
+      setReviewsAnalysisError(msg);
+    } finally {
+      setGeneratingReviewsAnalysis(false);
     }
   };
 
@@ -1846,6 +1875,88 @@ export default function BriefPage() {
 
         {/* OPINIONES */}
         <TabsContent value="reviews" className="space-y-4">
+          {/* AI Analysis Card */}
+          <Card className="bg-gradient-to-br from-yellow-50 to-amber-50 border-yellow-200">
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center">
+                <Sparkles className="h-5 w-5 mr-2 text-yellow-600" />
+                Análisis con IA
+              </CardTitle>
+              <CardDescription>
+                Análisis inteligente de reputación online, NPS y dimensiones del servicio
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button
+                onClick={handleGenerateReviewsAnalysis}
+                disabled={generatingReviewsAnalysis}
+                className="w-full bg-gradient-to-r from-yellow-600 to-amber-600 hover:from-yellow-700 hover:to-amber-700"
+              >
+                {generatingReviewsAnalysis ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Generando análisis...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="mr-2 h-4 w-4" />
+                    Generar Análisis IA
+                  </>
+                )}
+              </Button>
+              {reviewsAnalysisError && (
+                <div className="mt-3 p-3 rounded-md bg-red-50 border border-red-200 text-sm text-red-700 flex items-start gap-2">
+                  <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
+                  <div>
+                    <p className="font-medium">No se pudo generar el análisis</p>
+                    <p className="text-xs mt-1">{reviewsAnalysisError}</p>
+                    {reviewsAnalysisError.toLowerCase().includes('ai analysis is not enabled') && (
+                      <p className="text-xs mt-2">
+                        Falta configurar <code className="px-1 bg-red-100 rounded">OPENROUTER_API_KEY</code> en <code className="px-1 bg-red-100 rounded">backend/.env</code>.
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* AI Analysis Results */}
+          {reviewsAnalysisAI && (
+            <Card className="bg-gradient-to-br from-yellow-50 to-amber-50 border-yellow-200">
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center">
+                  <Sparkles className="h-5 w-5 mr-2 text-yellow-600" />
+                  Resultados del Análisis IA
+                </CardTitle>
+                <CardDescription>
+                  Análisis generado por {reviewsAnalysisAI.model || 'IA'}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="prose prose-sm max-w-none">
+                  <div className="whitespace-pre-wrap" dangerouslySetInnerHTML={{
+                    __html: reviewsAnalysisAI.content
+                      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                      .replace(/^## (.*$)/gim, '<h2 class="text-xl font-bold mt-6 mb-3">$1</h2>')
+                      .replace(/^### (.*$)/gim, '<h3 class="text-lg font-semibold mt-4 mb-2">$1</h3>')
+                      .replace(/^• (.*$)/gim, '<li class="ml-4">$1</li>')
+                      .replace(/\n\n/g, '</p><p class="mt-2">')
+                  }} />
+                </div>
+                {reviewsAnalysisAI.input_tokens && (
+                  <div className="mt-4 pt-4 border-t text-xs text-muted-foreground">
+                    <p>
+                      Tokens: {reviewsAnalysisAI.input_tokens.toLocaleString()} entrada,{' '}
+                      {reviewsAnalysisAI.output_tokens.toLocaleString()} salida
+                      {reviewsAnalysisAI.latency_ms && ` • ${(reviewsAnalysisAI.latency_ms / 1000).toFixed(1)}s`}
+                    </p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
           {data.reviews && data.reviews.status === 'real_data' ? (
             <>
               {/* Snapshots de Google y TripAdvisor */}
@@ -1958,6 +2069,75 @@ export default function BriefPage() {
                           <p className="text-2xl font-bold text-red-600">{data.reviews.surveys.nps.detractores}</p>
                         </div>
                       </div>
+
+                      {/* Distribución NPS: Promotores / Pasivos / Detractores */}
+                      {data.reviews.surveys.total > 0 && (
+                        <div className="mt-4">
+                          <p className="text-sm font-medium mb-2">Distribución NPS</p>
+                          <div className="flex h-4 rounded-full overflow-hidden bg-gray-100">
+                            <div
+                              className="bg-green-500"
+                              style={{ width: `${(data.reviews.surveys.nps.promotores / data.reviews.surveys.total) * 100}%` }}
+                              title={`Promotores: ${data.reviews.surveys.nps.promotores}`}
+                            />
+                            <div
+                              className="bg-yellow-400"
+                              style={{ width: `${(data.reviews.surveys.nps.pasivos / data.reviews.surveys.total) * 100}%` }}
+                              title={`Pasivos: ${data.reviews.surveys.nps.pasivos}`}
+                            />
+                            <div
+                              className="bg-red-500"
+                              style={{ width: `${(data.reviews.surveys.nps.detractores / data.reviews.surveys.total) * 100}%` }}
+                              title={`Detractores: ${data.reviews.surveys.nps.detractores}`}
+                            />
+                          </div>
+                          <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                            <span>🟢 Promotores ({data.reviews.surveys.nps.promotores})</span>
+                            <span>🟡 Pasivos ({data.reviews.surveys.nps.pasivos})</span>
+                            <span>🔴 Detractores ({data.reviews.surveys.nps.detractores})</span>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Calificaciones por Dimensión */}
+                      {data.reviews.surveys.calificaciones_promedio && Object.keys(data.reviews.surveys.calificaciones_promedio).length > 0 && (
+                        <div className="mt-6">
+                          <h4 className="font-semibold mb-3">Calificaciones por Dimensión</h4>
+                          <p className="text-xs text-muted-foreground mb-3">Promedio sobre 5 estrellas. Verde ≥ 4.7 · Naranja &lt; 4.4</p>
+                          <div className="overflow-x-auto">
+                            <table className="w-full text-sm">
+                              <thead>
+                                <tr className="border-b">
+                                  <th className="text-left py-2 px-2 font-medium">Dimensión</th>
+                                  <th className="text-right py-2 px-2 font-medium">Promedio</th>
+                                  <th className="text-left py-2 px-2 font-medium w-1/3">Barra</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {Object.entries(data.reviews.surveys.calificaciones_promedio)
+                                  .sort((a, b) => (b[1] as number) - (a[1] as number))
+                                  .map(([key, value]) => {
+                                    const v = value as number;
+                                    const label = key.replace(/_/g, ' ').replace(/^./, c => c.toUpperCase());
+                                    const color = v >= 4.7 ? 'text-green-600' : v < 4.4 ? 'text-orange-600' : 'text-gray-700';
+                                    const barColor = v >= 4.7 ? 'bg-green-500' : v < 4.4 ? 'bg-orange-500' : 'bg-yellow-400';
+                                    return (
+                                      <tr key={key} className="border-b hover:bg-muted/50">
+                                        <td className="py-2 px-2">{label}</td>
+                                        <td className={`py-2 px-2 text-right font-semibold ${color}`}>{v.toFixed(2)}</td>
+                                        <td className="py-2 px-2">
+                                          <div className="h-2 rounded bg-gray-100 overflow-hidden">
+                                            <div className={`h-full ${barColor}`} style={{ width: `${(v / 5) * 100}%` }} />
+                                          </div>
+                                        </td>
+                                      </tr>
+                                    );
+                                  })}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      )}
 
                       {/* Reviews Destacadas */}
                       {data.reviews.surveys.reviews_destacadas && data.reviews.surveys.reviews_destacadas.length > 0 && (

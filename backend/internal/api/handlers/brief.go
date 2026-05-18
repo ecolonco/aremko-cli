@@ -1106,3 +1106,73 @@ func AnalyzeSales(cfg *config.Config) http.HandlerFunc {
 		})
 	}
 }
+
+// AnalyzeReviews genera un análisis completo con IA de las opiniones y encuestas
+func AnalyzeReviews(cfg *config.Config) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if !cfg.EnableAI || cfg.OpenRouterAPIKey == "" {
+			respondJSON(w, http.StatusServiceUnavailable, map[string]interface{}{
+				"success": false,
+				"error":   "AI analysis is not enabled",
+			})
+			return
+		}
+
+		if !cfg.EnableBookings {
+			respondJSON(w, http.StatusServiceUnavailable, map[string]interface{}{
+				"success": false,
+				"error":   "Reviews integration is not enabled",
+			})
+			return
+		}
+
+		reviewsClient := reviews.NewClient(cfg.BookingSystemURL)
+		summary, err := reviewsClient.GetReviewsSummary()
+		if err != nil {
+			respondJSON(w, http.StatusInternalServerError, map[string]interface{}{
+				"success": false,
+				"error":   fmt.Sprintf("Failed to fetch reviews data: %v", err),
+			})
+			return
+		}
+
+		reviewsData := map[string]interface{}{
+			"period":    summary.Period,
+			"surveys":   summary.Surveys,
+			"snapshots": summary.Snapshots,
+			"recent":    summary.Recent,
+		}
+
+		aiClient := ai.NewOpenRouterClient(cfg.OpenRouterAPIKey, cfg.OpenRouterBaseURL)
+		ctx := context.Background()
+
+		fmt.Println("[AI] Generando análisis de Opiniones...")
+		analysis, err := aiClient.GenerateReviewsAnalysis(ctx, reviewsData)
+		if err != nil {
+			respondJSON(w, http.StatusInternalServerError, map[string]interface{}{
+				"success": false,
+				"error":   fmt.Sprintf("Failed to generate analysis: %v", err),
+			})
+			return
+		}
+
+		if analysis.Error != "" {
+			respondJSON(w, http.StatusInternalServerError, map[string]interface{}{
+				"success": false,
+				"error":   analysis.Error,
+			})
+			return
+		}
+
+		respondJSON(w, http.StatusOK, map[string]interface{}{
+			"success": true,
+			"analysis": map[string]interface{}{
+				"content":       analysis.Text,
+				"model":         analysis.Model,
+				"input_tokens":  analysis.InputTokens,
+				"output_tokens": analysis.OutputTokens,
+				"latency_ms":    analysis.LatencyMs,
+			},
+		})
+	}
+}

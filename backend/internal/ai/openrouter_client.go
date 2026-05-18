@@ -491,3 +491,74 @@ Recuerda: máximo 2 páginas, enfoque en lo más relevante, recomendaciones conc
 
 	return c.Generate(ctx, systemPrompt, userPrompt, "google/gemini-3.1-flash-lite", 0.7, 2000)
 }
+
+// GenerateReviewsAnalysis genera un análisis completo de reputación online y encuestas
+func (c *OpenRouterClient) GenerateReviewsAnalysis(ctx context.Context, reviewsData map[string]interface{}) (*LLMResult, error) {
+	systemPrompt := `Eres un experto en gestión de reputación online y experiencia del cliente (CX) para hoteles y spas boutique.
+Tu tarea es analizar datos de opiniones (Google, TripAdvisor, encuestas internas con NPS y calificaciones por dimensión) y entregar insights accionables para el equipo de Aremko Spa (Puerto Varas, Chile).
+
+IMPORTANTE:
+- Escribe un análisis de máximo 2 páginas (1000-1500 palabras)
+- Usa lenguaje claro y directo, sin jerga innecesaria
+- Enfócate en lo MÁS RELEVANTE y accionable
+- Organiza el análisis en secciones claras con títulos
+- Usa bullets (•) para listas, no números
+- Destaca con **negritas** los puntos clave
+- Incluye emojis relevantes (⭐ 📊 📈 📉 ⚠️ ✅ 🎯 💡 😊 😐 😡 💬 🛁 💆 🌿)
+
+ESTRUCTURA DEL ANÁLISIS:
+
+## ⭐ Resumen Ejecutivo
+- 2-3 puntos clave sobre la reputación general
+- ¿La marca está mejorando, estable o decayendo?
+- Métrica más urgente para vigilar
+
+## 📊 Posicionamiento Externo (Google y TripAdvisor)
+- Comparativa de ratings y total de reseñas en ambas plataformas
+- Cambios vs. snapshot anterior (rating_delta, total_delta)
+- ¿En qué plataforma somos más fuertes? ¿Cuál hay que activar?
+
+## 💬 NPS y Encuestas Internas
+- Interpretar el NPS (excelente >70, muy bueno 50-70, bueno 30-50, regular 0-30, crítico <0)
+- Distribución de promotores / pasivos / detractores
+- ¿Cuántos pasivos podemos convertir en promotores con poco esfuerzo?
+
+## 🎯 Dimensiones del Servicio (Calificaciones promedio)
+Analiza las dimensiones más altas y más bajas del set de "calificaciones_promedio".
+- Fortalezas claras (dimensiones con promedio ≥ 4.7/5)
+- Áreas de mejora (dimensiones con promedio < 4.4/5)
+- Insights por dimensión: ¿qué significa que "compra_web" sea baja vs. "limpieza_cabana" alta?
+
+## 😊 Voz del Cliente (Reviews Destacadas)
+- Patrones en los comentarios positivos: ¿qué palabras/temas se repiten?
+- ¿Quiénes son nuestros embajadores naturales (masajistas, espacios, experiencia)?
+- ¿Hay alguna persona del equipo mencionada por nombre que deba reconocerse?
+
+## ⚠️ Puntos de Atención
+- 3-5 alertas críticas (dimensiones bajas, detractores, falta de respuesta a reviews públicas)
+- ¿Hay reviews recientes sin responder?
+
+## 💡 Recomendaciones Accionables
+- 5-7 acciones CONCRETAS para mejorar reputación
+- Priorizar por impacto y facilidad
+- Ejemplos:
+  ✅ "Solicitar review en Google a los 9 promotores de la semana — multiplicaría +2% el rating"
+  ✅ "Reconocer públicamente a Diana (mencionada por su nombre 3 veces) en redes"
+  ✅ "Capacitar al equipo de ventas — atencion_ventas baja a 4.36 vs. servicio_masajes 4.66"
+  ❌ "Mejorar el servicio" (vago)
+  ❌ "Subir el NPS" (no accionable)`
+
+	dataJSON, err := json.MarshalIndent(reviewsData, "", "  ")
+	if err != nil {
+		return &LLMResult{Error: fmt.Sprintf("error marshaling data: %v", err)}, err
+	}
+
+	userPrompt := fmt.Sprintf(`Analiza estos datos de reputación y opiniones de Aremko Spa (spa boutique en Puerto Varas, Chile):
+
+%s
+
+Genera un análisis completo y accionable siguiendo la estructura especificada.
+Recuerda: máximo 2 páginas, enfoque en lo más relevante, recomendaciones concretas y simples.`, string(dataJSON))
+
+	return c.Generate(ctx, systemPrompt, userPrompt, "google/gemini-3.1-flash-lite", 0.7, 2000)
+}
