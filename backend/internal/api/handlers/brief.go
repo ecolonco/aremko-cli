@@ -13,6 +13,7 @@ import (
 	"github.com/aremko/aremko-cli/internal/config"
 	"github.com/aremko/aremko-cli/internal/meta"
 	"github.com/aremko/aremko-cli/internal/reviews"
+	"github.com/aremko/aremko-cli/internal/social"
 )
 
 // GetWeeklyBrief retorna el brief semanal en formato JSON
@@ -95,6 +96,35 @@ func GetWeeklyBrief(cfg *config.Config) http.HandlerFunc {
 		}
 
 		// Reviews/Opinions section
+	// Instagram Organic section
+	if cfg.EnableMetaAds && cfg.MetaAccessToken != "" {
+		igClient := social.NewInstagramClient(cfg.MetaAccessToken)
+		ctx := context.Background()
+
+		accountInfo, err := igClient.GetAccountInfo(ctx)
+		if err == nil {
+			accountID := accountInfo["account_id"].(string)
+
+			// Obtener insights semanales
+			weeklyInsights, _ := igClient.GetWeeklyInsights(ctx, accountID)
+
+			// Obtener top posts
+			topPosts, _ := igClient.GetTopPosts(ctx, accountID, 10)
+
+			brief["instagram_organic"] = map[string]interface{}{
+				"account_info":    accountInfo,
+				"weekly_insights": weeklyInsights,
+				"top_posts":       topPosts,
+				"status":          "real_data",
+			}
+		} else {
+			brief["instagram_organic"] = map[string]interface{}{
+				"status": "error",
+				"error":  err.Error(),
+			}
+		}
+	}
+
 		if cfg.EnableBookings {
 			reviewsClient := reviews.NewClient(cfg.BookingSystemURL)
 			reviewsSummary, err := reviewsClient.GetReviewsSummary()
@@ -277,6 +307,35 @@ func GetStatsOverview(cfg *config.Config) http.HandlerFunc {
 
 
 	// Reviews/Opinions section
+	// Instagram Organic section
+	if cfg.EnableMetaAds && cfg.MetaAccessToken != "" {
+		igClient := social.NewInstagramClient(cfg.MetaAccessToken)
+		ctx := context.Background()
+
+		accountInfo, err := igClient.GetAccountInfo(ctx)
+		if err == nil {
+			accountID := accountInfo["account_id"].(string)
+
+			// Obtener insights semanales
+			weeklyInsights, _ := igClient.GetWeeklyInsights(ctx, accountID)
+
+			// Obtener top posts
+			topPosts, _ := igClient.GetTopPosts(ctx, accountID, 10)
+
+			overview["instagram_organic"] = map[string]interface{}{
+				"account_info":    accountInfo,
+				"weekly_insights": weeklyInsights,
+				"top_posts":       topPosts,
+				"status":          "real_data",
+			}
+		} else {
+			overview["instagram_organic"] = map[string]interface{}{
+				"status": "error",
+				"error":  err.Error(),
+			}
+		}
+	}
+
 	if cfg.EnableBookings {
 		reviewsClient := reviews.NewClient(cfg.BookingSystemURL)
 		reviewsSummary, err := reviewsClient.GetReviewsSummary()
@@ -507,6 +566,35 @@ func GetWeeklyBriefWithAI(cfg *config.Config) http.HandlerFunc {
 
 		// Reviews/Opinions section
 		if cfg.EnableBookings {
+	// Instagram Organic section
+	if cfg.EnableMetaAds && cfg.MetaAccessToken != "" {
+		igClient := social.NewInstagramClient(cfg.MetaAccessToken)
+		ctx := context.Background()
+
+		accountInfo, err := igClient.GetAccountInfo(ctx)
+		if err == nil {
+			accountID := accountInfo["account_id"].(string)
+
+			// Obtener insights semanales
+			weeklyInsights, _ := igClient.GetWeeklyInsights(ctx, accountID)
+
+			// Obtener top posts
+			topPosts, _ := igClient.GetTopPosts(ctx, accountID, 10)
+
+			briefData["instagram_organic"] = map[string]interface{}{
+				"account_info":    accountInfo,
+				"weekly_insights": weeklyInsights,
+				"top_posts":       topPosts,
+				"status":          "real_data",
+			}
+		} else {
+			briefData["instagram_organic"] = map[string]interface{}{
+				"status": "error",
+				"error":  err.Error(),
+			}
+		}
+	}
+
 			reviewsClient := reviews.NewClient(cfg.BookingSystemURL)
 			reviewsSummary, err := reviewsClient.GetReviewsSummary()
 			if err == nil {
@@ -660,6 +748,93 @@ func AnalyzeWebAnalytics(cfg *config.Config) http.HandlerFunc {
 
 		fmt.Println("[AI] Generando análisis de web analytics...")
 		analysis, err := aiClient.GenerateWebAnalyticsAnalysis(ctx, webAnalyticsData)
+		if err != nil {
+			respondJSON(w, http.StatusInternalServerError, map[string]interface{}{
+				"success": false,
+				"error":   fmt.Sprintf("Failed to generate analysis: %v", err),
+			})
+			return
+		}
+
+		if analysis.Error != "" {
+			respondJSON(w, http.StatusInternalServerError, map[string]interface{}{
+				"success": false,
+				"error":   analysis.Error,
+			})
+			return
+		}
+
+		// Retornar análisis
+		respondJSON(w, http.StatusOK, map[string]interface{}{
+			"success": true,
+			"analysis": map[string]interface{}{
+				"content":       analysis.Text,
+				"model":         analysis.Model,
+				"input_tokens":  analysis.InputTokens,
+				"output_tokens": analysis.OutputTokens,
+				"latency_ms":    analysis.LatencyMs,
+			},
+		})
+	}
+}
+
+// AnalyzeInstagramOrganic genera un análisis completo con IA de los datos de Instagram Orgánico
+func AnalyzeInstagramOrganic(cfg *config.Config) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		// Verificar que la IA está habilitada
+		if !cfg.EnableAI || cfg.OpenRouterAPIKey == "" {
+			respondJSON(w, http.StatusServiceUnavailable, map[string]interface{}{
+				"success": false,
+				"error":   "AI analysis is not enabled",
+			})
+			return
+		}
+
+		// Verificar que Meta Ads está habilitado (necesitamos el token)
+		if !cfg.EnableMetaAds || cfg.MetaAccessToken == "" {
+			respondJSON(w, http.StatusServiceUnavailable, map[string]interface{}{
+				"success": false,
+				"error":   "Instagram integration is not enabled",
+			})
+			return
+		}
+
+		// Obtener datos de Instagram completos
+		var instagramData map[string]interface{}
+
+		igClient := social.NewInstagramClient(cfg.MetaAccessToken)
+		ctx := context.Background()
+
+		accountInfo, err := igClient.GetAccountInfo(ctx)
+		if err == nil {
+			accountID := accountInfo["account_id"].(string)
+
+			// Obtener insights semanales
+			weeklyInsights, _ := igClient.GetWeeklyInsights(ctx, accountID)
+
+			// Obtener top posts
+			topPosts, _ := igClient.GetTopPosts(ctx, accountID, 10)
+
+			instagramData = map[string]interface{}{
+				"account_info":    accountInfo,
+				"weekly_insights": weeklyInsights,
+				"top_posts":       topPosts,
+			}
+		}
+
+		if instagramData == nil {
+			respondJSON(w, http.StatusInternalServerError, map[string]interface{}{
+				"success": false,
+				"error":   "Failed to fetch Instagram data",
+			})
+			return
+		}
+
+		// Generar análisis con IA
+		aiClient := ai.NewOpenRouterClient(cfg.OpenRouterAPIKey, cfg.OpenRouterBaseURL)
+
+		fmt.Println("[AI] Generando análisis de Instagram Orgánico...")
+		analysis, err := aiClient.GenerateInstagramAnalysis(ctx, instagramData)
 		if err != nil {
 			respondJSON(w, http.StatusInternalServerError, map[string]interface{}{
 				"success": false,

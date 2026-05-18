@@ -23,7 +23,9 @@ import {
   Sparkles,
   RefreshCw,
   Download,
-  Mail
+  Mail,
+  Loader2,
+  AlertCircle
 } from 'lucide-react';
 
 interface BriefData {
@@ -37,6 +39,7 @@ interface BriefData {
     meta_ads?: any;
     reviews?: any;
     competitors?: any;
+    instagram_organic?: any;
   };
   ai_analysis?: {
     content: string;
@@ -58,6 +61,8 @@ export default function BriefPage() {
   const [activeTab, setActiveTab] = useState('overview');
   const [webAnalysisAI, setWebAnalysisAI] = useState<any>(null);
   const [generatingWebAnalysis, setGeneratingWebAnalysis] = useState(false);
+  const [instagramAnalysisAI, setInstagramAnalysisAI] = useState<any>(null);
+  const [generatingInstagramAnalysis, setGeneratingInstagramAnalysis] = useState(false);
 
   // Cargar brief al montar
   useEffect(() => {
@@ -105,6 +110,29 @@ export default function BriefPage() {
       console.error('Error generating web analysis:', error);
     } finally {
       setGeneratingWebAnalysis(false);
+    }
+  };
+
+  const handleGenerateInstagramAnalysis = async () => {
+    setGeneratingInstagramAnalysis(true);
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+      const response = await fetch(`${apiUrl}/api/v1/analytics/instagram/analyze`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      const data = await response.json();
+      if (data.success) {
+        setInstagramAnalysisAI(data.analysis);
+      } else {
+        console.error('Error generating Instagram analysis:', data.error);
+      }
+    } catch (error) {
+      console.error('Error generating Instagram analysis:', error);
+    } finally {
+      setGeneratingInstagramAnalysis(false);
     }
   };
 
@@ -833,13 +861,344 @@ export default function BriefPage() {
               <CardDescription>Alcance y engagement orgánico</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="p-8 text-center border-2 border-dashed rounded-lg">
-                <Image className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                <p className="text-sm text-muted-foreground mb-2">Próximamente</p>
-                <p className="text-xs text-muted-foreground">
-                  Integración con Instagram Graph API para métricas orgánicas
-                </p>
-              </div>
+              {data?.instagram_organic?.status === 'real_data' ? (
+                <div className="space-y-6">
+                  {/* AI Analysis Card */}
+                  <Card className="bg-gradient-to-br from-pink-50 to-purple-50 border-pink-200">
+                    <CardHeader>
+                      <CardTitle className="text-lg flex items-center">
+                        <Sparkles className="h-5 w-5 mr-2 text-pink-600" />
+                        Análisis con IA
+                      </CardTitle>
+                      <CardDescription>
+                        Análisis inteligente de tus datos de Instagram orgánico
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <Button
+                        onClick={handleGenerateInstagramAnalysis}
+                        disabled={generatingInstagramAnalysis}
+                        className="w-full bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-700 hover:to-purple-700"
+                      >
+                        {generatingInstagramAnalysis ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Generando análisis...
+                          </>
+                        ) : (
+                          <>
+                            <Sparkles className="mr-2 h-4 w-4" />
+                            Generar Análisis IA
+                          </>
+                        )}
+                      </Button>
+                    </CardContent>
+                  </Card>
+
+                  {/* AI Analysis Results */}
+                  {instagramAnalysisAI && (
+                    <Card className="bg-gradient-to-br from-pink-50 to-purple-50 border-pink-200">
+                      <CardHeader>
+                        <CardTitle className="text-lg flex items-center">
+                          <Sparkles className="h-5 w-5 mr-2 text-pink-600" />
+                          Resultados del Análisis IA
+                        </CardTitle>
+                        <CardDescription>
+                          Análisis generado por {instagramAnalysisAI.model || 'IA'}
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="prose prose-sm max-w-none">
+                          <div className="whitespace-pre-wrap" dangerouslySetInnerHTML={{
+                            __html: instagramAnalysisAI.text
+                              .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                              .replace(/^## (.*$)/gim, '<h2 class="text-xl font-bold mt-6 mb-3">$1</h2>')
+                              .replace(/^### (.*$)/gim, '<h3 class="text-lg font-semibold mt-4 mb-2">$1</h3>')
+                              .replace(/^• (.*$)/gim, '<li class="ml-4">$1</li>')
+                              .replace(/\n\n/g, '</p><p class="mt-2">')
+                          }} />
+                        </div>
+                        {instagramAnalysisAI.input_tokens && (
+                          <div className="mt-4 pt-4 border-t text-xs text-muted-foreground">
+                            <p>
+                              Tokens: {instagramAnalysisAI.input_tokens.toLocaleString()} entrada,{' '}
+                              {instagramAnalysisAI.output_tokens.toLocaleString()} salida
+                              {instagramAnalysisAI.latency_ms && ` • ${(instagramAnalysisAI.latency_ms / 1000).toFixed(1)}s`}
+                            </p>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {/* Main Metrics Cards */}
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    {data.instagram_organic.account_info && (
+                      <>
+                        <Card>
+                          <CardHeader className="pb-2">
+                            <CardTitle className="text-sm font-medium text-muted-foreground">
+                              Seguidores
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="text-2xl font-bold">
+                              {data.instagram_organic.account_info.followers_count?.toLocaleString() || '0'}
+                            </div>
+                          </CardContent>
+                        </Card>
+
+                        <Card>
+                          <CardHeader className="pb-2">
+                            <CardTitle className="text-sm font-medium text-muted-foreground">
+                              Posts
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="text-2xl font-bold">
+                              {data.instagram_organic.account_info.media_count?.toLocaleString() || '0'}
+                            </div>
+                          </CardContent>
+                        </Card>
+
+                        <Card>
+                          <CardHeader className="pb-2">
+                            <CardTitle className="text-sm font-medium text-muted-foreground">
+                              Siguiendo
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="text-2xl font-bold">
+                              {data.instagram_organic.account_info.follows_count?.toLocaleString() || '0'}
+                            </div>
+                          </CardContent>
+                        </Card>
+
+                        <Card>
+                          <CardHeader className="pb-2">
+                            <CardTitle className="text-sm font-medium text-muted-foreground">
+                              Ratio
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="text-2xl font-bold">
+                              {data.instagram_organic.account_info.follows_count > 0
+                                ? (
+                                    data.instagram_organic.account_info.followers_count /
+                                    data.instagram_organic.account_info.follows_count
+                                  ).toFixed(1)
+                                : '0'}
+                            </div>
+                            <p className="text-xs text-muted-foreground">Seguidores/Siguiendo</p>
+                          </CardContent>
+                        </Card>
+                      </>
+                    )}
+                  </div>
+
+                  {/* Weekly Trends Table */}
+                  {data.instagram_organic.weekly_insights &&
+                    data.instagram_organic.weekly_insights.length > 0 && (
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="text-lg">Tendencias Semanales</CardTitle>
+                          <CardDescription>Últimas 4 semanas de actividad orgánica</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="overflow-x-auto">
+                            <table className="w-full text-sm">
+                              <thead>
+                                <tr className="border-b">
+                                  <th className="text-left py-3 px-2 font-medium">Semana</th>
+                                  <th className="text-right py-3 px-2 font-medium">Alcance</th>
+                                  <th className="text-right py-3 px-2 font-medium">Impresiones</th>
+                                  <th className="text-right py-3 px-2 font-medium">Vistas Perfil</th>
+                                  <th className="text-right py-3 px-2 font-medium">Clics Web</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {data.instagram_organic.weekly_insights.map((week: any, idx: number) => {
+                                  const prevWeek =
+                                    idx < data.instagram_organic.weekly_insights.length - 1
+                                      ? data.instagram_organic.weekly_insights[idx + 1]
+                                      : null;
+
+                                  const reachChange = prevWeek
+                                    ? ((week.reach - prevWeek.reach) / prevWeek.reach) * 100
+                                    : 0;
+                                  const impressionsChange = prevWeek
+                                    ? ((week.impressions - prevWeek.impressions) / prevWeek.impressions) * 100
+                                    : 0;
+                                  const profileViewsChange = prevWeek
+                                    ? ((week.profile_views - prevWeek.profile_views) / prevWeek.profile_views) * 100
+                                    : 0;
+                                  const clicksChange = prevWeek
+                                    ? ((week.website_clicks - prevWeek.website_clicks) / prevWeek.website_clicks) *
+                                      100
+                                    : 0;
+
+                                  return (
+                                    <tr key={week.week_label} className="border-b hover:bg-muted/50">
+                                      <td className="py-3 px-2 font-medium">{week.week_label}</td>
+                                      <td className="py-3 px-2 text-right">
+                                        <div className="flex items-center justify-end gap-2">
+                                          <span>{week.reach?.toLocaleString() || '0'}</span>
+                                          {prevWeek && (
+                                            <span
+                                              className={`text-xs ${
+                                                reachChange > 0
+                                                  ? 'text-green-600'
+                                                  : reachChange < 0
+                                                  ? 'text-red-600'
+                                                  : 'text-gray-500'
+                                              }`}
+                                            >
+                                              {reachChange > 0 ? '▲' : reachChange < 0 ? '▼' : '─'}{' '}
+                                              {Math.abs(reachChange).toFixed(0)}%
+                                            </span>
+                                          )}
+                                        </div>
+                                      </td>
+                                      <td className="py-3 px-2 text-right">
+                                        <div className="flex items-center justify-end gap-2">
+                                          <span>{week.impressions?.toLocaleString() || '0'}</span>
+                                          {prevWeek && (
+                                            <span
+                                              className={`text-xs ${
+                                                impressionsChange > 0
+                                                  ? 'text-green-600'
+                                                  : impressionsChange < 0
+                                                  ? 'text-red-600'
+                                                  : 'text-gray-500'
+                                              }`}
+                                            >
+                                              {impressionsChange > 0 ? '▲' : impressionsChange < 0 ? '▼' : '─'}{' '}
+                                              {Math.abs(impressionsChange).toFixed(0)}%
+                                            </span>
+                                          )}
+                                        </div>
+                                      </td>
+                                      <td className="py-3 px-2 text-right">
+                                        <div className="flex items-center justify-end gap-2">
+                                          <span>{week.profile_views?.toLocaleString() || '0'}</span>
+                                          {prevWeek && (
+                                            <span
+                                              className={`text-xs ${
+                                                profileViewsChange > 0
+                                                  ? 'text-green-600'
+                                                  : profileViewsChange < 0
+                                                  ? 'text-red-600'
+                                                  : 'text-gray-500'
+                                              }`}
+                                            >
+                                              {profileViewsChange > 0 ? '▲' : profileViewsChange < 0 ? '▼' : '─'}{' '}
+                                              {Math.abs(profileViewsChange).toFixed(0)}%
+                                            </span>
+                                          )}
+                                        </div>
+                                      </td>
+                                      <td className="py-3 px-2 text-right">
+                                        <div className="flex items-center justify-end gap-2">
+                                          <span>{week.website_clicks?.toLocaleString() || '0'}</span>
+                                          {prevWeek && (
+                                            <span
+                                              className={`text-xs ${
+                                                clicksChange > 0
+                                                  ? 'text-green-600'
+                                                  : clicksChange < 0
+                                                  ? 'text-red-600'
+                                                  : 'text-gray-500'
+                                              }`}
+                                            >
+                                              {clicksChange > 0 ? '▲' : clicksChange < 0 ? '▼' : '─'}{' '}
+                                              {Math.abs(clicksChange).toFixed(0)}%
+                                            </span>
+                                          )}
+                                        </div>
+                                      </td>
+                                    </tr>
+                                  );
+                                })}
+                              </tbody>
+                            </table>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )}
+
+                  {/* Top Posts Grid */}
+                  {data.instagram_organic.top_posts && data.instagram_organic.top_posts.length > 0 && (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="text-lg">Top Posts</CardTitle>
+                        <CardDescription>Posts con mejor engagement</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          {data.instagram_organic.top_posts.slice(0, 9).map((post: any) => (
+                            <Card key={post.id} className="overflow-hidden">
+                              {post.media_url && (
+                                <div className="aspect-square relative bg-gray-100">
+                                  <img
+                                    src={post.media_url}
+                                    alt={post.caption?.substring(0, 50) || 'Instagram post'}
+                                    className="object-cover w-full h-full"
+                                  />
+                                </div>
+                              )}
+                              <CardContent className="p-4">
+                                {post.caption && (
+                                  <p className="text-xs text-muted-foreground mb-3 line-clamp-2">
+                                    {post.caption}
+                                  </p>
+                                )}
+                                <div className="grid grid-cols-3 gap-2 text-xs">
+                                  <div className="text-center">
+                                    <div className="font-semibold">{post.like_count?.toLocaleString() || '0'}</div>
+                                    <div className="text-muted-foreground">Likes</div>
+                                  </div>
+                                  <div className="text-center">
+                                    <div className="font-semibold">
+                                      {post.comments_count?.toLocaleString() || '0'}
+                                    </div>
+                                    <div className="text-muted-foreground">Coments</div>
+                                  </div>
+                                  <div className="text-center">
+                                    <div className="font-semibold">{post.saved_count?.toLocaleString() || '0'}</div>
+                                    <div className="text-muted-foreground">Guardado</div>
+                                  </div>
+                                </div>
+                                {post.engagement_rate !== undefined && (
+                                  <div className="mt-3 pt-3 border-t text-center">
+                                    <div className="text-sm font-semibold text-pink-600">
+                                      {(post.engagement_rate * 100).toFixed(2)}%
+                                    </div>
+                                    <div className="text-xs text-muted-foreground">Engagement</div>
+                                  </div>
+                                )}
+                              </CardContent>
+                            </Card>
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+                </div>
+              ) : data?.instagram_organic?.status === 'error' ? (
+                <div className="p-8 text-center border-2 border-dashed border-red-200 rounded-lg bg-red-50">
+                  <AlertCircle className="h-12 w-12 mx-auto mb-4 text-red-500" />
+                  <p className="text-sm text-red-600 mb-2">Error al cargar datos de Instagram</p>
+                  <p className="text-xs text-red-500">{data.instagram_organic.error}</p>
+                </div>
+              ) : (
+                <div className="p-8 text-center border-2 border-dashed rounded-lg">
+                  <Image className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                  <p className="text-sm text-muted-foreground mb-2">Cargando datos de Instagram...</p>
+                  <p className="text-xs text-muted-foreground">
+                    Conectando con Instagram Graph API
+                  </p>
+                </div>
+              )}
             </CardContent>
           </Card>
 

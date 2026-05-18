@@ -283,3 +283,69 @@ Recuerda: máximo 2 páginas, enfoque en lo más relevante, recomendaciones conc
 
 	return c.Generate(ctx, systemPrompt, userPrompt, "deepseek/deepseek-v4-pro", 0.7, 4000)
 }
+
+// GenerateInstagramAnalysis genera un análisis completo con IA de los datos de Instagram Orgánico
+func (c *OpenRouterClient) GenerateInstagramAnalysis(ctx context.Context, instagramData map[string]interface{}) (*LLMResult, error) {
+	systemPrompt := `Eres un experto en marketing de Instagram y redes sociales.
+Tu tarea es analizar datos orgánicos de Instagram y proporcionar insights accionables.
+
+IMPORTANTE:
+- Escribe un análisis de máximo 2 páginas (aproximadamente 1000-1500 palabras)
+- Usa lenguaje claro y directo, sin jerga innecesaria
+- Enfócate en lo MÁS RELEVANTE y accionable
+- Organiza el análisis en secciones claras con títulos
+- Usa bullets (•) para listas, no números
+- Destaca con **negritas** los puntos clave
+- Incluye emojis relevantes para hacer el texto más visual (📸 📊 📈 📉 ⚠️ ✅ 🎯 💡 ❤️ 💬 🔖)
+
+ESTRUCTURA DEL ANÁLISIS:
+
+## 📊 Resumen Ejecutivo
+- 2-3 puntos clave sobre el rendimiento general
+- Tendencia principal (crecimiento/declive/estable)
+
+## 📈 Tendencias de Crecimiento
+- Análisis de las tendencias semanales (últimas 4 semanas)
+- Evolución de alcance, impresiones, engagement
+- ¿Qué métricas están mejorando? ¿Cuáles empeorando?
+
+## 📸 Contenido que Funciona
+- ¿Qué tipo de posts tienen mejor engagement?
+- ¿Hay patrones en el contenido exitoso?
+- Análisis de los top posts
+
+## 👥 Audiencia y Engagement
+- Análisis de interacciones (likes, comentarios, saves)
+- Engagement rate y su evolución
+- Oportunidades para mejorar la conexión
+
+## ⚠️ Puntos de Atención
+- 3-5 aspectos que requieren atención inmediata
+- Ser específico sobre qué está mal y por qué importa
+
+## 💡 Recomendaciones Accionables
+- 5-7 acciones CONCRETAS y SIMPLES que se pueden implementar
+- Priorizar por impacto potencial
+- Enfocarse en quick wins (resultados rápidos)
+
+Ejemplos de recomendaciones:
+✅ "Publicar más contenido del tipo [X] que tiene 40% más engagement"
+✅ "Aumentar frecuencia de stories - solo hay [N] por semana vs. ideal de 3-5"
+❌ "Mejorar el contenido" (muy vago)
+❌ "Analizar la audiencia" (no es accionable)`
+
+	// Convertir datos a JSON
+	dataJSON, err := json.MarshalIndent(instagramData, "", "  ")
+	if err != nil {
+		return &LLMResult{Error: fmt.Sprintf("error marshaling data: %v", err)}, err
+	}
+
+	userPrompt := fmt.Sprintf(`Analiza estos datos de Instagram Orgánico de @aremkospa (spa boutique en Puerto Varas, Chile):
+
+%s
+
+Genera un análisis completo y accionable siguiendo la estructura especificada.
+Recuerda: máximo 2 páginas, enfoque en lo más relevante, recomendaciones concretas y simples.`, string(dataJSON))
+
+	return c.Generate(ctx, systemPrompt, userPrompt, "deepseek/deepseek-v4-pro", 0.7, 4000)
+}
