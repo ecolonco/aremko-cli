@@ -347,5 +347,5 @@ Ejemplos de recomendaciones:
 Genera un análisis completo y accionable siguiendo la estructura especificada.
 Recuerda: máximo 2 páginas, enfoque en lo más relevante, recomendaciones concretas y simples.`, string(dataJSON))
 
-	return c.Generate(ctx, systemPrompt, userPrompt, "deepseek/deepseek-v4-pro", 0.7, 4000)
+	return c.Generate(ctx, systemPrompt, userPrompt, "deepseek/deepseek-v4-pro", 0.7, 3000)
 }
