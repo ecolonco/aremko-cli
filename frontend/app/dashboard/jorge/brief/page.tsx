@@ -65,6 +65,8 @@ export default function BriefPage() {
   const [generatingInstagramAnalysis, setGeneratingInstagramAnalysis] = useState(false);
   const [metaAdsAnalysisAI, setMetaAdsAnalysisAI] = useState<any>(null);
   const [generatingMetaAdsAnalysis, setGeneratingMetaAdsAnalysis] = useState(false);
+  const [metaAdsAnalysisError, setMetaAdsAnalysisError] = useState<string | null>(null);
+  const [instagramAnalysisError, setInstagramAnalysisError] = useState<string | null>(null);
 
   // Cargar brief al montar
   useEffect(() => {
@@ -117,6 +119,7 @@ export default function BriefPage() {
 
   const handleGenerateMetaAdsAnalysis = async () => {
     setGeneratingMetaAdsAnalysis(true);
+    setMetaAdsAnalysisError(null);
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
       const response = await fetch(`${apiUrl}/api/v1/analytics/meta-ads/analyze`, {
@@ -124,50 +127,45 @@ export default function BriefPage() {
         headers: { 'Content-Type': 'application/json' },
       });
       const data = await response.json();
-      if (data.success) {
+      if (data.success && data.analysis) {
         setMetaAdsAnalysisAI(data.analysis);
       } else {
-        console.error('Error generating Meta Ads analysis:', data.error);
+        const msg = data.error || `HTTP ${response.status}`;
+        console.error('Error generating Meta Ads analysis:', msg);
+        setMetaAdsAnalysisError(msg);
       }
-    } catch (error) {
+    } catch (error: any) {
+      const msg = error?.message || 'Error de red al generar el análisis';
       console.error('Error generating Meta Ads analysis:', error);
+      setMetaAdsAnalysisError(msg);
     } finally {
       setGeneratingMetaAdsAnalysis(false);
     }
   };
 
   const handleGenerateInstagramAnalysis = async () => {
-    console.log('🔄 [Instagram IA] Iniciando generación de análisis...');
     setGeneratingInstagramAnalysis(true);
+    setInstagramAnalysisError(null);
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
-      console.log('🌐 [Instagram IA] API URL:', apiUrl);
-      console.log('📡 [Instagram IA] Llamando a:', `${apiUrl}/api/v1/analytics/instagram/analyze`);
-
       const response = await fetch(`${apiUrl}/api/v1/analytics/instagram/analyze`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
       });
-
-      console.log('📥 [Instagram IA] Response status:', response.status);
       const data = await response.json();
-      console.log('📦 [Instagram IA] Data recibida:', data);
-
-      if (data.success) {
-        console.log('✅ [Instagram IA] Análisis generado exitosamente');
-        console.log('📄 [Instagram IA] Contenido del análisis:', data.analysis);
+      if (data.success && data.analysis) {
         setInstagramAnalysisAI(data.analysis);
-        console.log('✨ [Instagram IA] Estado actualizado con análisis');
       } else {
-        console.error('❌ [Instagram IA] Error en respuesta:', data.error);
+        const msg = data.error || `HTTP ${response.status}`;
+        console.error('Error generating Instagram analysis:', msg);
+        setInstagramAnalysisError(msg);
       }
-    } catch (error) {
-      console.error('💥 [Instagram IA] Error al generar análisis:', error);
+    } catch (error: any) {
+      const msg = error?.message || 'Error de red al generar el análisis';
+      console.error('Error generating Instagram analysis:', error);
+      setInstagramAnalysisError(msg);
     } finally {
       setGeneratingInstagramAnalysis(false);
-      console.log('🏁 [Instagram IA] Proceso finalizado');
     }
   };
 
@@ -927,6 +925,20 @@ export default function BriefPage() {
                           </>
                         )}
                       </Button>
+                      {instagramAnalysisError && (
+                        <div className="mt-3 p-3 rounded-md bg-red-50 border border-red-200 text-sm text-red-700 flex items-start gap-2">
+                          <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
+                          <div>
+                            <p className="font-medium">No se pudo generar el análisis</p>
+                            <p className="text-xs mt-1">{instagramAnalysisError}</p>
+                            {instagramAnalysisError.toLowerCase().includes('ai analysis is not enabled') && (
+                              <p className="text-xs mt-2">
+                                Falta configurar <code className="px-1 bg-red-100 rounded">OPENROUTER_API_KEY</code> en <code className="px-1 bg-red-100 rounded">backend/.env</code>.
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
 
@@ -1277,6 +1289,20 @@ export default function BriefPage() {
                           </>
                         )}
                       </Button>
+                      {metaAdsAnalysisError && (
+                        <div className="mt-3 p-3 rounded-md bg-red-50 border border-red-200 text-sm text-red-700 flex items-start gap-2">
+                          <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
+                          <div>
+                            <p className="font-medium">No se pudo generar el análisis</p>
+                            <p className="text-xs mt-1">{metaAdsAnalysisError}</p>
+                            {metaAdsAnalysisError.toLowerCase().includes('ai analysis is not enabled') && (
+                              <p className="text-xs mt-2">
+                                Falta configurar <code className="px-1 bg-red-100 rounded">OPENROUTER_API_KEY</code> en <code className="px-1 bg-red-100 rounded">backend/.env</code>.
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
 
@@ -1411,11 +1437,16 @@ export default function BriefPage() {
                   )}
 
                   {/* Tabla de campañas */}
-                  {data.meta_ads.campaigns && data.meta_ads.campaigns.length > 0 && (
+                  {((data.meta_ads.recent_campaigns && data.meta_ads.recent_campaigns.length > 0) ||
+                    (data.meta_ads.campaigns && data.meta_ads.campaigns.length > 0)) && (
                     <Card>
                       <CardHeader>
-                        <CardTitle className="text-lg">Detalle de Campañas</CardTitle>
-                        <CardDescription>Rendimiento individual de cada campaña activa</CardDescription>
+                        <CardTitle className="text-lg">Top Campañas Pagadas</CardTitle>
+                        <CardDescription>
+                          {data.meta_ads.recent_campaigns?.length > 0
+                            ? `Las ${data.meta_ads.recent_campaigns.length} campañas con mayor inversión en los últimos ${data.meta_ads.recent_range_days || 90} días`
+                            : 'Campañas activas esta semana'}
+                        </CardDescription>
                       </CardHeader>
                       <CardContent>
                         <div className="overflow-x-auto">
@@ -1431,7 +1462,10 @@ export default function BriefPage() {
                               </tr>
                             </thead>
                             <tbody>
-                              {data.meta_ads.campaigns.map((c: any) => (
+                              {(data.meta_ads.recent_campaigns?.length > 0
+                                ? data.meta_ads.recent_campaigns
+                                : data.meta_ads.campaigns
+                              ).map((c: any) => (
                                 <tr key={c.id} className="border-b hover:bg-muted/50">
                                   <td className="py-3 px-2 font-medium max-w-xs truncate" title={c.name}>{c.name}</td>
                                   <td className="py-3 px-2 text-right">{formatCurrency(c.spend)}</td>

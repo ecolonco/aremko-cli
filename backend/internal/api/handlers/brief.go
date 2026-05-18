@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"sort"
 	"time"
 
 	"github.com/aremko/aremko-cli/internal/ai"
@@ -448,6 +449,7 @@ func getMetaAdsData(cfg *config.Config, dateStart, dateStop string) (map[string]
 		recommendations = append(recommendations, "CPC alto (>$1) - Revisa targeting y optimiza audiencias")
 	}
 
+	// Lista de campañas del rango actual (semana del brief)
 	campaignsList := make([]map[string]interface{}, 0, len(insights))
 	for i := range insights {
 		campaignsList = append(campaignsList, map[string]interface{}{
@@ -460,7 +462,35 @@ func getMetaAdsData(cfg *config.Config, dateStart, dateStop string) (map[string]
 			"ctr":         insights[i].CalculateCTR(),
 			"cpc":         insights[i].CalculateCPC(),
 			"cpm":         insights[i].CalculateCPM(),
+			"period":      "week",
 		})
+	}
+
+	// Top 10 campañas de los últimos 90 días (incluye campañas no activas esta semana)
+	recentCampaigns := []map[string]interface{}{}
+	historicalStart := time.Now().AddDate(0, 0, -90).Format("2006-01-02")
+	historicalStop := time.Now().AddDate(0, 0, -1).Format("2006-01-02")
+	if historicalInsights, hErr := client.GetAccountInsights(historicalStart, historicalStop); hErr == nil && len(historicalInsights) > 0 {
+		sort.Slice(historicalInsights, func(i, j int) bool {
+			return historicalInsights[i].Spend > historicalInsights[j].Spend
+		})
+		limit := 10
+		if len(historicalInsights) < limit {
+			limit = len(historicalInsights)
+		}
+		for i := 0; i < limit; i++ {
+			recentCampaigns = append(recentCampaigns, map[string]interface{}{
+				"id":          historicalInsights[i].CampaignID,
+				"name":        historicalInsights[i].CampaignName,
+				"spend":       historicalInsights[i].Spend,
+				"impressions": historicalInsights[i].Impressions,
+				"clicks":      historicalInsights[i].Clicks,
+				"reach":       historicalInsights[i].Reach,
+				"ctr":         historicalInsights[i].CalculateCTR(),
+				"cpc":         historicalInsights[i].CalculateCPC(),
+				"cpm":         historicalInsights[i].CalculateCPM(),
+			})
+		}
 	}
 
 	result := map[string]interface{}{
@@ -473,9 +503,11 @@ func getMetaAdsData(cfg *config.Config, dateStart, dateStop string) (map[string]
 			"cpc":         avgCPC,
 			"cpm":         avgCPM,
 		},
-		"campaigns_count": len(insights),
-		"campaigns":       campaignsList,
-		"recommendations": recommendations,
+		"campaigns_count":   len(insights),
+		"campaigns":         campaignsList,
+		"recent_campaigns":  recentCampaigns,
+		"recent_range_days": 90,
+		"recommendations":   recommendations,
 		"period": map[string]string{
 			"start": dateStart,
 			"end":   dateStop,
