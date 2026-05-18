@@ -80,7 +80,7 @@ func (c *OpenRouterClient) Generate(ctx context.Context, systemPrompt, userPromp
 
 	// Usar DeepSeek V4 Pro por defecto
 	if model == "" {
-		model = "deepseek/deepseek-v4-pro"
+		model = "google/gemini-3.1-flash-lite"
 	}
 
 	// Construir request
@@ -177,7 +177,7 @@ Sé específico, usa números, y enfócate en acciones concretas.`
 
 Genera tu análisis siguiendo la estructura definida.`, string(briefJSON))
 
-	return c.Generate(ctx, systemPrompt, userPrompt, "deepseek/deepseek-v4-pro", 0.7, 2000)
+	return c.Generate(ctx, systemPrompt, userPrompt, "google/gemini-3.1-flash-lite", 0.7, 2000)
 }
 
 // GenerateContentCalendar genera calendario de contenido para redes sociales
@@ -214,7 +214,7 @@ Prioriza contenido que:
 Genera un calendario de contenido para los próximos %d días.
 Incluye al menos 1 post de Instagram y 1 artículo de blog por semana.`, string(briefJSON), days)
 
-	return c.Generate(ctx, systemPrompt, userPrompt, "deepseek/deepseek-v4-pro", 0.8, 4000)
+	return c.Generate(ctx, systemPrompt, userPrompt, "google/gemini-3.1-flash-lite", 0.8, 4000)
 }
 
 // GenerateWebAnalyticsAnalysis genera un análisis completo de los datos de web analytics
@@ -281,7 +281,7 @@ Ejemplos de recomendaciones:
 Genera un análisis completo y accionable siguiendo la estructura especificada.
 Recuerda: máximo 2 páginas, enfoque en lo más relevante, recomendaciones concretas y simples.`, string(dataJSON))
 
-	return c.Generate(ctx, systemPrompt, userPrompt, "deepseek/deepseek-v4-pro", 0.7, 4000)
+	return c.Generate(ctx, systemPrompt, userPrompt, "google/gemini-3.1-flash-lite", 0.7, 4000)
 }
 
 // GenerateInstagramAnalysis genera un análisis completo con IA de los datos de Instagram Orgánico
@@ -347,7 +347,7 @@ Ejemplos de recomendaciones:
 Genera un análisis completo y accionable siguiendo la estructura especificada.
 Recuerda: máximo 2 páginas, enfoque en lo más relevante, recomendaciones concretas y simples.`, string(dataJSON))
 
-	return c.Generate(ctx, systemPrompt, userPrompt, "deepseek/deepseek-v4-pro", 0.7, 2000)
+	return c.Generate(ctx, systemPrompt, userPrompt, "google/gemini-3.1-flash-lite", 0.7, 2000)
 }
 
 // GenerateMetaAdsAnalysis genera un análisis completo de los datos de Meta Ads (Facebook/Instagram)
@@ -415,5 +415,5 @@ Ejemplos de recomendaciones:
 Genera un análisis completo y accionable siguiendo la estructura especificada.
 Recuerda: máximo 2 páginas, enfoque en lo más relevante, recomendaciones concretas y simples.`, string(dataJSON))
 
-	return c.Generate(ctx, systemPrompt, userPrompt, "deepseek/deepseek-v4-pro", 0.7, 2000)
+	return c.Generate(ctx, systemPrompt, userPrompt, "google/gemini-3.1-flash-lite", 0.7, 2000)
 }
