@@ -347,7 +347,7 @@ Ejemplos de recomendaciones:
 Genera un análisis completo y accionable siguiendo la estructura especificada.
 Recuerda: máximo 2 páginas, enfoque en lo más relevante, recomendaciones concretas y simples.`, string(dataJSON))
 
-	return c.Generate(ctx, systemPrompt, userPrompt, "deepseek/deepseek-v4-pro", 0.7, 2500)
+	return c.Generate(ctx, systemPrompt, userPrompt, "deepseek/deepseek-v4-pro", 0.7, 2000)
 }
 
 // GenerateMetaAdsAnalysis genera un análisis completo de los datos de Meta Ads (Facebook/Instagram)
@@ -415,5 +415,5 @@ Ejemplos de recomendaciones:
 Genera un análisis completo y accionable siguiendo la estructura especificada.
 Recuerda: máximo 2 páginas, enfoque en lo más relevante, recomendaciones concretas y simples.`, string(dataJSON))
 
-	return c.Generate(ctx, systemPrompt, userPrompt, "deepseek/deepseek-v4-pro", 0.7, 2500)
+	return c.Generate(ctx, systemPrompt, userPrompt, "deepseek/deepseek-v4-pro", 0.7, 2000)
 }
