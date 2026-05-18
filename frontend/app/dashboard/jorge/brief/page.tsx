@@ -910,7 +910,7 @@ export default function BriefPage() {
                       <CardContent>
                         <div className="prose prose-sm max-w-none">
                           <div className="whitespace-pre-wrap" dangerouslySetInnerHTML={{
-                            __html: instagramAnalysisAI.text
+                            __html: instagramAnalysisAI.content
                               .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
                               .replace(/^## (.*$)/gim, '<h2 class="text-xl font-bold mt-6 mb-3">$1</h2>')
                               .replace(/^### (.*$)/gim, '<h3 class="text-lg font-semibold mt-4 mb-2">$1</h3>')
