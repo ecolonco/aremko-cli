@@ -81,6 +81,9 @@ func (s *Server) setupRoutes() {
 		// Instagram Organic AI Analysis
 		r.Post("/analytics/instagram/analyze", handlers.AnalyzeInstagramOrganic(s.config))
 
+		// Meta Ads AI Analysis
+		r.Post("/analytics/meta-ads/analyze", handlers.AnalyzeMetaAds(s.config))
+
 		// Stats endpoints (próximamente)
 		r.Get("/stats/overview", handlers.GetStatsOverview(s.config))
 	})

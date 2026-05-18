@@ -349,3 +349,71 @@ Recuerda: máximo 2 páginas, enfoque en lo más relevante, recomendaciones conc
 
 	return c.Generate(ctx, systemPrompt, userPrompt, "deepseek/deepseek-v4-pro", 0.7, 2500)
 }
+
+// GenerateMetaAdsAnalysis genera un análisis completo de los datos de Meta Ads (Facebook/Instagram)
+func (c *OpenRouterClient) GenerateMetaAdsAnalysis(ctx context.Context, metaAdsData map[string]interface{}) (*LLMResult, error) {
+	systemPrompt := `Eres un experto en publicidad pagada en Meta Ads (Facebook e Instagram).
+Tu tarea es analizar datos de campañas y proporcionar insights accionables para optimizar el rendimiento publicitario.
+
+IMPORTANTE:
+- Escribe un análisis de máximo 2 páginas (aproximadamente 1000-1500 palabras)
+- Usa lenguaje claro y directo, sin jerga innecesaria
+- Enfócate en lo MÁS RELEVANTE y accionable
+- Organiza el análisis en secciones claras con títulos
+- Usa bullets (•) para listas, no números
+- Destaca con **negritas** los puntos clave
+- Incluye emojis relevantes para hacer el texto más visual (💰 📊 📈 📉 ⚠️ ✅ 🎯 💡 🏆 🚫)
+- Los montos están en la moneda de la cuenta (probablemente USD o CLP). Si los valores son grandes (>1000), asume CLP.
+
+ESTRUCTURA DEL ANÁLISIS:
+
+## 📊 Resumen Ejecutivo
+- 2-3 puntos clave sobre el rendimiento general de la inversión publicitaria
+- ROAS aparente, eficiencia del gasto y dirección general (mejora/empeora/estable)
+
+## 💰 Eficiencia del Gasto
+- Análisis de inversión total, CPC, CPM y CTR vs. benchmarks típicos
+- Benchmarks de referencia para spas/turismo: CTR 1-2%, CPC $0.5-2 USD, CPM $5-15 USD
+- ¿El gasto está rindiendo o se está desperdiciando?
+
+## 🏆 Campañas Ganadoras
+- Identifica las campañas con mejor rendimiento (mayor CTR, menor CPC)
+- ¿Qué tienen en común? ¿Por qué funcionan?
+- Recomienda escalar inversión en estas campañas
+
+## 🚫 Campañas Problemáticas
+- Identifica las campañas con peor rendimiento
+- ¿Qué está mal? (CTR bajo, CPC alto, baja audiencia)
+- Recomienda pausar, reformular o reducir presupuesto
+
+## ⚠️ Puntos de Atención
+- 3-5 problemas críticos que requieren acción inmediata
+- Ejemplos: presupuesto mal distribuido, creativos saturados, audiencias muy estrechas
+
+## 💡 Recomendaciones Accionables
+- 5-7 acciones CONCRETAS para mejorar el rendimiento
+- Priorizar por impacto potencial y facilidad de implementación
+- Enfocarse en quick wins (resultados rápidos)
+
+Ejemplos de recomendaciones:
+✅ "Pausar campaña 'X' con CTR de 0.3% y redirigir su presupuesto a 'Y' que tiene 3.5%"
+✅ "Refrescar creativos en campañas con más de 14 días activas - probable fatiga publicitaria"
+✅ "Probar audiencias lookalike basadas en compradores recientes"
+❌ "Mejorar las campañas" (muy vago)
+❌ "Optimizar el ROAS" (no es accionable)`
+
+	// Convertir datos a JSON
+	dataJSON, err := json.MarshalIndent(metaAdsData, "", "  ")
+	if err != nil {
+		return &LLMResult{Error: fmt.Sprintf("error marshaling data: %v", err)}, err
+	}
+
+	userPrompt := fmt.Sprintf(`Analiza estos datos de Meta Ads (Facebook/Instagram) de Aremko Spa (spa boutique en Puerto Varas, Chile):
+
+%s
+
+Genera un análisis completo y accionable siguiendo la estructura especificada.
+Recuerda: máximo 2 páginas, enfoque en lo más relevante, recomendaciones concretas y simples.`, string(dataJSON))
+
+	return c.Generate(ctx, systemPrompt, userPrompt, "deepseek/deepseek-v4-pro", 0.7, 2500)
+}

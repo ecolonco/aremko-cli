@@ -448,6 +448,21 @@ func getMetaAdsData(cfg *config.Config, dateStart, dateStop string) (map[string]
 		recommendations = append(recommendations, "CPC alto (>$1) - Revisa targeting y optimiza audiencias")
 	}
 
+	campaignsList := make([]map[string]interface{}, 0, len(insights))
+	for i := range insights {
+		campaignsList = append(campaignsList, map[string]interface{}{
+			"id":          insights[i].CampaignID,
+			"name":        insights[i].CampaignName,
+			"spend":       insights[i].Spend,
+			"impressions": insights[i].Impressions,
+			"clicks":      insights[i].Clicks,
+			"reach":       insights[i].Reach,
+			"ctr":         insights[i].CalculateCTR(),
+			"cpc":         insights[i].CalculateCPC(),
+			"cpm":         insights[i].CalculateCPM(),
+		})
+	}
+
 	result := map[string]interface{}{
 		"summary": map[string]interface{}{
 			"spend":       totalSpend,
@@ -459,7 +474,12 @@ func getMetaAdsData(cfg *config.Config, dateStart, dateStop string) (map[string]
 			"cpm":         avgCPM,
 		},
 		"campaigns_count": len(insights),
+		"campaigns":       campaignsList,
 		"recommendations": recommendations,
+		"period": map[string]string{
+			"start": dateStart,
+			"end":   dateStop,
+		},
 	}
 
 	if bestCampaign != nil {
@@ -852,6 +872,75 @@ func AnalyzeInstagramOrganic(cfg *config.Config) http.HandlerFunc {
 		}
 
 		// Retornar análisis
+		respondJSON(w, http.StatusOK, map[string]interface{}{
+			"success": true,
+			"analysis": map[string]interface{}{
+				"content":       analysis.Text,
+				"model":         analysis.Model,
+				"input_tokens":  analysis.InputTokens,
+				"output_tokens": analysis.OutputTokens,
+				"latency_ms":    analysis.LatencyMs,
+			},
+		})
+	}
+}
+
+// AnalyzeMetaAds genera un análisis completo con IA de los datos de Meta Ads
+func AnalyzeMetaAds(cfg *config.Config) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		// Verificar que la IA está habilitada
+		if !cfg.EnableAI || cfg.OpenRouterAPIKey == "" {
+			respondJSON(w, http.StatusServiceUnavailable, map[string]interface{}{
+				"success": false,
+				"error":   "AI analysis is not enabled",
+			})
+			return
+		}
+
+		// Verificar que Meta Ads está habilitado
+		if !cfg.EnableMetaAds || cfg.MetaAccessToken == "" {
+			respondJSON(w, http.StatusServiceUnavailable, map[string]interface{}{
+				"success": false,
+				"error":   "Meta Ads integration is not enabled",
+			})
+			return
+		}
+
+		// Obtener datos completos de Meta Ads (mismo rango que el brief semanal)
+		dateStop := time.Now().AddDate(0, 0, -1).Format("2006-01-02")
+		dateStart := time.Now().AddDate(0, 0, -8).Format("2006-01-02")
+
+		metaData, err := getMetaAdsData(cfg, dateStart, dateStop)
+		if err != nil {
+			respondJSON(w, http.StatusInternalServerError, map[string]interface{}{
+				"success": false,
+				"error":   fmt.Sprintf("Failed to fetch Meta Ads data: %v", err),
+			})
+			return
+		}
+
+		// Generar análisis con IA
+		aiClient := ai.NewOpenRouterClient(cfg.OpenRouterAPIKey, cfg.OpenRouterBaseURL)
+		ctx := context.Background()
+
+		fmt.Println("[AI] Generando análisis de Meta Ads...")
+		analysis, err := aiClient.GenerateMetaAdsAnalysis(ctx, metaData)
+		if err != nil {
+			respondJSON(w, http.StatusInternalServerError, map[string]interface{}{
+				"success": false,
+				"error":   fmt.Sprintf("Failed to generate analysis: %v", err),
+			})
+			return
+		}
+
+		if analysis.Error != "" {
+			respondJSON(w, http.StatusInternalServerError, map[string]interface{}{
+				"success": false,
+				"error":   analysis.Error,
+			})
+			return
+		}
+
 		respondJSON(w, http.StatusOK, map[string]interface{}{
 			"success": true,
 			"analysis": map[string]interface{}{

@@ -63,6 +63,8 @@ export default function BriefPage() {
   const [generatingWebAnalysis, setGeneratingWebAnalysis] = useState(false);
   const [instagramAnalysisAI, setInstagramAnalysisAI] = useState<any>(null);
   const [generatingInstagramAnalysis, setGeneratingInstagramAnalysis] = useState(false);
+  const [metaAdsAnalysisAI, setMetaAdsAnalysisAI] = useState<any>(null);
+  const [generatingMetaAdsAnalysis, setGeneratingMetaAdsAnalysis] = useState(false);
 
   // Cargar brief al montar
   useEffect(() => {
@@ -110,6 +112,27 @@ export default function BriefPage() {
       console.error('Error generating web analysis:', error);
     } finally {
       setGeneratingWebAnalysis(false);
+    }
+  };
+
+  const handleGenerateMetaAdsAnalysis = async () => {
+    setGeneratingMetaAdsAnalysis(true);
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+      const response = await fetch(`${apiUrl}/api/v1/analytics/meta-ads/analyze`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      const data = await response.json();
+      if (data.success) {
+        setMetaAdsAnalysisAI(data.analysis);
+      } else {
+        console.error('Error generating Meta Ads analysis:', data.error);
+      }
+    } catch (error) {
+      console.error('Error generating Meta Ads analysis:', error);
+    } finally {
+      setGeneratingMetaAdsAnalysis(false);
     }
   };
 
@@ -1223,20 +1246,220 @@ export default function BriefPage() {
               <CardDescription>Publicidad pagada en redes sociales</CardDescription>
             </CardHeader>
             <CardContent>
-              {data.meta_ads && (
-                <div className="space-y-4">
+              {data.meta_ads ? (
+                <div className="space-y-6">
+                  {/* AI Analysis Card */}
+                  <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-200">
+                    <CardHeader>
+                      <CardTitle className="text-lg flex items-center">
+                        <Sparkles className="h-5 w-5 mr-2 text-blue-600" />
+                        Análisis con IA
+                      </CardTitle>
+                      <CardDescription>
+                        Análisis inteligente de tus campañas de Meta Ads
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <Button
+                        onClick={handleGenerateMetaAdsAnalysis}
+                        disabled={generatingMetaAdsAnalysis}
+                        className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
+                      >
+                        {generatingMetaAdsAnalysis ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Generando análisis...
+                          </>
+                        ) : (
+                          <>
+                            <Sparkles className="mr-2 h-4 w-4" />
+                            Generar Análisis IA
+                          </>
+                        )}
+                      </Button>
+                    </CardContent>
+                  </Card>
+
+                  {/* AI Analysis Results */}
+                  {metaAdsAnalysisAI && (
+                    <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-200">
+                      <CardHeader>
+                        <CardTitle className="text-lg flex items-center">
+                          <Sparkles className="h-5 w-5 mr-2 text-blue-600" />
+                          Resultados del Análisis IA
+                        </CardTitle>
+                        <CardDescription>
+                          Análisis generado por {metaAdsAnalysisAI.model || 'IA'}
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="prose prose-sm max-w-none">
+                          <div className="whitespace-pre-wrap" dangerouslySetInnerHTML={{
+                            __html: metaAdsAnalysisAI.content
+                              .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                              .replace(/^## (.*$)/gim, '<h2 class="text-xl font-bold mt-6 mb-3">$1</h2>')
+                              .replace(/^### (.*$)/gim, '<h3 class="text-lg font-semibold mt-4 mb-2">$1</h3>')
+                              .replace(/^• (.*$)/gim, '<li class="ml-4">$1</li>')
+                              .replace(/\n\n/g, '</p><p class="mt-2">')
+                          }} />
+                        </div>
+                        {metaAdsAnalysisAI.input_tokens && (
+                          <div className="mt-4 pt-4 border-t text-xs text-muted-foreground">
+                            <p>
+                              Tokens: {metaAdsAnalysisAI.input_tokens.toLocaleString()} entrada,{' '}
+                              {metaAdsAnalysisAI.output_tokens.toLocaleString()} salida
+                              {metaAdsAnalysisAI.latency_ms && ` • ${(metaAdsAnalysisAI.latency_ms / 1000).toFixed(1)}s`}
+                            </p>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {/* Métricas principales */}
+                  {data.meta_ads.summary && (
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      <Card>
+                        <CardHeader className="pb-2">
+                          <CardTitle className="text-sm font-medium text-muted-foreground">
+                            Inversión
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="text-2xl font-bold">{formatCurrency(data.meta_ads.summary.spend)}</div>
+                          <p className="text-xs text-muted-foreground">{data.meta_ads.campaigns_count || 0} campañas</p>
+                        </CardContent>
+                      </Card>
+                      <Card>
+                        <CardHeader className="pb-2">
+                          <CardTitle className="text-sm font-medium text-muted-foreground">
+                            Alcance
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="text-2xl font-bold">{formatNumber(data.meta_ads.summary.reach)}</div>
+                          <p className="text-xs text-muted-foreground">{formatNumber(data.meta_ads.summary.impressions)} impresiones</p>
+                        </CardContent>
+                      </Card>
+                      <Card>
+                        <CardHeader className="pb-2">
+                          <CardTitle className="text-sm font-medium text-muted-foreground">
+                            Clics
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="text-2xl font-bold">{formatNumber(data.meta_ads.summary.clicks)}</div>
+                          <p className="text-xs text-muted-foreground">CPC {formatCurrency(data.meta_ads.summary.cpc)}</p>
+                        </CardContent>
+                      </Card>
+                      <Card>
+                        <CardHeader className="pb-2">
+                          <CardTitle className="text-sm font-medium text-muted-foreground">
+                            CTR
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="text-2xl font-bold">{data.meta_ads.summary.ctr?.toFixed(2)}%</div>
+                          <p className="text-xs text-muted-foreground">CPM {formatCurrency(data.meta_ads.summary.cpm)}</p>
+                        </CardContent>
+                      </Card>
+                    </div>
+                  )}
+
+                  {/* Mejor y peor campaña */}
                   <div className="grid gap-4 md:grid-cols-2">
-                    <div className="p-4 border rounded-lg">
-                      <p className="text-sm font-medium mb-2">🏆 Mejor Campaña</p>
-                      <p className="font-medium">{data.meta_ads.best_campaign?.name}</p>
-                      <p className="text-2xl font-bold mt-2">{data.meta_ads.best_campaign?.ctr.toFixed(2)}% CTR</p>
-                    </div>
-                    <div className="p-4 border rounded-lg">
-                      <p className="text-sm font-medium mb-2">⚠️ Peor Campaña</p>
-                      <p className="font-medium">{data.meta_ads.worst_campaign?.name}</p>
-                      <p className="text-2xl font-bold mt-2">{data.meta_ads.worst_campaign?.ctr.toFixed(2)}% CTR</p>
-                    </div>
+                    {data.meta_ads.best_campaign && (
+                      <div className="p-4 border rounded-lg bg-green-50 border-green-200">
+                        <p className="text-sm font-medium mb-2">🏆 Mejor Campaña</p>
+                        <p className="font-medium line-clamp-2">{data.meta_ads.best_campaign.name}</p>
+                        <p className="text-2xl font-bold mt-2 text-green-700">
+                          {data.meta_ads.best_campaign.ctr?.toFixed(2)}% CTR
+                        </p>
+                      </div>
+                    )}
+                    {data.meta_ads.worst_campaign && (
+                      <div className="p-4 border rounded-lg bg-orange-50 border-orange-200">
+                        <p className="text-sm font-medium mb-2">⚠️ Peor Campaña</p>
+                        <p className="font-medium line-clamp-2">{data.meta_ads.worst_campaign.name}</p>
+                        <p className="text-2xl font-bold mt-2 text-orange-700">
+                          {data.meta_ads.worst_campaign.ctr?.toFixed(2)}% CTR
+                        </p>
+                      </div>
+                    )}
                   </div>
+
+                  {/* Recomendaciones */}
+                  {data.meta_ads.recommendations && data.meta_ads.recommendations.length > 0 && (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="text-lg flex items-center">
+                          <Sparkles className="h-5 w-5 mr-2 text-yellow-600" />
+                          Recomendaciones automáticas
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <ul className="space-y-2">
+                          {data.meta_ads.recommendations.map((rec: string, idx: number) => (
+                            <li key={idx} className="flex items-start gap-2 text-sm">
+                              <span className="text-yellow-600 mt-0.5">•</span>
+                              <span>{rec}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {/* Tabla de campañas */}
+                  {data.meta_ads.campaigns && data.meta_ads.campaigns.length > 0 && (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="text-lg">Detalle de Campañas</CardTitle>
+                        <CardDescription>Rendimiento individual de cada campaña activa</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-sm">
+                            <thead>
+                              <tr className="border-b">
+                                <th className="text-left py-3 px-2 font-medium">Campaña</th>
+                                <th className="text-right py-3 px-2 font-medium">Inversión</th>
+                                <th className="text-right py-3 px-2 font-medium">Alcance</th>
+                                <th className="text-right py-3 px-2 font-medium">Clics</th>
+                                <th className="text-right py-3 px-2 font-medium">CTR</th>
+                                <th className="text-right py-3 px-2 font-medium">CPC</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {data.meta_ads.campaigns.map((c: any) => (
+                                <tr key={c.id} className="border-b hover:bg-muted/50">
+                                  <td className="py-3 px-2 font-medium max-w-xs truncate" title={c.name}>{c.name}</td>
+                                  <td className="py-3 px-2 text-right">{formatCurrency(c.spend)}</td>
+                                  <td className="py-3 px-2 text-right">{formatNumber(c.reach)}</td>
+                                  <td className="py-3 px-2 text-right">{formatNumber(c.clicks)}</td>
+                                  <td className="py-3 px-2 text-right">
+                                    <span className={
+                                      c.ctr >= 2 ? 'text-green-600 font-semibold' :
+                                      c.ctr < 1 ? 'text-orange-600 font-semibold' :
+                                      ''
+                                    }>
+                                      {c.ctr?.toFixed(2)}%
+                                    </span>
+                                  </td>
+                                  <td className="py-3 px-2 text-right">{formatCurrency(c.cpc)}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+                </div>
+              ) : (
+                <div className="p-8 text-center border-2 border-dashed rounded-lg">
+                  <Share2 className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                  <p className="text-sm text-muted-foreground">Cargando datos de Meta Ads...</p>
                 </div>
               )}
             </CardContent>
