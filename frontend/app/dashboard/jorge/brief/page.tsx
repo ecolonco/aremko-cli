@@ -1937,6 +1937,90 @@ export default function BriefPage() {
             </Card>
           )}
 
+          {/* Ventas por familia — Mes a la Fecha */}
+          {data.bookings?.by_family_mtd?.families && data.bookings.by_family_mtd.families.length > 0 && (() => {
+            const mtd = data.bookings.by_family_mtd;
+            const p = mtd.period || {};
+            // Formatea "2026-05-01" → "1 may", "2026-05-18" → "18 may"
+            const months = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+            const fmt = (iso?: string) => {
+              if (!iso) return '';
+              const [y, m, d] = iso.split('-');
+              const mm = months[parseInt(m, 10) - 1] || m;
+              return `${parseInt(d, 10)} ${mm}`;
+            };
+            const yearOf = (iso?: string) => iso?.split('-')[0] || '';
+            const currentLabel = `${fmt(p.current_start)} al ${fmt(p.current_stop)}`;
+            const prevMonthLabel = `${fmt(p.prev_month_start)} al ${fmt(p.prev_month_stop)}`;
+            const prevYearLabel = `${fmt(p.prev_year_start)} al ${fmt(p.prev_year_stop)} ${yearOf(p.prev_year_start)}`;
+
+            return (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center text-base">
+                    <BarChart3 className="h-4 w-4 mr-2 text-indigo-600" />
+                    Ventas por Familia — Mes a la Fecha
+                  </CardTitle>
+                  <CardDescription>
+                    Del {currentLabel} vs. mismos días del mes y año anterior. Revenue total real
+                    (precio × cantidad de personas), no precio unitario.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b">
+                          <th className="text-left py-3 px-2 font-medium">Familia</th>
+                          <th className="text-right py-3 px-2 font-medium">{currentLabel}</th>
+                          <th className="text-right py-3 px-2 font-medium">{prevMonthLabel}</th>
+                          <th className="text-right py-3 px-2 font-medium">{prevYearLabel}</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {mtd.families.map((f: any) => {
+                          const monthChange = f.previous_month_revenue > 0
+                            ? ((f.current_revenue - f.previous_month_revenue) / f.previous_month_revenue) * 100
+                            : null;
+                          const yearChange = f.previous_year_revenue > 0
+                            ? ((f.current_revenue - f.previous_year_revenue) / f.previous_year_revenue) * 100
+                            : null;
+                          return (
+                            <tr key={f.family} className="border-b hover:bg-muted/50">
+                              <td className="py-3 px-2 font-medium">{f.family}</td>
+                              <td className="py-3 px-2 text-right">
+                                <div className="font-semibold">{formatCurrency(f.current_revenue)}</div>
+                                <div className="text-xs text-muted-foreground">{f.current_count} servicios</div>
+                              </td>
+                              <td className="py-3 px-2 text-right">
+                                <div>{formatCurrency(f.previous_month_revenue)}</div>
+                                <div className="text-xs text-muted-foreground">{f.previous_month_count} servicios</div>
+                                {monthChange !== null && (
+                                  <div className={`text-xs ${monthChange > 0 ? 'text-green-600' : monthChange < 0 ? 'text-red-600' : 'text-gray-500'}`}>
+                                    {monthChange > 0 ? '▲' : monthChange < 0 ? '▼' : '─'} {Math.abs(monthChange).toFixed(0)}%
+                                  </div>
+                                )}
+                              </td>
+                              <td className="py-3 px-2 text-right">
+                                <div>{formatCurrency(f.previous_year_revenue)}</div>
+                                <div className="text-xs text-muted-foreground">{f.previous_year_count} servicios</div>
+                                {yearChange !== null && (
+                                  <div className={`text-xs ${yearChange > 0 ? 'text-green-600' : yearChange < 0 ? 'text-red-600' : 'text-gray-500'}`}>
+                                    {yearChange > 0 ? '▲' : yearChange < 0 ? '▼' : '─'} {Math.abs(yearChange).toFixed(0)}%
+                                  </div>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })()}
+
           {/* Ventas por método de pago */}
           {data.bookings?.by_payment_method && data.bookings.by_payment_method.length > 0 && (
             <Card>

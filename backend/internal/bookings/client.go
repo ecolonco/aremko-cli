@@ -61,6 +61,22 @@ type ServiceFamilyStats struct {
 	PreviousYearRevenue  float64 `json:"previous_year_revenue"`
 }
 
+// FamilyStatsMTDPeriod describes the date ranges compared by GetFamilyStatsMTD
+type FamilyStatsMTDPeriod struct {
+	CurrentStart   string `json:"current_start"`
+	CurrentStop    string `json:"current_stop"`
+	PrevMonthStart string `json:"prev_month_start"`
+	PrevMonthStop  string `json:"prev_month_stop"`
+	PrevYearStart  string `json:"prev_year_start"`
+	PrevYearStop   string `json:"prev_year_stop"`
+}
+
+// FamilyStatsMTD is the response shape from /bookings/by-family-mtd/
+type FamilyStatsMTD struct {
+	Period   FamilyStatsMTDPeriod `json:"period"`
+	Families []ServiceFamilyStats `json:"families"`
+}
+
 // PaymentMethodStats represents sales by payment method with comparative data
 type PaymentMethodStats struct {
 	PaymentMethod        string  `json:"payment_method"`
@@ -368,4 +384,40 @@ func (c *Client) GetWeeklyBreakdown(weeks int) (*WeeklyBreakdown, error) {
 	}
 
 	return &breakdown, nil
+}
+
+// GetFamilyStatsMTD fetches the month-to-date breakdown by family with comparative
+// against same days of previous month and previous year. Revenue is correctly
+// computed as precio_unitario_venta * cantidad_personas.
+func (c *Client) GetFamilyStatsMTD(dateStop string) (*FamilyStatsMTD, error) {
+	url := fmt.Sprintf("%s/ventas/api/aremko-cli/bookings/by-family-mtd/", c.BaseURL)
+	if dateStop != "" {
+		url = fmt.Sprintf("%s?date_stop=%s", url, dateStop)
+	}
+
+	resp, err := c.HTTPClient.Get(url)
+	if err != nil {
+		return nil, fmt.Errorf("error fetching family stats MTD: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+	}
+
+	var apiResp APIResponse
+	if err := json.NewDecoder(resp.Body).Decode(&apiResp); err != nil {
+		return nil, fmt.Errorf("error decoding response: %w", err)
+	}
+
+	if !apiResp.Success {
+		return nil, fmt.Errorf("API error: %s", apiResp.Error)
+	}
+
+	var stats FamilyStatsMTD
+	if err := json.Unmarshal(apiResp.Data, &stats); err != nil {
+		return nil, fmt.Errorf("error parsing family stats MTD: %w", err)
+	}
+
+	return &stats, nil
 }

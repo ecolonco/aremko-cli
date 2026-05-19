@@ -112,6 +112,11 @@ func GetWeeklyBrief(cfg *config.Config) http.HandlerFunc {
 					bookingsData["weekly_breakdown"] = weeklyBreakdown
 				}
 
+				// Ventas Mes a la Fecha por familia (con comparativa MoM/YoY corregida)
+				if mtdStats, merr := bookingClient.GetFamilyStatsMTD(""); merr == nil {
+					bookingsData["by_family_mtd"] = mtdStats
+				}
+
 				brief["bookings"] = bookingsData
 			}
 		}
