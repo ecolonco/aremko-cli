@@ -1713,6 +1713,139 @@ export default function BriefPage() {
             </Card>
           )}
 
+          {/* Evolución 12 semanas — matriz familia × clientes */}
+          {data.bookings?.weekly_breakdown?.weeks && data.bookings.weekly_breakdown.weeks.length > 0 && (() => {
+            const wb = data.bookings.weekly_breakdown;
+            const trend = wb.summary?.trend || {};
+            const totals = wb.summary?.totals || {};
+            const avg = wb.summary?.averages_per_week || {};
+            const families = ['Masajes', 'Tinas', 'Cabañas', 'Otros'];
+
+            const newPct = trend.new_clients_first_4w_avg
+              ? ((trend.new_clients_last_4w_avg - trend.new_clients_first_4w_avg) / trend.new_clients_first_4w_avg) * 100
+              : 0;
+            const retPct = trend.returning_clients_first_4w_avg
+              ? ((trend.returning_clients_last_4w_avg - trend.returning_clients_first_4w_avg) / trend.returning_clients_first_4w_avg) * 100
+              : 0;
+
+            const arrow = (p: number) => p > 0 ? '▲' : p < 0 ? '▼' : '─';
+            const color = (p: number) => p > 0 ? 'text-green-600' : p < 0 ? 'text-red-600' : 'text-gray-500';
+
+            return (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center text-base">
+                    <TrendingUp className="h-4 w-4 mr-2 text-indigo-600" />
+                    Evolución 12 Semanas — Familias × Clientes
+                  </CardTitle>
+                  <CardDescription>
+                    Tendencia trimestral. Cada celda muestra cantidad de reservas e ingresos por familia.
+                    Las últimas dos columnas distinguen clientes nuevos vs. recurrentes.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {/* Trend banner */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                    <div className="p-4 border rounded-lg bg-green-50 border-green-200">
+                      <p className="text-sm font-medium mb-1">🆕 Clientes Nuevos — tendencia</p>
+                      <p className="text-2xl font-bold">
+                        {trend.new_clients_first_4w_avg?.toFixed(1)} → {trend.new_clients_last_4w_avg?.toFixed(1)}{' '}
+                        <span className={`text-sm font-medium ${color(newPct)}`}>
+                          {arrow(newPct)} {Math.abs(newPct).toFixed(0)}%
+                        </span>
+                      </p>
+                      <p className="text-xs text-muted-foreground">promedio primeras 4 vs. últimas 4 semanas</p>
+                    </div>
+                    <div className="p-4 border rounded-lg bg-blue-50 border-blue-200">
+                      <p className="text-sm font-medium mb-1">🔁 Clientes Recurrentes — tendencia</p>
+                      <p className="text-2xl font-bold">
+                        {trend.returning_clients_first_4w_avg?.toFixed(1)} → {trend.returning_clients_last_4w_avg?.toFixed(1)}{' '}
+                        <span className={`text-sm font-medium ${color(retPct)}`}>
+                          {arrow(retPct)} {Math.abs(retPct).toFixed(0)}%
+                        </span>
+                      </p>
+                      <p className="text-xs text-muted-foreground">promedio primeras 4 vs. últimas 4 semanas</p>
+                    </div>
+                  </div>
+
+                  {/* Tabla matriz */}
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-xs">
+                      <thead>
+                        <tr className="border-b bg-muted/30">
+                          <th className="text-left py-2 px-2 font-medium sticky left-0 bg-muted/30">Semana</th>
+                          {families.map(f => (
+                            <th key={f} className="text-right py-2 px-2 font-medium">{f}</th>
+                          ))}
+                          <th className="text-right py-2 px-2 font-medium border-l">Total</th>
+                          <th className="text-right py-2 px-2 font-medium text-green-700">🆕 Nuevos</th>
+                          <th className="text-right py-2 px-2 font-medium text-blue-700">🔁 Recurr.</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {wb.weeks.map((w: any) => (
+                          <tr key={w.iso_week + '-' + w.iso_year} className="border-b hover:bg-muted/50">
+                            <td className="py-2 px-2 font-medium sticky left-0 bg-white">
+                              <div>{w.date_start}</div>
+                              <div className="text-[10px] text-muted-foreground">→ {w.date_stop}</div>
+                            </td>
+                            {families.map(f => {
+                              const fam = w.by_family?.[f] || { count: 0, revenue: 0 };
+                              return (
+                                <td key={f} className="text-right py-2 px-2">
+                                  <div className="font-semibold">{fam.count || 0}</div>
+                                  <div className="text-[10px] text-muted-foreground">{formatCurrency(fam.revenue || 0)}</div>
+                                </td>
+                              );
+                            })}
+                            <td className="text-right py-2 px-2 font-semibold border-l">
+                              <div>{w.total_count}</div>
+                              <div className="text-[10px] text-muted-foreground">{formatCurrency(w.total_revenue)}</div>
+                            </td>
+                            <td className="text-right py-2 px-2 font-semibold text-green-700">{w.new_clients}</td>
+                            <td className="text-right py-2 px-2 font-semibold text-blue-700">{w.returning_clients}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                      <tfoot>
+                        <tr className="border-t-2 bg-muted/30 font-semibold">
+                          <td className="py-2 px-2 sticky left-0 bg-muted/30">Promedio / sem</td>
+                          {families.map(f => (
+                            <td key={f} className="text-right py-2 px-2 text-muted-foreground">—</td>
+                          ))}
+                          <td className="text-right py-2 px-2 border-l">
+                            <div>{avg.total_count?.toFixed(0)}</div>
+                            <div className="text-[10px] text-muted-foreground">{formatCurrency(avg.total_revenue || 0)}</div>
+                          </td>
+                          <td className="text-right py-2 px-2 text-green-700">{avg.new_clients?.toFixed(1)}</td>
+                          <td className="text-right py-2 px-2 text-blue-700">{avg.returning_clients?.toFixed(1)}</td>
+                        </tr>
+                        <tr className="bg-muted/30 font-semibold">
+                          <td className="py-2 px-2 sticky left-0 bg-muted/30">Total 12 sem</td>
+                          {families.map(f => (
+                            <td key={f} className="text-right py-2 px-2 text-muted-foreground">—</td>
+                          ))}
+                          <td className="text-right py-2 px-2 border-l">
+                            <div>{totals.total_count}</div>
+                            <div className="text-[10px] text-muted-foreground">{formatCurrency(totals.total_revenue || 0)}</div>
+                          </td>
+                          <td className="text-right py-2 px-2 text-green-700">{totals.new_clients_period}</td>
+                          <td className="text-right py-2 px-2 text-blue-700">{totals.returning_clients_period}</td>
+                        </tr>
+                      </tfoot>
+                    </table>
+                  </div>
+
+                  <p className="text-xs text-muted-foreground mt-3">
+                    Clientes únicos del trimestre: <strong>{totals.unique_clients_period}</strong>{' '}
+                    ({totals.new_clients_period} nuevos + {totals.returning_clients_period} recurrentes).
+                    Rango: {wb.summary?.first_week_start} a {wb.summary?.last_week_stop}.
+                  </p>
+                </CardContent>
+              </Card>
+            );
+          })()}
+
           {/* Ventas por familia de servicios */}
           {data.bookings?.by_family && data.bookings.by_family.length > 0 && (
             <Card>

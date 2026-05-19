@@ -46,6 +46,7 @@ type ClientStats struct {
 	TotalClients         int    `json:"total_clients"`
 	NewClientsWeek       int    `json:"new_clients_week"`
 	ReturningClientsWeek int    `json:"returning_clients_week"`
+	UniqueClientsWeek    int    `json:"unique_clients_week"`
 	Period               Period `json:"period"`
 }
 
@@ -69,6 +70,69 @@ type PaymentMethodStats struct {
 	PreviousMonthRevenue float64 `json:"previous_month_revenue"`
 	PreviousYearCount    int     `json:"previous_year_count"`
 	PreviousYearRevenue  float64 `json:"previous_year_revenue"`
+}
+
+// FamilyBreakdown represents weekly count and revenue for a service family
+type FamilyBreakdown struct {
+	Count   int     `json:"count"`
+	Revenue float64 `json:"revenue"`
+}
+
+// WeekData represents one week of the breakdown matrix
+type WeekData struct {
+	WeekLabel        string                     `json:"week_label"`
+	ISOYear          int                        `json:"iso_year"`
+	ISOWeek          int                        `json:"iso_week"`
+	DateStart        string                     `json:"date_start"`
+	DateStop         string                     `json:"date_stop"`
+	ByFamily         map[string]FamilyBreakdown `json:"by_family"`
+	TotalCount       int                        `json:"total_count"`
+	TotalRevenue     float64                    `json:"total_revenue"`
+	UniqueClients    int                        `json:"unique_clients"`
+	NewClients       int                        `json:"new_clients"`
+	ReturningClients int                        `json:"returning_clients"`
+}
+
+// BreakdownTotals represents aggregate totals across the period
+type BreakdownTotals struct {
+	TotalCount             int     `json:"total_count"`
+	TotalRevenue           float64 `json:"total_revenue"`
+	UniqueClientsPeriod    int     `json:"unique_clients_period"`
+	NewClientsPeriod       int     `json:"new_clients_period"`
+	ReturningClientsPeriod int     `json:"returning_clients_period"`
+}
+
+// BreakdownAverages represents per-week averages
+type BreakdownAverages struct {
+	TotalCount       float64 `json:"total_count"`
+	TotalRevenue     float64 `json:"total_revenue"`
+	UniqueClients    float64 `json:"unique_clients"`
+	NewClients       float64 `json:"new_clients"`
+	ReturningClients float64 `json:"returning_clients"`
+}
+
+// BreakdownTrend compares first 4 weeks vs last 4 weeks
+type BreakdownTrend struct {
+	NewClientsFirst4wAvg       float64 `json:"new_clients_first_4w_avg"`
+	NewClientsLast4wAvg        float64 `json:"new_clients_last_4w_avg"`
+	ReturningClientsFirst4wAvg float64 `json:"returning_clients_first_4w_avg"`
+	ReturningClientsLast4wAvg  float64 `json:"returning_clients_last_4w_avg"`
+}
+
+// BreakdownSummary contains aggregate stats for the breakdown
+type BreakdownSummary struct {
+	WeeksCount      int                `json:"weeks_count"`
+	FirstWeekStart  string             `json:"first_week_start"`
+	LastWeekStop    string             `json:"last_week_stop"`
+	Totals          BreakdownTotals    `json:"totals"`
+	AveragesPerWeek BreakdownAverages  `json:"averages_per_week"`
+	Trend           BreakdownTrend     `json:"trend"`
+}
+
+// WeeklyBreakdown is the response from /bookings/weekly-breakdown/
+type WeeklyBreakdown struct {
+	Weeks   []WeekData       `json:"weeks"`
+	Summary BreakdownSummary `json:"summary"`
 }
 
 // Period represents a date range
@@ -270,4 +334,38 @@ func (c *Client) HealthCheck() (bool, error) {
 	}
 
 	return apiResp.Success && apiResp.Status == "healthy", nil
+}
+
+// GetWeeklyBreakdown fetches the 12-week matrix of bookings by family and clients
+func (c *Client) GetWeeklyBreakdown(weeks int) (*WeeklyBreakdown, error) {
+	if weeks <= 0 {
+		weeks = 12
+	}
+	url := fmt.Sprintf("%s/ventas/api/aremko-cli/bookings/weekly-breakdown/?weeks=%d", c.BaseURL, weeks)
+
+	resp, err := c.HTTPClient.Get(url)
+	if err != nil {
+		return nil, fmt.Errorf("error fetching weekly breakdown: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+	}
+
+	var apiResp APIResponse
+	if err := json.NewDecoder(resp.Body).Decode(&apiResp); err != nil {
+		return nil, fmt.Errorf("error decoding response: %w", err)
+	}
+
+	if !apiResp.Success {
+		return nil, fmt.Errorf("API error: %s", apiResp.Error)
+	}
+
+	var breakdown WeeklyBreakdown
+	if err := json.Unmarshal(apiResp.Data, &breakdown); err != nil {
+		return nil, fmt.Errorf("error parsing weekly breakdown: %w", err)
+	}
+
+	return &breakdown, nil
 }

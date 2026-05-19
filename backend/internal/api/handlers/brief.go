@@ -106,6 +106,11 @@ func GetWeeklyBrief(cfg *config.Config) http.HandlerFunc {
 					bookingsData["daily"] = dailyBookings
 				}
 
+				// Matriz 12 semanas × familias × clientes nuevos/recurrentes
+				if weeklyBreakdown, werr := bookingClient.GetWeeklyBreakdown(12); werr == nil {
+					bookingsData["weekly_breakdown"] = weeklyBreakdown
+				}
+
 				brief["bookings"] = bookingsData
 			}
 		}
