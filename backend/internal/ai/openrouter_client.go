@@ -641,7 +641,11 @@ REGLAS:
 - Si una métrica no está en el payload, no la inventes — di "dato no disponible".
 - Si dos áreas se contradicen (ej. NPS alto pero churn alto), señalalo explícitamente.`
 
-	dataJSON, err := json.MarshalIndent(fullBriefData, "", "  ")
+	// Adelgazar payload antes de enviar a IA (la key OpenRouter tiene cap de input ~11K tokens)
+	leanData := trimForAIPrompt(fullBriefData)
+
+	// Compactar JSON sin indentación: ahorra ~30% de tokens vs. MarshalIndent
+	dataJSON, err := json.Marshal(leanData)
 	if err != nil {
 		return &LLMResult{Error: fmt.Sprintf("error marshaling data: %v", err)}, err
 	}
@@ -657,4 +661,199 @@ Genera el análisis integral siguiendo EXACTAMENTE la estructura especificada.
 Tu trabajo es que el dueño tome 5 decisiones correctas la próxima semana en lugar de 5 decisiones genéricas.`, string(dataJSON))
 
 	return c.Generate(ctx, systemPrompt, userPrompt, "google/gemini-3.1-flash-lite", 0.7, 1500)
+}
+
+// trimForAIPrompt reduce el tamaño del payload para que entre en el límite de input
+// tokens de la API key. Trunca textos largos y limita listas a las entradas más relevantes.
+func trimForAIPrompt(data map[string]interface{}) map[string]interface{} {
+	truncStr := func(s string, maxLen int) string {
+		if len(s) <= maxLen {
+			return s
+		}
+		return s[:maxLen] + "…"
+	}
+
+	// Deep copy con trim selectivo. Trabajamos sobre una copia para no mutar el original.
+	result := map[string]interface{}{}
+	for k, v := range data {
+		result[k] = v
+	}
+
+	// Instagram: top_posts → 3 entradas, caption truncado a 120, sin media_url
+	if igRaw, ok := result["instagram_organic"].(map[string]interface{}); ok {
+		ig := map[string]interface{}{}
+		for k, v := range igRaw {
+			ig[k] = v
+		}
+		if postsRaw, ok := ig["top_posts"].([]interface{}); ok {
+			limit := 3
+			if len(postsRaw) < limit {
+				limit = len(postsRaw)
+			}
+			trimmed := make([]map[string]interface{}, 0, limit)
+			for i := 0; i < limit; i++ {
+				post, ok := postsRaw[i].(map[string]interface{})
+				if !ok {
+					continue
+				}
+				lean := map[string]interface{}{
+					"like_count":      post["like_count"],
+					"comments_count":  post["comments_count"],
+					"saved_count":     post["saved_count"],
+					"engagement_rate": post["engagement_rate"],
+				}
+				if cap, ok := post["caption"].(string); ok {
+					lean["caption"] = truncStr(cap, 120)
+				}
+				if mt, ok := post["media_type"]; ok {
+					lean["media_type"] = mt
+				}
+				trimmed = append(trimmed, lean)
+			}
+			ig["top_posts"] = trimmed
+		}
+		result["instagram_organic"] = ig
+	}
+
+	// Meta Ads: recent_campaigns → 5 entradas, name truncado a 80, sin id
+	if metaRaw, ok := result["meta_ads"].(map[string]interface{}); ok {
+		meta := map[string]interface{}{}
+		for k, v := range metaRaw {
+			meta[k] = v
+		}
+		if recentRaw, ok := meta["recent_campaigns"].([]interface{}); ok {
+			limit := 5
+			if len(recentRaw) < limit {
+				limit = len(recentRaw)
+			}
+			trimmed := make([]map[string]interface{}, 0, limit)
+			for i := 0; i < limit; i++ {
+				c, ok := recentRaw[i].(map[string]interface{})
+				if !ok {
+					continue
+				}
+				lean := map[string]interface{}{}
+				for _, key := range []string{"spend", "impressions", "clicks", "reach", "ctr", "cpc", "cpm"} {
+					if v, ok := c[key]; ok {
+						lean[key] = v
+					}
+				}
+				if name, ok := c["name"].(string); ok {
+					lean["name"] = truncStr(name, 80)
+				}
+				trimmed = append(trimmed, lean)
+			}
+			meta["recent_campaigns"] = trimmed
+		}
+		// también truncar nombre de best/worst campaign
+		for _, key := range []string{"best_campaign", "worst_campaign"} {
+			if camp, ok := meta[key].(map[string]interface{}); ok {
+				clean := map[string]interface{}{}
+				for k, v := range camp {
+					clean[k] = v
+				}
+				if name, ok := camp["name"].(string); ok {
+					clean["name"] = truncStr(name, 80)
+				}
+				meta[key] = clean
+			}
+		}
+		result["meta_ads"] = meta
+	}
+
+	// Competidores: dropear textos largos del snapshot que no aportan al análisis
+	if compRaw, ok := result["competitors"].(map[string]interface{}); ok {
+		comp := map[string]interface{}{}
+		for k, v := range compRaw {
+			comp[k] = v
+		}
+		if listRaw, ok := comp["competitors"].([]interface{}); ok {
+			trimmed := make([]map[string]interface{}, 0, len(listRaw))
+			for _, item := range listRaw {
+				c, ok := item.(map[string]interface{})
+				if !ok {
+					continue
+				}
+				lean := map[string]interface{}{
+					"nombre":            c["nombre"],
+					"website":           c["website"],
+					"last_scrape_error": c["last_scrape_error"],
+				}
+				if snap, ok := c["snapshot"].(map[string]interface{}); ok {
+					leanSnap := map[string]interface{}{
+						"scraping_exitoso":      snap["scraping_exitoso"],
+						"precio_entrada_adulto": snap["precio_entrada_adulto"],
+						"precio_entrada_nino":   snap["precio_entrada_nino"],
+						"servicios":             snap["servicios"],
+					}
+					lean["snapshot"] = leanSnap
+				}
+				trimmed = append(trimmed, lean)
+			}
+			comp["competitors"] = trimmed
+		}
+		result["competitors"] = comp
+	}
+
+	// Reviews: limitar destacadas a 3 con comentario truncado a 100, recent a 3
+	if revRaw, ok := result["reviews"].(map[string]interface{}); ok {
+		rev := map[string]interface{}{}
+		for k, v := range revRaw {
+			rev[k] = v
+		}
+		if surveys, ok := rev["surveys"].(map[string]interface{}); ok {
+			s := map[string]interface{}{}
+			for k, v := range surveys {
+				s[k] = v
+			}
+			if featRaw, ok := s["reviews_destacadas"].([]interface{}); ok {
+				limit := 3
+				if len(featRaw) < limit {
+					limit = len(featRaw)
+				}
+				out := make([]map[string]interface{}, 0, limit)
+				for i := 0; i < limit; i++ {
+					f, ok := featRaw[i].(map[string]interface{})
+					if !ok {
+						continue
+					}
+					lean := map[string]interface{}{}
+					for k, v := range f {
+						lean[k] = v
+					}
+					if c, ok := f["comentario"].(string); ok {
+						lean["comentario"] = truncStr(c, 100)
+					}
+					out = append(out, lean)
+				}
+				s["reviews_destacadas"] = out
+			}
+			rev["surveys"] = s
+		}
+		if recentRaw, ok := rev["recent"].([]interface{}); ok {
+			limit := 3
+			if len(recentRaw) < limit {
+				limit = len(recentRaw)
+			}
+			rev["recent"] = recentRaw[:limit]
+		}
+		result["reviews"] = rev
+	}
+
+	// Web analytics: top_pages a 5, traffic_sources a 5
+	if webRaw, ok := result["web_analytics"].(map[string]interface{}); ok {
+		web := map[string]interface{}{}
+		for k, v := range webRaw {
+			web[k] = v
+		}
+		if tp, ok := web["top_pages"].([]interface{}); ok && len(tp) > 5 {
+			web["top_pages"] = tp[:5]
+		}
+		if ts, ok := web["traffic_sources"].([]interface{}); ok && len(ts) > 5 {
+			web["traffic_sources"] = ts[:5]
+		}
+		result["web_analytics"] = web
+	}
+
+	return result
 }
