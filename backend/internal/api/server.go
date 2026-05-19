@@ -49,8 +49,9 @@ func (s *Server) setupMiddleware() {
 		MaxAge:           300,
 	}))
 
-	// Timeout de 60 segundos para todas las requests
-	s.router.Use(chimiddleware.Timeout(60 * time.Second))
+	// Timeout de 180 segundos: el análisis integral combina 6 APIs externas + IA
+	// con payload grande, fácilmente excede los 60s que tenía antes
+	s.router.Use(chimiddleware.Timeout(180 * time.Second))
 }
 
 func (s *Server) setupRoutes() {
