@@ -90,6 +90,9 @@ func (s *Server) setupRoutes() {
 		// Reviews AI Analysis
 		r.Post("/analytics/reviews/analyze", handlers.AnalyzeReviews(s.config))
 
+		// Overview AI Analysis (cruza todas las áreas)
+		r.Post("/analytics/overview/analyze", handlers.AnalyzeOverview(s.config))
+
 		// Stats endpoints (próximamente)
 		r.Get("/stats/overview", handlers.GetStatsOverview(s.config))
 	})

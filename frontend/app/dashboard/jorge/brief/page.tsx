@@ -73,6 +73,9 @@ export default function BriefPage() {
   const [reviewsAnalysisAI, setReviewsAnalysisAI] = useState<any>(null);
   const [generatingReviewsAnalysis, setGeneratingReviewsAnalysis] = useState(false);
   const [reviewsAnalysisError, setReviewsAnalysisError] = useState<string | null>(null);
+  const [overviewAnalysisAI, setOverviewAnalysisAI] = useState<any>(null);
+  const [generatingOverviewAnalysis, setGeneratingOverviewAnalysis] = useState(false);
+  const [overviewAnalysisError, setOverviewAnalysisError] = useState<string | null>(null);
 
   // Cargar brief al montar
   useEffect(() => {
@@ -120,6 +123,32 @@ export default function BriefPage() {
       console.error('Error generating web analysis:', error);
     } finally {
       setGeneratingWebAnalysis(false);
+    }
+  };
+
+  const handleGenerateOverviewAnalysis = async () => {
+    setGeneratingOverviewAnalysis(true);
+    setOverviewAnalysisError(null);
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+      const response = await fetch(`${apiUrl}/api/v1/analytics/overview/analyze`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      const data = await response.json();
+      if (data.success && data.analysis) {
+        setOverviewAnalysisAI(data.analysis);
+      } else {
+        const msg = data.error || `HTTP ${response.status}`;
+        console.error('Error generating Overview analysis:', msg);
+        setOverviewAnalysisError(msg);
+      }
+    } catch (error: any) {
+      const msg = error?.message || 'Error de red al generar el análisis';
+      console.error('Error generating Overview analysis:', error);
+      setOverviewAnalysisError(msg);
+    } finally {
+      setGeneratingOverviewAnalysis(false);
     }
   };
 
@@ -2568,57 +2597,128 @@ export default function BriefPage() {
 
         {/* ANÁLISIS IA */}
         <TabsContent value="ai" className="space-y-4">
-          {ai_analysis ? (
-            <>
-              <Card className="border-purple-200">
-                <CardHeader>
-                  <CardTitle className="flex items-center">
-                    <Sparkles className="h-5 w-5 mr-2 text-purple-600" />
-                    Análisis Inteligente
-                  </CardTitle>
-                  <CardDescription>
-                    Generado por {ai_analysis.model} en {(ai_analysis.latency_ms / 1000).toFixed(1)}s
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="prose prose-sm max-w-none whitespace-pre-wrap">
-                    {ai_analysis.content}
+          {/* Análisis Integral con IA */}
+          <Card className="bg-gradient-to-br from-purple-50 to-violet-50 border-purple-200">
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center">
+                <Sparkles className="h-5 w-5 mr-2 text-purple-600" />
+                Análisis Integral del Brief
+              </CardTitle>
+              <CardDescription>
+                Síntesis que cruza Web, Redes Sociales, Meta Ads, Ventas, Opiniones y Competencia.
+                Entrega plan de acción concreto para los próximos 30 días.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button
+                onClick={handleGenerateOverviewAnalysis}
+                disabled={generatingOverviewAnalysis}
+                className="w-full bg-gradient-to-r from-purple-600 to-violet-600 hover:from-purple-700 hover:to-violet-700"
+              >
+                {generatingOverviewAnalysis ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Cruzando datos de todas las pestañas...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="mr-2 h-4 w-4" />
+                    Generar Análisis Integral
+                  </>
+                )}
+              </Button>
+              {overviewAnalysisError && (
+                <div className="mt-3 p-3 rounded-md bg-red-50 border border-red-200 text-sm text-red-700 flex items-start gap-2">
+                  <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
+                  <div>
+                    <p className="font-medium">No se pudo generar el análisis</p>
+                    <p className="text-xs mt-1">{overviewAnalysisError}</p>
+                    {overviewAnalysisError.toLowerCase().includes('ai analysis is not enabled') && (
+                      <p className="text-xs mt-2">
+                        Falta configurar <code className="px-1 bg-red-100 rounded">OPENROUTER_API_KEY</code> en <code className="px-1 bg-red-100 rounded">backend/.env</code>.
+                      </p>
+                    )}
                   </div>
-                </CardContent>
-              </Card>
-
-              {content_calendar && (
-                <Card className="border-blue-200">
-                  <CardHeader>
-                    <CardTitle className="flex items-center">
-                      <Calendar className="h-5 w-5 mr-2 text-blue-600" />
-                      Calendario de Contenido
-                    </CardTitle>
-                    <CardDescription>
-                      Sugerencias de posts para Instagram y blog
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="prose prose-sm max-w-none whitespace-pre-wrap font-mono text-sm">
-                      {content_calendar.content}
-                    </div>
-                  </CardContent>
-                </Card>
+                </div>
               )}
-            </>
-          ) : (
-            <Card>
-              <CardContent className="pt-6">
-                <div className="p-12 text-center">
-                  <Sparkles className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
-                  <p className="text-lg font-medium mb-2">Análisis IA no generado</p>
-                  <p className="text-sm text-muted-foreground mb-6">
-                    Haz clic en "Generar con IA" para crear análisis inteligente y calendario de contenido
-                  </p>
-                  <Button onClick={handleGenerateWithAI} disabled={generating}>
-                    <Sparkles className="h-4 w-4 mr-2" />
-                    Generar Análisis IA
-                  </Button>
+              <p className="text-xs text-muted-foreground mt-3">
+                Tip: este análisis tarda ~10-20 segundos porque recopila datos en vivo de 6 áreas
+                (GA4, Instagram, Meta Ads, Reservas, Reviews y Competidores) antes de pedirle a la IA
+                que los integre.
+              </p>
+            </CardContent>
+          </Card>
+
+          {/* Resultados Análisis Integral */}
+          {overviewAnalysisAI && (
+            <Card className="bg-gradient-to-br from-purple-50 to-violet-50 border-purple-200">
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center">
+                  <Sparkles className="h-5 w-5 mr-2 text-purple-600" />
+                  Análisis Integral - Resultados
+                </CardTitle>
+                <CardDescription>
+                  Generado por {overviewAnalysisAI.model || 'IA'}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="prose prose-sm max-w-none">
+                  <div className="whitespace-pre-wrap" dangerouslySetInnerHTML={{
+                    __html: overviewAnalysisAI.content
+                      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                      .replace(/^## (.*$)/gim, '<h2 class="text-xl font-bold mt-6 mb-3">$1</h2>')
+                      .replace(/^### (.*$)/gim, '<h3 class="text-lg font-semibold mt-4 mb-2">$1</h3>')
+                      .replace(/^• (.*$)/gim, '<li class="ml-4">$1</li>')
+                      .replace(/\n\n/g, '</p><p class="mt-2">')
+                  }} />
+                </div>
+                {overviewAnalysisAI.input_tokens && (
+                  <div className="mt-4 pt-4 border-t text-xs text-muted-foreground">
+                    <p>
+                      Tokens: {overviewAnalysisAI.input_tokens.toLocaleString()} entrada,{' '}
+                      {overviewAnalysisAI.output_tokens.toLocaleString()} salida
+                      {overviewAnalysisAI.latency_ms && ` • ${(overviewAnalysisAI.latency_ms / 1000).toFixed(1)}s`}
+                    </p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Análisis legacy + Calendario de Contenido (si se generaron con "Generar con IA" del header) */}
+          {ai_analysis && (
+            <Card className="border-purple-200">
+              <CardHeader>
+                <CardTitle className="flex items-center text-base">
+                  <Sparkles className="h-4 w-4 mr-2 text-purple-600" />
+                  Análisis IA - Resumen Ejecutivo (legacy)
+                </CardTitle>
+                <CardDescription>
+                  Versión simplificada generada con el botón "Generar con IA" del header
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="prose prose-sm max-w-none whitespace-pre-wrap">
+                  {ai_analysis.content}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {content_calendar && (
+            <Card className="border-blue-200">
+              <CardHeader>
+                <CardTitle className="flex items-center text-base">
+                  <Calendar className="h-4 w-4 mr-2 text-blue-600" />
+                  Calendario de Contenido
+                </CardTitle>
+                <CardDescription>
+                  Sugerencias de posts para Instagram y blog
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="prose prose-sm max-w-none whitespace-pre-wrap font-mono text-sm">
+                  {content_calendar.content}
                 </div>
               </CardContent>
             </Card>

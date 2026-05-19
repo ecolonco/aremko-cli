@@ -562,3 +562,99 @@ Recuerda: máximo 2 páginas, enfoque en lo más relevante, recomendaciones conc
 
 	return c.Generate(ctx, systemPrompt, userPrompt, "google/gemini-3.1-flash-lite", 0.7, 2000)
 }
+
+// GenerateOverviewAnalysis genera un análisis integral cruzando todas las secciones
+// del brief (web, social, ventas, opiniones, competencia) con plan de acción concreto.
+func (c *OpenRouterClient) GenerateOverviewAnalysis(ctx context.Context, fullBriefData map[string]interface{}) (*LLMResult, error) {
+	systemPrompt := `Eres un consultor senior de marketing y operaciones para Aremko Spa, spa boutique en Puerto Varas, Chile.
+Tu tarea es analizar los datos COMPLETOS del brief semanal (web analytics, redes sociales, publicidad pagada,
+ventas con tendencia trimestral, opiniones con calidad por dimensión, y competencia) y producir un análisis
+INTEGRAL que cruza todas las áreas.
+
+OBJETIVO: que el dueño del negocio en menos de 10 minutos sepa exactamente:
+1. Qué está funcionando bien (para mantener / amplificar)
+2. Qué está fallando (con la raíz, no el síntoma)
+3. Qué hacer concretamente en los próximos 30 días
+
+IMPORTANTE:
+- Escribe un análisis estructurado de 2-3 páginas (1500-2500 palabras)
+- Usa lenguaje claro y directo, sin jerga ni teoría
+- Cita números específicos de los datos (no "creció", sino "creció 24%")
+- Cuando hagas afirmaciones, anclalas a datos del payload
+- Usa **negritas** en los puntos clave
+- Usa bullets (•) para listas
+- Emojis para escanear visualmente: 🟢 (bien) 🟡 (atención) 🔴 (crítico) 📈 📉 💰 🛁 💆 📸 ⭐ ⚡ 🎯 💡
+
+ESTRUCTURA OBLIGATORIA:
+
+## 🎯 Veredicto General
+2-3 párrafos con el estado del negocio esta semana. Calificación 🟢/🟡/🔴 al inicio.
+Una frase de "headline" tipo titular periodístico.
+
+## 📊 Estado por Área
+Una línea por área con calificación visual y dato más relevante:
+- 🟢/🟡/🔴 **Web (GA4):** ... (cita métrica clave)
+- 🟢/🟡/🔴 **Instagram Orgánico:** ...
+- 🟢/🟡/🔴 **Meta Ads:** ...
+- 🟢/🟡/🔴 **Ventas:** ...
+- 🟢/🟡/🔴 **Opiniones:** ...
+- 🟢/🟡/🔴 **Competencia:** ...
+
+## 🔍 Hallazgos Cruzados (lo más valioso)
+3-5 insights que sólo se ven al cruzar áreas. Ejemplos:
+✅ "Web sube 15% en sesiones pero ventas siguen planas — problema de conversión, no de tráfico"
+✅ "NPS alto (81) y dimensión 'compra_web' baja (3.86) — clientes felices presencialmente, pero la web es la fuga"
+✅ "Mejor campaña Meta cuesta $31 CPC pero el ticket promedio es $90K — ROAS implícito altísimo, escalar"
+❌ "Las ventas están bajando" (vago, no cruza áreas)
+
+## 🏆 3 Cosas que Funcionan (mantener)
+Por cada una: qué métrica lo prueba + cómo amplificarla
+1. ...
+2. ...
+3. ...
+
+## ⚠️ 3 Cosas que Fallan (atacar)
+Por cada una: cuál es el síntoma, cuál es la raíz real, qué impacto tiene si no se atiende
+1. ...
+2. ...
+3. ...
+
+## 🎯 Plan de Acción - Próximos 30 Días
+5-8 acciones CONCRETAS, ordenadas por prioridad (impacto × facilidad).
+Por cada acción incluí:
+- **Acción:** verbo + objeto específico (no "mejorar X" sino "lanzar pack Y con descuento Z%")
+- **Por qué:** anclar al dato que la justifica
+- **Cuándo:** semana 1 / semana 2 / semana 3-4
+- **Métrica de éxito:** qué número subirá/bajará si funciona
+
+## 👀 Para Vigilar la Próxima Semana
+3-5 métricas específicas con valor de referencia (umbral) y por qué importa.
+Ejemplo: "🔁 Recurrentes — esta semana 14, alerta si baja de 12 (perdiendo retención)"
+
+## 💡 Idea Bonus
+Una idea creativa o no obvia que surja al ver TODOS los datos juntos. Algo que el equipo
+probablemente no esté considerando pero que el análisis sugiere.
+
+REGLAS:
+- No repitas datos sin agregar valor. Cada cifra debe servir para una decisión.
+- No hagas recomendaciones genéricas tipo "mejorar el servicio al cliente". Sé específico.
+- Si una métrica no está en el payload, no la inventes — di "dato no disponible".
+- Si dos áreas se contradicen (ej. NPS alto pero churn alto), señalalo explícitamente.`
+
+	dataJSON, err := json.MarshalIndent(fullBriefData, "", "  ")
+	if err != nil {
+		return &LLMResult{Error: fmt.Sprintf("error marshaling data: %v", err)}, err
+	}
+
+	userPrompt := fmt.Sprintf(`Aquí tienes los datos COMPLETOS del brief semanal de Aremko Spa.
+Incluye: web analytics (GA4), Instagram orgánico, Meta Ads, ventas con detalle por familia y matriz
+de 12 semanas con clientes nuevos vs. recurrentes, opiniones con NPS y 12 dimensiones de calidad,
+y competencia con precios y servicios.
+
+%s
+
+Genera el análisis integral siguiendo EXACTAMENTE la estructura especificada.
+Tu trabajo es que el dueño tome 5 decisiones correctas la próxima semana en lugar de 5 decisiones genéricas.`, string(dataJSON))
+
+	return c.Generate(ctx, systemPrompt, userPrompt, "google/gemini-3.1-flash-lite", 0.7, 4000)
+}

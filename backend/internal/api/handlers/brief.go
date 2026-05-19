@@ -1181,3 +1181,162 @@ func AnalyzeReviews(cfg *config.Config) http.HandlerFunc {
 		})
 	}
 }
+
+// AnalyzeOverview arma el brief semanal completo y genera análisis IA integral que
+// cruza todas las áreas (web, social, ventas, opiniones, competencia) con plan de acción.
+func AnalyzeOverview(cfg *config.Config) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if !cfg.EnableAI || cfg.OpenRouterAPIKey == "" {
+			respondJSON(w, http.StatusServiceUnavailable, map[string]interface{}{
+				"success": false,
+				"error":   "AI analysis is not enabled",
+			})
+			return
+		}
+
+		dateStop := time.Now().AddDate(0, 0, -1).Format("2006-01-02")
+		dateStart := time.Now().AddDate(0, 0, -8).Format("2006-01-02")
+
+		ctx := context.Background()
+		fullBrief := map[string]interface{}{
+			"period": map[string]string{
+				"start": dateStart,
+				"end":   dateStop,
+			},
+		}
+
+		// Web Analytics (GA4)
+		if cfg.EnableGA4 {
+			if ga4Client, err := analytics.NewGA4Client(cfg.GA4CredentialsPath, cfg.GA4PropertyID); err == nil {
+				if ga4Stats, err := ga4Client.GetStats(ctx, dateStart, dateStop); err == nil {
+					topPages, _ := ga4Client.GetTopPages(ctx, dateStart, dateStop, 10)
+					trafficSources, _ := ga4Client.GetTrafficSources(ctx, dateStart, dateStop)
+					weeklyTrends, _ := ga4Client.GetWeeklyTrends(ctx)
+					fullBrief["web_analytics"] = map[string]interface{}{
+						"summary": map[string]interface{}{
+							"active_users":         ga4Stats.ActiveUsers,
+							"sessions":             ga4Stats.Sessions,
+							"page_views":           ga4Stats.PageViews,
+							"bounce_rate":          ga4Stats.BounceRate,
+							"avg_session_duration": ga4Stats.AvgSessionDuration,
+							"new_users":            ga4Stats.NewUsers,
+						},
+						"weekly_trends":   weeklyTrends,
+						"top_pages":       topPages,
+						"traffic_sources": trafficSources,
+					}
+				}
+			}
+		}
+
+		// Bookings (con weekly_breakdown 12 semanas)
+		if cfg.EnableBookings {
+			bookingClient := bookings.NewClient(cfg.BookingSystemURL)
+			if bookingStats, err := bookingClient.GetBookingStats(dateStart, dateStop); err == nil {
+				salesData := map[string]interface{}{
+					"summary": map[string]interface{}{
+						"total":      bookingStats.Total,
+						"revenue":    bookingStats.Revenue,
+						"avg_ticket": bookingStats.AvgTicket,
+						"paid":       bookingStats.Paid,
+						"pending":    bookingStats.Pending,
+						"partial":    bookingStats.Partial,
+					},
+				}
+				if familyStats, ferr := bookingClient.GetServiceFamilyStats(dateStart, dateStop); ferr == nil {
+					salesData["by_family"] = familyStats
+				}
+				if paymentStats, perr := bookingClient.GetPaymentMethodStats(dateStart, dateStop); perr == nil {
+					salesData["by_payment_method"] = paymentStats
+				}
+				if clientStats, cerr := bookingClient.GetClientStats(); cerr == nil {
+					salesData["client_stats"] = clientStats
+				}
+				if dailyBookings, derr := bookingClient.GetDailyBookings(dateStart, dateStop); derr == nil {
+					salesData["daily"] = dailyBookings
+				}
+				if weeklyBreakdown, werr := bookingClient.GetWeeklyBreakdown(12); werr == nil {
+					salesData["weekly_breakdown"] = weeklyBreakdown
+				}
+				fullBrief["sales"] = salesData
+			}
+		}
+
+		// Meta Ads
+		if cfg.EnableMetaAds {
+			if metaData, err := getMetaAdsData(cfg, dateStart, dateStop); err == nil {
+				fullBrief["meta_ads"] = metaData
+			}
+		}
+
+		// Instagram Orgánico
+		if cfg.EnableMetaAds && cfg.MetaAccessToken != "" {
+			igClient := social.NewInstagramClient(cfg.MetaAccessToken)
+			if accountInfo, err := igClient.GetAccountInfo(ctx); err == nil {
+				accountID := accountInfo["account_id"].(string)
+				weeklyInsights, _ := igClient.GetWeeklyInsights(ctx, accountID)
+				topPosts, _ := igClient.GetTopPosts(ctx, accountID, 5)
+				fullBrief["instagram_organic"] = map[string]interface{}{
+					"account_info":    accountInfo,
+					"weekly_insights": weeklyInsights,
+					"top_posts":       topPosts,
+				}
+			}
+		}
+
+		// Reviews
+		if cfg.EnableBookings {
+			reviewsClient := reviews.NewClient(cfg.BookingSystemURL)
+			if reviewsSummary, err := reviewsClient.GetReviewsSummary(); err == nil {
+				fullBrief["reviews"] = map[string]interface{}{
+					"surveys":   reviewsSummary.Surveys,
+					"snapshots": reviewsSummary.Snapshots,
+					"recent":    reviewsSummary.Recent,
+					"period":    reviewsSummary.Period,
+				}
+			}
+		}
+
+		// Competencia
+		if cfg.EnableBookings {
+			competitorsClient := competitors.NewClient(cfg.BookingSystemURL)
+			if competitorsSummary, err := competitorsClient.GetCompetitorsSummary(); err == nil {
+				fullBrief["competitors"] = map[string]interface{}{
+					"competitors":              competitorsSummary.Competitors,
+					"aremko_precio_referencia": competitorsSummary.AremkoPrecio,
+				}
+			}
+		}
+
+		// Llamar a la IA
+		aiClient := ai.NewOpenRouterClient(cfg.OpenRouterAPIKey, cfg.OpenRouterBaseURL)
+		fmt.Println("[AI] Generando análisis integral del brief...")
+		analysis, err := aiClient.GenerateOverviewAnalysis(ctx, fullBrief)
+		if err != nil {
+			respondJSON(w, http.StatusInternalServerError, map[string]interface{}{
+				"success": false,
+				"error":   fmt.Sprintf("Failed to generate analysis: %v", err),
+			})
+			return
+		}
+
+		if analysis.Error != "" {
+			respondJSON(w, http.StatusInternalServerError, map[string]interface{}{
+				"success": false,
+				"error":   analysis.Error,
+			})
+			return
+		}
+
+		respondJSON(w, http.StatusOK, map[string]interface{}{
+			"success": true,
+			"analysis": map[string]interface{}{
+				"content":       analysis.Text,
+				"model":         analysis.Model,
+				"input_tokens":  analysis.InputTokens,
+				"output_tokens": analysis.OutputTokens,
+				"latency_ms":    analysis.LatencyMs,
+			},
+		})
+	}
+}
