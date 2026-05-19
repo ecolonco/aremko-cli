@@ -656,5 +656,5 @@ y competencia con precios y servicios.
 Genera el análisis integral siguiendo EXACTAMENTE la estructura especificada.
 Tu trabajo es que el dueño tome 5 decisiones correctas la próxima semana en lugar de 5 decisiones genéricas.`, string(dataJSON))
 
-	return c.Generate(ctx, systemPrompt, userPrompt, "google/gemini-3.1-flash-lite", 0.7, 4000)
+	return c.Generate(ctx, systemPrompt, userPrompt, "google/gemini-3.1-flash-lite", 0.7, 1500)
 }
