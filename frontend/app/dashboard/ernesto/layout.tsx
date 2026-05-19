@@ -1,4 +1,4 @@
-import Sidebar from '@/components/layout/Sidebar';
+import DashboardShell from '@/components/layout/DashboardShell';
 import { auth } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 
@@ -16,15 +16,12 @@ export default async function ErnestoDashboardLayout({
   const user = session.user;
 
   return (
-    <div className="flex h-screen bg-gray-100">
-      <Sidebar
-        userRole={user.username as any}
-        userName={user.username}
-        userFullName={user.name}
-      />
-      <main className="flex-1 overflow-y-auto">
-        {children}
-      </main>
-    </div>
+    <DashboardShell
+      userRole={user.username as any}
+      userName={user.username}
+      userFullName={user.name}
+    >
+      {children}
+    </DashboardShell>
   );
 }
