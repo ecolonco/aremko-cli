@@ -224,11 +224,11 @@ export default function BriefPage() {
   const exportNLResultCSV = () => {
     const rows = nlQueryResult?.result?.rows;
     if (!rows?.length) return;
-    const header = ['fecha', 'hora', 'cliente', 'rut', 'email', 'servicio', 'familia', 'personas', 'precio_unit', 'total', 'pago', 'estado'];
+    const header = ['fecha', 'hora', 'cliente', 'rut', 'email', 'servicio', 'familia', 'proveedor', 'personas', 'precio_unit', 'total', 'pago', 'estado'];
     const escape = (v: any) => `"${String(v ?? '').replace(/"/g, '""')}"`;
     const csv = [
       header.join(','),
-      ...rows.map((r: any) => [r.fecha, r.hora, r.cliente_nombre, r.cliente_rut, r.cliente_email, r.servicio_nombre, r.familia, r.cantidad_personas, r.precio_unitario, r.total, r.metodo_pago, r.estado].map(escape).join(',')),
+      ...rows.map((r: any) => [r.fecha, r.hora, r.cliente_nombre, r.cliente_rut, r.cliente_email, r.servicio_nombre, r.familia, r.proveedor_nombre, r.cantidad_personas, r.precio_unitario, r.total, r.metodo_pago, r.estado].map(escape).join(',')),
     ].join('\n');
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
@@ -1698,6 +1698,7 @@ export default function BriefPage() {
                   <code className="bg-indigo-50 px-1 rounded">{nlQueryResult.parsed_args.fecha_hasta}</code>
                   {nlQueryResult.parsed_args.familia && <> · familia <code className="bg-indigo-50 px-1 rounded">{nlQueryResult.parsed_args.familia}</code></>}
                   {nlQueryResult.parsed_args.servicio && <> · servicio <code className="bg-indigo-50 px-1 rounded">{nlQueryResult.parsed_args.servicio}</code></>}
+                  {nlQueryResult.parsed_args.proveedor && <> · proveedor <code className="bg-indigo-50 px-1 rounded">{nlQueryResult.parsed_args.proveedor}</code></>}
                   {typeof nlQueryResult.parse_ms === 'number' && <span className="text-gray-400"> · {(nlQueryResult.parse_ms / 1000).toFixed(1)}s</span>}
                 </div>
               )}
@@ -1728,6 +1729,7 @@ export default function BriefPage() {
                             <th className="px-2 py-1.5 font-medium">Hora</th>
                             <th className="px-2 py-1.5 font-medium">Cliente</th>
                             <th className="px-2 py-1.5 font-medium">Servicio</th>
+                            <th className="px-2 py-1.5 font-medium">Proveedor</th>
                             <th className="px-2 py-1.5 font-medium text-right">Pers.</th>
                             <th className="px-2 py-1.5 font-medium text-right">P. Unit.</th>
                             <th className="px-2 py-1.5 font-medium text-right">Total</th>
@@ -1741,6 +1743,7 @@ export default function BriefPage() {
                               <td className="px-2 py-1.5">{row.hora}</td>
                               <td className="px-2 py-1.5">{row.cliente_nombre}</td>
                               <td className="px-2 py-1.5">{row.servicio_nombre}</td>
+                              <td className="px-2 py-1.5 text-gray-700">{row.proveedor_nombre || <span className="text-gray-400">—</span>}</td>
                               <td className="px-2 py-1.5 text-right">{row.cantidad_personas}</td>
                               <td className="px-2 py-1.5 text-right">${row.precio_unitario.toLocaleString('es-CL')}</td>
                               <td className="px-2 py-1.5 text-right font-medium">${row.total.toLocaleString('es-CL')}</td>

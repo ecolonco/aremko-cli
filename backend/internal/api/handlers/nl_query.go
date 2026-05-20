@@ -89,7 +89,7 @@ func NLQuery(cfg *config.Config) http.HandlerFunc {
 		}
 
 		client := bookings.NewClient(cfg.BookingSystemURL)
-		result, err := client.GetVentasDetalle(parsed.FechaDesde, parsed.FechaHasta, parsed.Familia, parsed.Servicio)
+		result, err := client.GetVentasDetalle(parsed.FechaDesde, parsed.FechaHasta, parsed.Familia, parsed.Servicio, parsed.Proveedor)
 		if err != nil {
 			respondJSON(w, http.StatusBadGateway, map[string]interface{}{
 				"success":     false,

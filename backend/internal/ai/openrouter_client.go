@@ -670,6 +670,7 @@ type VentasDetalleQuery struct {
 	FechaHasta string `json:"fecha_hasta"`
 	Familia    string `json:"familia,omitempty"`
 	Servicio   string `json:"servicio,omitempty"`
+	Proveedor  string `json:"proveedor,omitempty"`
 	Error      string `json:"error,omitempty"`
 }
 
@@ -686,6 +687,7 @@ DEVUELVE SOLAMENTE UN JSON VÁLIDO con esta forma exacta:
   "fecha_hasta": "YYYY-MM-DD",
   "familia": "tinas" | "masajes" | "cabanas" | "otros" | "",
   "servicio": "<texto parcial del nombre del servicio, o vacío>",
+  "proveedor": "<nombre o parte del nombre del masajista/proveedor que atendió, o vacío>",
   "error": "<solo si no puedes parsear la pregunta>"
 }
 
@@ -693,23 +695,30 @@ REGLAS:
 - fecha_desde y fecha_hasta son OBLIGATORIOS. Si solo se menciona una fecha, usar la misma en ambas.
 - Convierte fechas relativas a absolutas usando hoy=%s. "ayer" = hoy-1d. "esta semana" = lunes a domingo de la semana actual. "este mes" = primer día del mes actual a hoy. "mayo" sin año = mayo del año actual.
 - familia debe ser uno de: tinas, masajes, cabanas, otros (en minúsculas, sin acentos). Si la pregunta dice "tinas" → "tinas"; "masajes" → "masajes"; "cabañas" o "cabanas" → "cabanas". Si no menciona familia, dejar "".
-- servicio es para buscar por nombre parcial (ej: "tui-na", "sueco", "descontracturante"). Solo llenar si el usuario nombra un servicio específico dentro de una familia. Si solo dice "masajes" sin más, NO llenar servicio.
+- servicio busca por nombre del SERVICIO (ej: "tui-na", "sueco", "descontracturante", "relajación"). NO uses servicio para nombres de personas.
+- proveedor busca por nombre del MASAJISTA/PROVEEDOR que atendió (ej: "Paul", "Diana", "Sandra"). Cuando la pregunta dice "masajes de X" o "atendido por X" o "los servicios que hizo X", X va en proveedor. Match parcial, basta con el nombre.
 - Si el rango pedido supera 3 meses, llena "error": "rango máximo permitido es 3 meses".
 - Si la pregunta no se trata de ventas, llena "error": "solo puedo responder preguntas de ventas".
 - NO incluyas explicación. NO uses markdown. Solo el JSON.
 
 EJEMPLOS:
 Pregunta: "ventas del 1 de mayo de 2026 familia masajes"
-Respuesta: {"fecha_desde":"2026-05-01","fecha_hasta":"2026-05-01","familia":"masajes","servicio":""}
+Respuesta: {"fecha_desde":"2026-05-01","fecha_hasta":"2026-05-01","familia":"masajes","servicio":"","proveedor":""}
 
 Pregunta: "tinas de la semana pasada"
-Respuesta: {"fecha_desde":"YYYY-MM-DD del lunes anterior","fecha_hasta":"YYYY-MM-DD del domingo anterior","familia":"tinas","servicio":""}
+Respuesta: {"fecha_desde":"YYYY-MM-DD del lunes anterior","fecha_hasta":"YYYY-MM-DD del domingo anterior","familia":"tinas","servicio":"","proveedor":""}
 
 Pregunta: "ventas de masaje sueco en abril"
-Respuesta: {"fecha_desde":"2026-04-01","fecha_hasta":"2026-04-30","familia":"masajes","servicio":"sueco"}
+Respuesta: {"fecha_desde":"2026-04-01","fecha_hasta":"2026-04-30","familia":"masajes","servicio":"sueco","proveedor":""}
+
+Pregunta: "masajes de Paul en mayo 2026"
+Respuesta: {"fecha_desde":"2026-05-01","fecha_hasta":"2026-05-31","familia":"masajes","servicio":"","proveedor":"Paul"}
+
+Pregunta: "qué servicios hizo Diana esta semana"
+Respuesta: {"fecha_desde":"YYYY-MM-DD lunes","fecha_hasta":"YYYY-MM-DD domingo","familia":"","servicio":"","proveedor":"Diana"}
 
 Pregunta: "qué clima hay hoy"
-Respuesta: {"fecha_desde":"","fecha_hasta":"","familia":"","servicio":"","error":"solo puedo responder preguntas de ventas"}`, hoy, hoy)
+Respuesta: {"fecha_desde":"","fecha_hasta":"","familia":"","servicio":"","proveedor":"","error":"solo puedo responder preguntas de ventas"}`, hoy, hoy)
 
 	res, err := c.Generate(ctx, systemPrompt, userQuery, "google/gemini-3.1-flash-lite", 0.0, 200)
 	if err != nil {

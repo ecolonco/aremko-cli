@@ -400,6 +400,8 @@ type VentasDetalleRow struct {
 	ServicioID       int     `json:"servicio_id"`
 	ServicioNombre   string  `json:"servicio_nombre"`
 	Familia          string  `json:"familia"`
+	ProveedorID      *int    `json:"proveedor_id"`
+	ProveedorNombre  string  `json:"proveedor_nombre"`
 	CantidadPersonas int     `json:"cantidad_personas"`
 	PrecioUnitario   float64 `json:"precio_unitario"`
 	Total            float64 `json:"total"`
@@ -422,8 +424,9 @@ type VentasDetalleResult struct {
 }
 
 // GetVentasDetalle fetches detailed booking rows for a date range, optionally
-// filtered by familia (tinas/masajes/cabanas/otros) and servicio (partial match).
-func (c *Client) GetVentasDetalle(fechaDesde, fechaHasta, familia, servicio string) (*VentasDetalleResult, error) {
+// filtered by familia (tinas/masajes/cabanas/otros), servicio (partial match
+// on service name) and proveedor (partial match on masseur/provider name).
+func (c *Client) GetVentasDetalle(fechaDesde, fechaHasta, familia, servicio, proveedor string) (*VentasDetalleResult, error) {
 	url := fmt.Sprintf("%s/ventas/api/aremko-cli/bookings/detalle/?fecha_desde=%s&fecha_hasta=%s",
 		c.BaseURL, fechaDesde, fechaHasta)
 	if familia != "" {
@@ -431,6 +434,9 @@ func (c *Client) GetVentasDetalle(fechaDesde, fechaHasta, familia, servicio stri
 	}
 	if servicio != "" {
 		url = fmt.Sprintf("%s&servicio=%s", url, servicio)
+	}
+	if proveedor != "" {
+		url = fmt.Sprintf("%s&proveedor=%s", url, proveedor)
 	}
 
 	resp, err := c.HTTPClient.Get(url)
