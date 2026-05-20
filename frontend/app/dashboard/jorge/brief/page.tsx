@@ -25,7 +25,8 @@ import {
   Download,
   Mail,
   Loader2,
-  AlertCircle
+  AlertCircle,
+  Printer
 } from 'lucide-react';
 
 interface BriefData {
@@ -82,6 +83,58 @@ export default function BriefPage() {
   const [nlQueryRunning, setNlQueryRunning] = useState(false);
   const [nlQueryResult, setNlQueryResult] = useState<any>(null);
   const [nlQueryError, setNlQueryError] = useState<string | null>(null);
+
+  // Export PDF / Print (formato carta — letter)
+  const [exporting, setExporting] = useState(false);
+  const tabLabels: Record<string, string> = {
+    overview: 'resumen',
+    web: 'web',
+    social: 'social',
+    sales: 'ventas',
+    reviews: 'opiniones',
+    competition: 'competencia',
+    ai: 'ia',
+  };
+
+  const handleExportPDF = async () => {
+    setExporting(true);
+    try {
+      const mod = await import('html2pdf.js');
+      const html2pdf = (mod as any).default || (mod as any);
+      const el = document.querySelector(`[data-tab-export="${activeTab}"]`) as HTMLElement | null;
+      if (!el) {
+        alert('No se encontró el contenido de la pestaña a exportar');
+        return;
+      }
+      const today = new Date().toISOString().slice(0, 10);
+      const filename = `aremko-brief-${tabLabels[activeTab] || activeTab}-${today}.pdf`;
+      await html2pdf()
+        .from(el)
+        .set({
+          margin: 0.4,
+          filename,
+          image: { type: 'jpeg', quality: 0.95 },
+          html2canvas: {
+            scale: 2,
+            useCORS: true,
+            backgroundColor: '#ffffff',
+            ignoreElements: (e: Element) => e.classList?.contains?.('no-print') ?? false,
+          },
+          jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' },
+          pagebreak: { mode: ['css', 'legacy'] },
+        })
+        .save();
+    } catch (err: any) {
+      console.error('Error exportando PDF:', err);
+      alert('Error generando PDF: ' + (err?.message || 'desconocido'));
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const handlePrint = () => {
+    window.print();
+  };
 
   // Cargar brief al montar
   useEffect(() => {
@@ -360,7 +413,7 @@ export default function BriefPage() {
             Análisis completo del {data.date_start} al {data.date_stop}
           </p>
         </div>
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-2 no-print">
           <Button
             onClick={() => fetchBrief(false)}
             variant="outline"
@@ -377,19 +430,19 @@ export default function BriefPage() {
             <Sparkles className={`h-4 w-4 mr-2 ${generating ? 'animate-pulse' : ''}`} />
             {generating ? 'Generando con IA...' : 'Generar con IA'}
           </Button>
-          <Button variant="outline">
-            <Download className="h-4 w-4 mr-2" />
-            Exportar PDF
+          <Button variant="outline" onClick={handleExportPDF} disabled={exporting}>
+            {exporting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Download className="h-4 w-4 mr-2" />}
+            {exporting ? 'Generando…' : 'Descargar PDF'}
           </Button>
-          <Button variant="outline">
-            <Mail className="h-4 w-4 mr-2" />
-            Enviar Email
+          <Button variant="outline" onClick={handlePrint}>
+            <Printer className="h-4 w-4 mr-2" />
+            Imprimir
           </Button>
         </div>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-7">
+        <TabsList className="grid w-full grid-cols-7 no-print">
           <TabsTrigger value="overview">
             <BarChart3 className="h-4 w-4 mr-2" />
             Resumen
@@ -421,7 +474,7 @@ export default function BriefPage() {
         </TabsList>
 
         {/* RESUMEN GENERAL */}
-        <TabsContent value="overview" className="space-y-4">
+        <TabsContent value="overview" className="space-y-4" data-tab-export="overview">
           {ai_analysis && (
             <Card className="border-purple-200 bg-gradient-to-r from-purple-50 to-blue-50">
               <CardHeader>
@@ -555,7 +608,7 @@ export default function BriefPage() {
         </TabsContent>
 
         {/* WEB ANALYTICS */}
-        <TabsContent value="web" className="space-y-4">
+        <TabsContent value="web" className="space-y-4" data-tab-export="web">
           {data.web_analytics ? (
             <>
               {/* Botón de Análisis con IA */}
@@ -1032,7 +1085,7 @@ export default function BriefPage() {
         </TabsContent>
 
         {/* REDES SOCIALES */}
-        <TabsContent value="social" className="space-y-4">
+        <TabsContent value="social" className="space-y-4" data-tab-export="social">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center">
@@ -1649,7 +1702,7 @@ export default function BriefPage() {
         </TabsContent>
 
         {/* VENTAS */}
-        <TabsContent value="sales" className="space-y-4">
+        <TabsContent value="sales" className="space-y-4" data-tab-export="sales">
           {/* Consulta en lenguaje natural */}
           <Card className="bg-gradient-to-br from-indigo-50 to-purple-50 border-indigo-200">
             <CardHeader>
@@ -2325,7 +2378,7 @@ export default function BriefPage() {
         </TabsContent>
 
         {/* OPINIONES */}
-        <TabsContent value="reviews" className="space-y-4">
+        <TabsContent value="reviews" className="space-y-4" data-tab-export="reviews">
           {/* AI Analysis Card */}
           <Card className="bg-gradient-to-br from-yellow-50 to-amber-50 border-yellow-200">
             <CardHeader>
@@ -2672,7 +2725,7 @@ export default function BriefPage() {
         </TabsContent>
 
         {/* COMPETENCIA */}
-        <TabsContent value="competition" className="space-y-4">
+        <TabsContent value="competition" className="space-y-4" data-tab-export="competition">
           {data.competitors && data.competitors.status === 'real_data' ? (
             <>
               {/* Comparativa de Precios */}
@@ -2885,7 +2938,7 @@ export default function BriefPage() {
         </TabsContent>
 
         {/* ANÁLISIS IA */}
-        <TabsContent value="ai" className="space-y-4">
+        <TabsContent value="ai" className="space-y-4" data-tab-export="ai">
           {/* Análisis Integral con IA */}
           <Card className="bg-gradient-to-br from-purple-50 to-violet-50 border-purple-200">
             <CardHeader>

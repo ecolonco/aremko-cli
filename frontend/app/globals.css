@@ -24,3 +24,25 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+@media print {
+  @page {
+    size: letter;
+    margin: 0.5in;
+  }
+  body {
+    background: white !important;
+    color: black !important;
+  }
+  .no-print, .no-print * {
+    display: none !important;
+  }
+  [data-brief-export-area] {
+    padding: 0 !important;
+  }
+  /* Forzar que las cards y tablas no se corten a la mitad */
+  .card, table, .recharts-wrapper {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+}

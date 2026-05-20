@@ -24,21 +24,23 @@ export default function DashboardShell({ userRole, userName, userFullName, child
 
   return (
     <div className="flex h-screen bg-gray-100">
-      <Sidebar
-        userRole={userRole}
-        userName={userName}
-        userFullName={userFullName}
-        open={sidebarOpen}
-        onClose={() => setSidebarOpen(false)}
-      />
+      <div className="no-print contents">
+        <Sidebar
+          userRole={userRole}
+          userName={userName}
+          userFullName={userFullName}
+          open={sidebarOpen}
+          onClose={() => setSidebarOpen(false)}
+        />
+      </div>
 
       <div
-        className={`flex flex-col flex-1 min-w-0 transition-[padding] duration-200 ease-in-out ${
+        className={`flex flex-col flex-1 min-w-0 transition-[padding] duration-200 ease-in-out print:!pl-0 ${
           sidebarOpen ? 'md:pl-64' : 'pl-0'
         }`}
       >
         {/* Top bar con hamburger */}
-        <div className="sticky top-0 z-20 flex items-center h-12 px-3 bg-white border-b border-gray-200">
+        <div className="sticky top-0 z-20 flex items-center h-12 px-3 bg-white border-b border-gray-200 no-print">
           <button
             onClick={() => setSidebarOpen((v) => !v)}
             className="p-2 rounded-md text-gray-700 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-300"
