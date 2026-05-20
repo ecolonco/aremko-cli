@@ -568,6 +568,20 @@ func getMetaAdsData(cfg *config.Config, dateStart, dateStop string) (map[string]
 	return result, nil
 }
 
+// newAIClientWithOperatingContext returns an OpenRouter client preloaded with
+// Aremko's current operating context. Best-effort: if the fetch from Django
+// fails, the analysis still runs (just without the context-aware prompt).
+func newAIClientWithOperatingContext(cfg *config.Config) *ai.OpenRouterClient {
+	client := ai.NewOpenRouterClient(cfg.OpenRouterAPIKey, cfg.OpenRouterBaseURL)
+	if cfg.EnableBookings && cfg.BookingSystemURL != "" {
+		bClient := bookings.NewClient(cfg.BookingSystemURL)
+		if opCtx, err := bClient.GetOperatingContext(); err == nil && opCtx != "" {
+			client.OperatingContext = opCtx
+		}
+	}
+	return client
+}
+
 // GetWeeklyBriefWithAI retorna el brief semanal con análisis de IA
 func GetWeeklyBriefWithAI(cfg *config.Config) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -726,7 +740,7 @@ func GetWeeklyBriefWithAI(cfg *config.Config) http.HandlerFunc {
 	var contentCalendar *ai.LLMResult
 
 	if cfg.EnableAI && cfg.OpenRouterAPIKey != "" {
-		aiClient := ai.NewOpenRouterClient(cfg.OpenRouterAPIKey, cfg.OpenRouterBaseURL)
+		aiClient := newAIClientWithOperatingContext(cfg)
 		ctx := context.Background()
 
 			// Generar análisis del brief
@@ -832,7 +846,7 @@ func AnalyzeWebAnalytics(cfg *config.Config) http.HandlerFunc {
 		}
 
 		// Generar análisis con IA
-		aiClient := ai.NewOpenRouterClient(cfg.OpenRouterAPIKey, cfg.OpenRouterBaseURL)
+		aiClient := newAIClientWithOperatingContext(cfg)
 		ctx := context.Background()
 
 		fmt.Println("[AI] Generando análisis de web analytics...")
@@ -920,7 +934,7 @@ func AnalyzeInstagramOrganic(cfg *config.Config) http.HandlerFunc {
 		}
 
 		// Generar análisis con IA
-		aiClient := ai.NewOpenRouterClient(cfg.OpenRouterAPIKey, cfg.OpenRouterBaseURL)
+		aiClient := newAIClientWithOperatingContext(cfg)
 
 		fmt.Println("[AI] Generando análisis de Instagram Orgánico...")
 		analysis, err := aiClient.GenerateInstagramAnalysis(ctx, instagramData)
@@ -989,7 +1003,7 @@ func AnalyzeMetaAds(cfg *config.Config) http.HandlerFunc {
 		}
 
 		// Generar análisis con IA
-		aiClient := ai.NewOpenRouterClient(cfg.OpenRouterAPIKey, cfg.OpenRouterBaseURL)
+		aiClient := newAIClientWithOperatingContext(cfg)
 		ctx := context.Background()
 
 		fmt.Println("[AI] Generando análisis de Meta Ads...")
@@ -1084,7 +1098,7 @@ func AnalyzeSales(cfg *config.Config) http.HandlerFunc {
 			salesData["daily"] = dailyBookings
 		}
 
-		aiClient := ai.NewOpenRouterClient(cfg.OpenRouterAPIKey, cfg.OpenRouterBaseURL)
+		aiClient := newAIClientWithOperatingContext(cfg)
 		ctx := context.Background()
 
 		fmt.Println("[AI] Generando análisis de Ventas...")
@@ -1154,7 +1168,7 @@ func AnalyzeReviews(cfg *config.Config) http.HandlerFunc {
 			"recent":    summary.Recent,
 		}
 
-		aiClient := ai.NewOpenRouterClient(cfg.OpenRouterAPIKey, cfg.OpenRouterBaseURL)
+		aiClient := newAIClientWithOperatingContext(cfg)
 		ctx := context.Background()
 
 		fmt.Println("[AI] Generando análisis de Opiniones...")
@@ -1370,7 +1384,7 @@ func AnalyzeOverview(cfg *config.Config) http.HandlerFunc {
 		wg.Wait()
 
 		// Llamar a la IA
-		aiClient := ai.NewOpenRouterClient(cfg.OpenRouterAPIKey, cfg.OpenRouterBaseURL)
+		aiClient := newAIClientWithOperatingContext(cfg)
 		fmt.Println("[AI] Generando análisis integral del brief...")
 		analysis, err := aiClient.GenerateOverviewAnalysis(ctx, fullBrief)
 		if err != nil {

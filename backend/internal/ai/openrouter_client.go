@@ -15,6 +15,34 @@ type OpenRouterClient struct {
 	APIKey  string
 	BaseURL string
 	Client  *http.Client
+	// OperatingContext, si está set, se inyecta al final del system prompt de
+	// cada análisis para que la IA evite recomendar acciones que Aremko ya
+	// implementa. Se llena desde el handler con bookings.Client.GetOperatingContext().
+	OperatingContext string
+}
+
+// wrapSystemPrompt prepends Aremko's current operating context to the analysis
+// system prompt, so the LLM tailors recommendations to what's not already in place.
+// If OperatingContext is empty, returns base unchanged.
+func (c *OpenRouterClient) wrapSystemPrompt(base string) string {
+	if c.OperatingContext == "" {
+		return base
+	}
+	return fmt.Sprintf(`%s
+
+---
+
+## Contexto operativo actual de Aremko Spa Boutique
+_(generado automáticamente desde el código y la BD del sistema de reservas)_
+
+%s
+
+---
+
+IMPORTANTE — usar el contexto operativo al recomendar:
+- Si una acción que ibas a sugerir YA está implementada según el contexto de arriba, NO la propongas de cero. En su lugar, sugiere cómo MEJORARLA, AMPLIARLA, REFINAR su targeting, o medir su efectividad.
+- Si una sugerencia entra en conflicto, duplica o canibaliza algo existente, dilo explícitamente.
+- Tus mejores recomendaciones son las que combinan los datos del payload con lo que ya hay en el contexto operativo para proponer algo concreto y no obvio.`, base, c.OperatingContext)
 }
 
 // LLMResult encapsula la respuesta del modelo
@@ -177,7 +205,7 @@ Sé específico, usa números, y enfócate en acciones concretas.`
 
 Genera tu análisis siguiendo la estructura definida.`, string(briefJSON))
 
-	return c.Generate(ctx, systemPrompt, userPrompt, "google/gemini-3.1-flash-lite", 0.7, 2000)
+	return c.Generate(ctx, c.wrapSystemPrompt(systemPrompt), userPrompt, "google/gemini-3.1-flash-lite", 0.7, 2000)
 }
 
 // GenerateContentCalendar genera calendario de contenido para redes sociales
@@ -214,7 +242,7 @@ Prioriza contenido que:
 Genera un calendario de contenido para los próximos %d días.
 Incluye al menos 1 post de Instagram y 1 artículo de blog por semana.`, string(briefJSON), days)
 
-	return c.Generate(ctx, systemPrompt, userPrompt, "google/gemini-3.1-flash-lite", 0.8, 4000)
+	return c.Generate(ctx, c.wrapSystemPrompt(systemPrompt), userPrompt, "google/gemini-3.1-flash-lite", 0.8, 4000)
 }
 
 // GenerateWebAnalyticsAnalysis genera un análisis completo de los datos de web analytics
@@ -281,7 +309,7 @@ Ejemplos de recomendaciones:
 Genera un análisis completo y accionable siguiendo la estructura especificada.
 Recuerda: máximo 2 páginas, enfoque en lo más relevante, recomendaciones concretas y simples.`, string(dataJSON))
 
-	return c.Generate(ctx, systemPrompt, userPrompt, "google/gemini-3.1-flash-lite", 0.7, 4000)
+	return c.Generate(ctx, c.wrapSystemPrompt(systemPrompt), userPrompt, "google/gemini-3.1-flash-lite", 0.7, 4000)
 }
 
 // GenerateInstagramAnalysis genera un análisis completo con IA de los datos de Instagram Orgánico
@@ -347,7 +375,7 @@ Ejemplos de recomendaciones:
 Genera un análisis completo y accionable siguiendo la estructura especificada.
 Recuerda: máximo 2 páginas, enfoque en lo más relevante, recomendaciones concretas y simples.`, string(dataJSON))
 
-	return c.Generate(ctx, systemPrompt, userPrompt, "google/gemini-3.1-flash-lite", 0.7, 2000)
+	return c.Generate(ctx, c.wrapSystemPrompt(systemPrompt), userPrompt, "google/gemini-3.1-flash-lite", 0.7, 2000)
 }
 
 // GenerateMetaAdsAnalysis genera un análisis completo de los datos de Meta Ads (Facebook/Instagram)
@@ -415,7 +443,7 @@ Ejemplos de recomendaciones:
 Genera un análisis completo y accionable siguiendo la estructura especificada.
 Recuerda: máximo 2 páginas, enfoque en lo más relevante, recomendaciones concretas y simples.`, string(dataJSON))
 
-	return c.Generate(ctx, systemPrompt, userPrompt, "google/gemini-3.1-flash-lite", 0.7, 2000)
+	return c.Generate(ctx, c.wrapSystemPrompt(systemPrompt), userPrompt, "google/gemini-3.1-flash-lite", 0.7, 2000)
 }
 
 // GenerateSalesAnalysis genera un análisis completo de las ventas y reservas del sistema
@@ -489,7 +517,7 @@ Ejemplos de recomendaciones:
 Genera un análisis completo y accionable siguiendo la estructura especificada.
 Recuerda: máximo 2 páginas, enfoque en lo más relevante, recomendaciones concretas y simples.`, string(dataJSON))
 
-	return c.Generate(ctx, systemPrompt, userPrompt, "google/gemini-3.1-flash-lite", 0.7, 2000)
+	return c.Generate(ctx, c.wrapSystemPrompt(systemPrompt), userPrompt, "google/gemini-3.1-flash-lite", 0.7, 2000)
 }
 
 // GenerateReviewsAnalysis genera un análisis completo de reputación online y encuestas
@@ -560,7 +588,7 @@ Analiza las dimensiones más altas y más bajas del set de "calificaciones_prome
 Genera un análisis completo y accionable siguiendo la estructura especificada.
 Recuerda: máximo 2 páginas, enfoque en lo más relevante, recomendaciones concretas y simples.`, string(dataJSON))
 
-	return c.Generate(ctx, systemPrompt, userPrompt, "google/gemini-3.1-flash-lite", 0.7, 2000)
+	return c.Generate(ctx, c.wrapSystemPrompt(systemPrompt), userPrompt, "google/gemini-3.1-flash-lite", 0.7, 2000)
 }
 
 // GenerateOverviewAnalysis genera un análisis integral cruzando todas las secciones
@@ -660,7 +688,7 @@ y competencia con precios y servicios.
 Genera el análisis integral siguiendo EXACTAMENTE la estructura especificada.
 Tu trabajo es que el dueño tome 5 decisiones correctas la próxima semana en lugar de 5 decisiones genéricas.`, string(dataJSON))
 
-	return c.Generate(ctx, systemPrompt, userPrompt, "google/gemini-3.1-flash-lite", 0.7, 1500)
+	return c.Generate(ctx, c.wrapSystemPrompt(systemPrompt), userPrompt, "google/gemini-3.1-flash-lite", 0.7, 1500)
 }
 
 // VentasDetalleQuery is the structured shape the LLM must return when parsing
@@ -737,7 +765,7 @@ Respuesta: {"fecha_desde":"2025-01-01","fecha_hasta":"2025-12-31","familia":"","
 Pregunta: "qué clima hay hoy"
 Respuesta: {"fecha_desde":"","fecha_hasta":"","familia":"","servicio":"","proveedor":"","cliente":"","error":"solo puedo responder preguntas de ventas"}`, hoy, hoy)
 
-	res, err := c.Generate(ctx, systemPrompt, userQuery, "google/gemini-3.1-flash-lite", 0.0, 200)
+	res, err := c.Generate(ctx, c.wrapSystemPrompt(systemPrompt), userQuery, "google/gemini-3.1-flash-lite", 0.0, 200)
 	if err != nil {
 		return nil, res, err
 	}
