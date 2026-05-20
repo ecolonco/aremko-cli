@@ -99,31 +99,49 @@ export default function BriefPage() {
   const handleExportPDF = async () => {
     setExporting(true);
     try {
-      const mod = await import('html2pdf.js');
-      const html2pdf = (mod as any).default || (mod as any);
+      const [html2canvasMod, jsPDFMod] = await Promise.all([
+        import('html2canvas-pro'),
+        import('jspdf'),
+      ]);
+      const html2canvas = (html2canvasMod as any).default || (html2canvasMod as any);
+      const JsPDFCtor = (jsPDFMod as any).jsPDF || (jsPDFMod as any).default;
+
       const el = document.querySelector(`[data-tab-export="${activeTab}"]`) as HTMLElement | null;
       if (!el) {
         alert('No se encontró el contenido de la pestaña a exportar');
         return;
       }
+
+      const canvas = await html2canvas(el, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: '#ffffff',
+        ignoreElements: (e: Element) => (e as HTMLElement).classList?.contains?.('no-print') ?? false,
+      });
+
+      const imgData = canvas.toDataURL('image/jpeg', 0.95);
+      const pdf = new JsPDFCtor({ unit: 'in', format: 'letter', orientation: 'portrait' });
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const margin = 0.4;
+      const imgWidth = pageWidth - margin * 2;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      const usablePageHeight = pageHeight - margin * 2;
+
+      let heightLeft = imgHeight;
+      let position = margin;
+      pdf.addImage(imgData, 'JPEG', margin, position, imgWidth, imgHeight);
+      heightLeft -= usablePageHeight;
+
+      while (heightLeft > 0) {
+        pdf.addPage();
+        position = margin - (imgHeight - heightLeft);
+        pdf.addImage(imgData, 'JPEG', margin, position, imgWidth, imgHeight);
+        heightLeft -= usablePageHeight;
+      }
+
       const today = new Date().toISOString().slice(0, 10);
-      const filename = `aremko-brief-${tabLabels[activeTab] || activeTab}-${today}.pdf`;
-      await html2pdf()
-        .from(el)
-        .set({
-          margin: 0.4,
-          filename,
-          image: { type: 'jpeg', quality: 0.95 },
-          html2canvas: {
-            scale: 2,
-            useCORS: true,
-            backgroundColor: '#ffffff',
-            ignoreElements: (e: Element) => e.classList?.contains?.('no-print') ?? false,
-          },
-          jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' },
-          pagebreak: { mode: ['css', 'legacy'] },
-        })
-        .save();
+      pdf.save(`aremko-brief-${tabLabels[activeTab] || activeTab}-${today}.pdf`);
     } catch (err: any) {
       console.error('Error exportando PDF:', err);
       alert('Error generando PDF: ' + (err?.message || 'desconocido'));
