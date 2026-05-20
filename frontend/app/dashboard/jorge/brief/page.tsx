@@ -1693,15 +1693,50 @@ export default function BriefPage() {
               {nlQueryResult?.parsed_args && (
                 <div className="bg-white border border-indigo-200 rounded-md p-3 text-xs text-gray-600">
                   <span className="font-semibold text-indigo-700">La IA entendió:</span>{' '}
-                  <code className="bg-indigo-50 px-1 rounded">{nlQueryResult.parsed_args.fecha_desde}</code>
-                  {' → '}
-                  <code className="bg-indigo-50 px-1 rounded">{nlQueryResult.parsed_args.fecha_hasta}</code>
+                  {nlQueryResult.parsed_args.fecha_desde && nlQueryResult.parsed_args.fecha_hasta ? (
+                    <>
+                      <code className="bg-indigo-50 px-1 rounded">{nlQueryResult.parsed_args.fecha_desde}</code>
+                      {' → '}
+                      <code className="bg-indigo-50 px-1 rounded">{nlQueryResult.parsed_args.fecha_hasta}</code>
+                    </>
+                  ) : (
+                    <code className="bg-indigo-50 px-1 rounded">historial completo</code>
+                  )}
                   {nlQueryResult.parsed_args.familia && <> · familia <code className="bg-indigo-50 px-1 rounded">{nlQueryResult.parsed_args.familia}</code></>}
                   {nlQueryResult.parsed_args.servicio && <> · servicio <code className="bg-indigo-50 px-1 rounded">{nlQueryResult.parsed_args.servicio}</code></>}
                   {nlQueryResult.parsed_args.proveedor && <> · proveedor <code className="bg-indigo-50 px-1 rounded">{nlQueryResult.parsed_args.proveedor}</code></>}
+                  {nlQueryResult.parsed_args.cliente && <> · cliente <code className="bg-indigo-50 px-1 rounded">{nlQueryResult.parsed_args.cliente}</code></>}
                   {typeof nlQueryResult.parse_ms === 'number' && <span className="text-gray-400"> · {(nlQueryResult.parse_ms / 1000).toFixed(1)}s</span>}
                 </div>
               )}
+
+              {nlQueryResult?.success && nlQueryResult.parsed_args?.cliente && nlQueryResult.result?.rows?.length > 0 && (() => {
+                const rows = nlQueryResult.result.rows;
+                const fechas = rows.map((r: any) => r.fecha).filter(Boolean).sort();
+                const lastVisit = fechas[fechas.length - 1];
+                const firstVisit = fechas[0];
+                const today = new Date();
+                const last = new Date(lastVisit + 'T00:00:00');
+                const days = Math.floor((today.getTime() - last.getTime()) / (1000 * 60 * 60 * 24));
+                const uniqueDays = new Set(fechas).size;
+                const uniqueClients = new Set(rows.map((r: any) => r.cliente_id)).size;
+                let alertColor = 'bg-emerald-50 border-emerald-200 text-emerald-800';
+                let alertLabel = 'Cliente activo';
+                if (days > 365) { alertColor = 'bg-red-50 border-red-200 text-red-800'; alertLabel = '⚠ Cliente lapsed (>1 año sin visitar)'; }
+                else if (days > 180) { alertColor = 'bg-amber-50 border-amber-200 text-amber-800'; alertLabel = '⚠ Cliente en riesgo (>6 meses)'; }
+                else if (days > 90) { alertColor = 'bg-yellow-50 border-yellow-200 text-yellow-800'; alertLabel = 'Hace >3 meses que no visita'; }
+                return (
+                  <div className={`border rounded-md p-3 text-sm ${alertColor}`}>
+                    <div className="font-semibold mb-1">{alertLabel}</div>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+                      <div><span className="opacity-70">Última visita:</span><br/><span className="font-semibold">{lastVisit}</span> ({days} días)</div>
+                      <div><span className="opacity-70">Primera visita:</span><br/><span className="font-semibold">{firstVisit}</span></div>
+                      <div><span className="opacity-70">Visitas únicas:</span><br/><span className="font-semibold">{uniqueDays}</span> días distintos</div>
+                      <div><span className="opacity-70">Clientes que matchean:</span><br/><span className="font-semibold">{uniqueClients}</span></div>
+                    </div>
+                  </div>
+                );
+              })()}
 
               {nlQueryResult?.success && nlQueryResult.result && (
                 <div className="bg-white border border-gray-200 rounded-md overflow-hidden">

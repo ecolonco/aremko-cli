@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"time"
 )
 
@@ -423,23 +424,33 @@ type VentasDetalleResult struct {
 	Rows         []VentasDetalleRow `json:"rows"`
 }
 
-// GetVentasDetalle fetches detailed booking rows for a date range, optionally
-// filtered by familia (tinas/masajes/cabanas/otros), servicio (partial match
-// on service name) and proveedor (partial match on masseur/provider name).
-func (c *Client) GetVentasDetalle(fechaDesde, fechaHasta, familia, servicio, proveedor string) (*VentasDetalleResult, error) {
-	url := fmt.Sprintf("%s/ventas/api/aremko-cli/bookings/detalle/?fecha_desde=%s&fecha_hasta=%s",
-		c.BaseURL, fechaDesde, fechaHasta)
+// GetVentasDetalle fetches detailed booking rows. Filters are all partial-match
+// (icontains): familia, servicio (service name), proveedor (masseur/provider),
+// cliente (matches name/phone/email/rut). When cliente is set, fecha_desde and
+// fecha_hasta may be empty — Django returns the client's full history.
+func (c *Client) GetVentasDetalle(fechaDesde, fechaHasta, familia, servicio, proveedor, cliente string) (*VentasDetalleResult, error) {
+	q := url.Values{}
+	if fechaDesde != "" {
+		q.Set("fecha_desde", fechaDesde)
+	}
+	if fechaHasta != "" {
+		q.Set("fecha_hasta", fechaHasta)
+	}
 	if familia != "" {
-		url = fmt.Sprintf("%s&familia=%s", url, familia)
+		q.Set("familia", familia)
 	}
 	if servicio != "" {
-		url = fmt.Sprintf("%s&servicio=%s", url, servicio)
+		q.Set("servicio", servicio)
 	}
 	if proveedor != "" {
-		url = fmt.Sprintf("%s&proveedor=%s", url, proveedor)
+		q.Set("proveedor", proveedor)
 	}
+	if cliente != "" {
+		q.Set("cliente", cliente)
+	}
+	endpoint := fmt.Sprintf("%s/ventas/api/aremko-cli/bookings/detalle/?%s", c.BaseURL, q.Encode())
 
-	resp, err := c.HTTPClient.Get(url)
+	resp, err := c.HTTPClient.Get(endpoint)
 	if err != nil {
 		return nil, fmt.Errorf("error fetching ventas detalle: %w", err)
 	}

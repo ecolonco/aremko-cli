@@ -671,6 +671,7 @@ type VentasDetalleQuery struct {
 	Familia    string `json:"familia,omitempty"`
 	Servicio   string `json:"servicio,omitempty"`
 	Proveedor  string `json:"proveedor,omitempty"`
+	Cliente    string `json:"cliente,omitempty"`
 	Error      string `json:"error,omitempty"`
 }
 
@@ -683,42 +684,58 @@ en parámetros estructurados para una API. Hoy es %s.
 
 DEVUELVE SOLAMENTE UN JSON VÁLIDO con esta forma exacta:
 {
-  "fecha_desde": "YYYY-MM-DD",
-  "fecha_hasta": "YYYY-MM-DD",
+  "fecha_desde": "YYYY-MM-DD o vacío si se filtra por cliente",
+  "fecha_hasta": "YYYY-MM-DD o vacío si se filtra por cliente",
   "familia": "tinas" | "masajes" | "cabanas" | "otros" | "",
   "servicio": "<texto parcial del nombre del servicio, o vacío>",
   "proveedor": "<nombre o parte del nombre del masajista/proveedor que atendió, o vacío>",
+  "cliente": "<nombre, teléfono, email o RUT del cliente, o vacío>",
   "error": "<solo si no puedes parsear la pregunta>"
 }
 
 REGLAS:
-- fecha_desde y fecha_hasta son OBLIGATORIOS. Si solo se menciona una fecha, usar la misma en ambas.
+- fecha_desde y fecha_hasta:
+  • Son OBLIGATORIOS si NO hay filtro de cliente.
+  • Son OPCIONALES (pueden quedar "") si hay filtro de cliente — sin fechas se busca toda la historia del cliente.
+  • Si solo se menciona una fecha puntual, usar la misma en ambas.
 - Convierte fechas relativas a absolutas usando hoy=%s. "ayer" = hoy-1d. "esta semana" = lunes a domingo de la semana actual. "este mes" = primer día del mes actual a hoy. "mayo" sin año = mayo del año actual.
-- familia debe ser uno de: tinas, masajes, cabanas, otros (en minúsculas, sin acentos). Si la pregunta dice "tinas" → "tinas"; "masajes" → "masajes"; "cabañas" o "cabanas" → "cabanas". Si no menciona familia, dejar "".
-- servicio busca por nombre del SERVICIO (ej: "tui-na", "sueco", "descontracturante", "relajación"). NO uses servicio para nombres de personas.
-- proveedor busca por nombre del MASAJISTA/PROVEEDOR que atendió (ej: "Paul", "Diana", "Sandra"). Cuando la pregunta dice "masajes de X" o "atendido por X" o "los servicios que hizo X", X va en proveedor. Match parcial, basta con el nombre.
-- Si el rango pedido supera 3 meses, llena "error": "rango máximo permitido es 3 meses".
+- familia debe ser uno de: tinas, masajes, cabanas, otros (en minúsculas, sin acentos). Si no menciona familia, dejar "".
+- servicio busca por nombre del SERVICIO (ej: "tui-na", "sueco", "descontracturante"). NO uses servicio para nombres de personas.
+- proveedor busca por MASAJISTA/PROVEEDOR (ej: "Paul", "Diana", "Sandra"). Cuando la pregunta dice "masajes de X" o "atendido por X" o "qué hizo X", X va en proveedor. PERO si X es claramente un cliente (ver siguiente regla), usar cliente.
+- cliente busca por CLIENTE de Aremko. Detectar cliente cuando:
+  • Aparece un teléfono (formato chileno: +56xxxxxxxxx, 56xxxxxxxxx, 9xxxxxxxx, o números largos con o sin +/espacios)
+  • Aparece un email (contiene @)
+  • Aparece un RUT chileno (formato xx.xxx.xxx-x o xxxxxxxx-x o solo dígitos largos con guión)
+  • La pregunta dice claramente "cliente X", "el cliente X", "le hemos vendido a X", "ventas a X", "compras de X", "X es un cliente"
+  Pasar al cliente el valor literal (ej: el teléfono completo, el email entero, el nombre completo). NO mezclar con proveedor.
+- Si NO hay cliente y el rango supera 3 meses, llena "error": "rango máximo permitido es 3 meses cuando no se filtra por cliente".
 - Si la pregunta no se trata de ventas, llena "error": "solo puedo responder preguntas de ventas".
 - NO incluyas explicación. NO uses markdown. Solo el JSON.
 
 EJEMPLOS:
 Pregunta: "ventas del 1 de mayo de 2026 familia masajes"
-Respuesta: {"fecha_desde":"2026-05-01","fecha_hasta":"2026-05-01","familia":"masajes","servicio":"","proveedor":""}
-
-Pregunta: "tinas de la semana pasada"
-Respuesta: {"fecha_desde":"YYYY-MM-DD del lunes anterior","fecha_hasta":"YYYY-MM-DD del domingo anterior","familia":"tinas","servicio":"","proveedor":""}
+Respuesta: {"fecha_desde":"2026-05-01","fecha_hasta":"2026-05-01","familia":"masajes","servicio":"","proveedor":"","cliente":""}
 
 Pregunta: "ventas de masaje sueco en abril"
-Respuesta: {"fecha_desde":"2026-04-01","fecha_hasta":"2026-04-30","familia":"masajes","servicio":"sueco","proveedor":""}
+Respuesta: {"fecha_desde":"2026-04-01","fecha_hasta":"2026-04-30","familia":"masajes","servicio":"sueco","proveedor":"","cliente":""}
 
 Pregunta: "masajes de Paul en mayo 2026"
-Respuesta: {"fecha_desde":"2026-05-01","fecha_hasta":"2026-05-31","familia":"masajes","servicio":"","proveedor":"Paul"}
+Respuesta: {"fecha_desde":"2026-05-01","fecha_hasta":"2026-05-31","familia":"masajes","servicio":"","proveedor":"Paul","cliente":""}
 
-Pregunta: "qué servicios hizo Diana esta semana"
-Respuesta: {"fecha_desde":"YYYY-MM-DD lunes","fecha_hasta":"YYYY-MM-DD domingo","familia":"","servicio":"","proveedor":"Diana"}
+Pregunta: "cuántas ventas le hemos hecho al cliente +56958655810"
+Respuesta: {"fecha_desde":"","fecha_hasta":"","familia":"","servicio":"","proveedor":"","cliente":"+56958655810"}
+
+Pregunta: "historial del cliente ana.perez@gmail.com"
+Respuesta: {"fecha_desde":"","fecha_hasta":"","familia":"","servicio":"","proveedor":"","cliente":"ana.perez@gmail.com"}
+
+Pregunta: "qué compró Juan Pérez"
+Respuesta: {"fecha_desde":"","fecha_hasta":"","familia":"","servicio":"","proveedor":"","cliente":"Juan Pérez"}
+
+Pregunta: "ventas a 12345678-9 en 2025"
+Respuesta: {"fecha_desde":"2025-01-01","fecha_hasta":"2025-12-31","familia":"","servicio":"","proveedor":"","cliente":"12345678-9"}
 
 Pregunta: "qué clima hay hoy"
-Respuesta: {"fecha_desde":"","fecha_hasta":"","familia":"","servicio":"","proveedor":"","error":"solo puedo responder preguntas de ventas"}`, hoy, hoy)
+Respuesta: {"fecha_desde":"","fecha_hasta":"","familia":"","servicio":"","proveedor":"","cliente":"","error":"solo puedo responder preguntas de ventas"}`, hoy, hoy)
 
 	res, err := c.Generate(ctx, systemPrompt, userQuery, "google/gemini-3.1-flash-lite", 0.0, 200)
 	if err != nil {

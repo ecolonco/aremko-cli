@@ -78,7 +78,8 @@ func NLQuery(cfg *config.Config) http.HandlerFunc {
 			})
 			return
 		}
-		if parsed.FechaDesde == "" || parsed.FechaHasta == "" {
+		// Fechas son opcionales solo si se filtra por cliente; de lo contrario obligatorias.
+		if parsed.Cliente == "" && (parsed.FechaDesde == "" || parsed.FechaHasta == "") {
 			respondJSON(w, http.StatusOK, map[string]interface{}{
 				"success":     false,
 				"function":    "ventas_detalle",
@@ -89,7 +90,7 @@ func NLQuery(cfg *config.Config) http.HandlerFunc {
 		}
 
 		client := bookings.NewClient(cfg.BookingSystemURL)
-		result, err := client.GetVentasDetalle(parsed.FechaDesde, parsed.FechaHasta, parsed.Familia, parsed.Servicio, parsed.Proveedor)
+		result, err := client.GetVentasDetalle(parsed.FechaDesde, parsed.FechaHasta, parsed.Familia, parsed.Servicio, parsed.Proveedor, parsed.Cliente)
 		if err != nil {
 			respondJSON(w, http.StatusBadGateway, map[string]interface{}{
 				"success":     false,
