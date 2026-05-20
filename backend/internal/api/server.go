@@ -94,6 +94,9 @@ func (s *Server) setupRoutes() {
 		// Overview AI Analysis (cruza todas las áreas)
 		r.Post("/analytics/overview/analyze", handlers.AnalyzeOverview(s.config))
 
+		// Natural-language sales query (LLM parser + Django detalle endpoint)
+		r.Post("/analytics/nl-query", handlers.NLQuery(s.config))
+
 		// Stats endpoints (próximamente)
 		r.Get("/stats/overview", handlers.GetStatsOverview(s.config))
 	})

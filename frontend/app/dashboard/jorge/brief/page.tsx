@@ -77,6 +77,12 @@ export default function BriefPage() {
   const [generatingOverviewAnalysis, setGeneratingOverviewAnalysis] = useState(false);
   const [overviewAnalysisError, setOverviewAnalysisError] = useState<string | null>(null);
 
+  // Consulta NL de ventas (parser LLM + endpoint Django /bookings/detalle/)
+  const [nlQueryInput, setNlQueryInput] = useState('');
+  const [nlQueryRunning, setNlQueryRunning] = useState(false);
+  const [nlQueryResult, setNlQueryResult] = useState<any>(null);
+  const [nlQueryError, setNlQueryError] = useState<string | null>(null);
+
   // Cargar brief al montar
   useEffect(() => {
     fetchBrief();
@@ -176,6 +182,61 @@ export default function BriefPage() {
     } finally {
       setGeneratingReviewsAnalysis(false);
     }
+  };
+
+  const handleNLQuery = async () => {
+    const query = nlQueryInput.trim();
+    if (!query) return;
+    setNlQueryRunning(true);
+    setNlQueryError(null);
+    setNlQueryResult(null);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+      const response = await fetch(`${apiUrl}/api/v1/analytics/nl-query`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query }),
+        signal: controller.signal,
+      });
+      const data = await response.json();
+      if (data.success) {
+        setNlQueryResult(data);
+      } else {
+        setNlQueryError(data.error || `HTTP ${response.status}`);
+        if (data.parsed_args) {
+          setNlQueryResult({ ...data, success: false });
+        }
+      }
+    } catch (error: any) {
+      if (error?.name === 'AbortError') {
+        setNlQueryError('La consulta excedió 15 segundos y fue cancelada.');
+      } else {
+        setNlQueryError(error?.message || 'Error de red al consultar');
+      }
+    } finally {
+      clearTimeout(timeoutId);
+      setNlQueryRunning(false);
+    }
+  };
+
+  const exportNLResultCSV = () => {
+    const rows = nlQueryResult?.result?.rows;
+    if (!rows?.length) return;
+    const header = ['fecha', 'hora', 'cliente', 'rut', 'email', 'servicio', 'familia', 'personas', 'precio_unit', 'total', 'pago', 'estado'];
+    const escape = (v: any) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+    const csv = [
+      header.join(','),
+      ...rows.map((r: any) => [r.fecha, r.hora, r.cliente_nombre, r.cliente_rut, r.cliente_email, r.servicio_nombre, r.familia, r.cantidad_personas, r.precio_unitario, r.total, r.metodo_pago, r.estado].map(escape).join(',')),
+    ].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `ventas-${nlQueryResult.parsed_args.fecha_desde}_a_${nlQueryResult.parsed_args.fecha_hasta}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   const handleGenerateSalesAnalysis = async () => {
@@ -1589,6 +1650,112 @@ export default function BriefPage() {
 
         {/* VENTAS */}
         <TabsContent value="sales" className="space-y-4">
+          {/* Consulta en lenguaje natural */}
+          <Card className="bg-gradient-to-br from-indigo-50 to-purple-50 border-indigo-200">
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center">
+                <Sparkles className="h-5 w-5 mr-2 text-indigo-600" />
+                Consulta en lenguaje natural
+              </CardTitle>
+              <CardDescription>
+                Pregunta por ventas detalladas. Ej: <em>"ventas del 1 de mayo familia masajes"</em>, <em>"masaje sueco en abril"</em>, <em>"tinas la semana pasada"</em>.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={nlQueryInput}
+                  onChange={(e) => setNlQueryInput(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter' && !nlQueryRunning) handleNLQuery(); }}
+                  placeholder="Escribe tu pregunta sobre ventas…"
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  disabled={nlQueryRunning}
+                />
+                <Button
+                  onClick={handleNLQuery}
+                  disabled={nlQueryRunning || !nlQueryInput.trim()}
+                  className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700"
+                >
+                  {nlQueryRunning ? (
+                    <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Consultando…</>
+                  ) : 'Consultar'}
+                </Button>
+              </div>
+
+              {nlQueryError && (
+                <div className="bg-red-50 border border-red-200 rounded-md p-3 flex items-start gap-2">
+                  <AlertCircle className="h-4 w-4 text-red-600 mt-0.5 shrink-0" />
+                  <div className="text-sm text-red-700">{nlQueryError}</div>
+                </div>
+              )}
+
+              {nlQueryResult?.parsed_args && (
+                <div className="bg-white border border-indigo-200 rounded-md p-3 text-xs text-gray-600">
+                  <span className="font-semibold text-indigo-700">La IA entendió:</span>{' '}
+                  <code className="bg-indigo-50 px-1 rounded">{nlQueryResult.parsed_args.fecha_desde}</code>
+                  {' → '}
+                  <code className="bg-indigo-50 px-1 rounded">{nlQueryResult.parsed_args.fecha_hasta}</code>
+                  {nlQueryResult.parsed_args.familia && <> · familia <code className="bg-indigo-50 px-1 rounded">{nlQueryResult.parsed_args.familia}</code></>}
+                  {nlQueryResult.parsed_args.servicio && <> · servicio <code className="bg-indigo-50 px-1 rounded">{nlQueryResult.parsed_args.servicio}</code></>}
+                  {typeof nlQueryResult.parse_ms === 'number' && <span className="text-gray-400"> · {(nlQueryResult.parse_ms / 1000).toFixed(1)}s</span>}
+                </div>
+              )}
+
+              {nlQueryResult?.success && nlQueryResult.result && (
+                <div className="bg-white border border-gray-200 rounded-md overflow-hidden">
+                  <div className="px-3 py-2 bg-gray-50 border-b flex items-center justify-between text-sm">
+                    <div>
+                      <span className="font-semibold">{nlQueryResult.result.total_filas}</span> {nlQueryResult.result.total_filas === 1 ? 'fila' : 'filas'}
+                      <span className="mx-2 text-gray-400">·</span>
+                      Total: <span className="font-semibold text-emerald-700">${(nlQueryResult.result.total_revenue || 0).toLocaleString('es-CL')}</span>
+                      {nlQueryResult.result.truncated && <span className="ml-2 text-amber-600">(truncado a 500)</span>}
+                    </div>
+                    {nlQueryResult.result.rows?.length > 0 && (
+                      <Button size="sm" variant="outline" onClick={exportNLResultCSV}>
+                        <Download className="h-3 w-3 mr-1" />CSV
+                      </Button>
+                    )}
+                  </div>
+                  {nlQueryResult.result.rows?.length === 0 ? (
+                    <div className="p-6 text-center text-gray-500 text-sm">No hay ventas en ese rango.</div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-xs">
+                        <thead className="bg-gray-50 text-left">
+                          <tr>
+                            <th className="px-2 py-1.5 font-medium">Fecha</th>
+                            <th className="px-2 py-1.5 font-medium">Hora</th>
+                            <th className="px-2 py-1.5 font-medium">Cliente</th>
+                            <th className="px-2 py-1.5 font-medium">Servicio</th>
+                            <th className="px-2 py-1.5 font-medium text-right">Pers.</th>
+                            <th className="px-2 py-1.5 font-medium text-right">P. Unit.</th>
+                            <th className="px-2 py-1.5 font-medium text-right">Total</th>
+                            <th className="px-2 py-1.5 font-medium">Pago</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {nlQueryResult.result.rows.map((row: any, i: number) => (
+                            <tr key={`${row.reserva_id}-${row.servicio_id}-${i}`} className="border-t hover:bg-gray-50">
+                              <td className="px-2 py-1.5">{row.fecha}</td>
+                              <td className="px-2 py-1.5">{row.hora}</td>
+                              <td className="px-2 py-1.5">{row.cliente_nombre}</td>
+                              <td className="px-2 py-1.5">{row.servicio_nombre}</td>
+                              <td className="px-2 py-1.5 text-right">{row.cantidad_personas}</td>
+                              <td className="px-2 py-1.5 text-right">${row.precio_unitario.toLocaleString('es-CL')}</td>
+                              <td className="px-2 py-1.5 text-right font-medium">${row.total.toLocaleString('es-CL')}</td>
+                              <td className="px-2 py-1.5 text-gray-600">{row.metodo_pago}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
           {/* AI Analysis Card */}
           <Card className="bg-gradient-to-br from-emerald-50 to-teal-50 border-emerald-200">
             <CardHeader>

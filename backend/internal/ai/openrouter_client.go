@@ -663,6 +663,77 @@ Tu trabajo es que el dueño tome 5 decisiones correctas la próxima semana en lu
 	return c.Generate(ctx, systemPrompt, userPrompt, "google/gemini-3.1-flash-lite", 0.7, 1500)
 }
 
+// VentasDetalleQuery is the structured shape the LLM must return when parsing
+// a natural-language sales query. All dates are absolute YYYY-MM-DD.
+type VentasDetalleQuery struct {
+	FechaDesde string `json:"fecha_desde"`
+	FechaHasta string `json:"fecha_hasta"`
+	Familia    string `json:"familia,omitempty"`
+	Servicio   string `json:"servicio,omitempty"`
+	Error      string `json:"error,omitempty"`
+}
+
+// ParseVentasDetalleQuery uses the LLM in JSON-only mode to convert a user
+// question into a structured query for the /bookings/detalle/ endpoint.
+// hoy must be passed in YYYY-MM-DD so relative dates ("ayer", "este mes") resolve correctly.
+func (c *OpenRouterClient) ParseVentasDetalleQuery(ctx context.Context, userQuery, hoy string) (*VentasDetalleQuery, *LLMResult, error) {
+	systemPrompt := fmt.Sprintf(`Eres un parser que convierte preguntas en español sobre ventas de Aremko Spa
+en parámetros estructurados para una API. Hoy es %s.
+
+DEVUELVE SOLAMENTE UN JSON VÁLIDO con esta forma exacta:
+{
+  "fecha_desde": "YYYY-MM-DD",
+  "fecha_hasta": "YYYY-MM-DD",
+  "familia": "tinas" | "masajes" | "cabanas" | "otros" | "",
+  "servicio": "<texto parcial del nombre del servicio, o vacío>",
+  "error": "<solo si no puedes parsear la pregunta>"
+}
+
+REGLAS:
+- fecha_desde y fecha_hasta son OBLIGATORIOS. Si solo se menciona una fecha, usar la misma en ambas.
+- Convierte fechas relativas a absolutas usando hoy=%s. "ayer" = hoy-1d. "esta semana" = lunes a domingo de la semana actual. "este mes" = primer día del mes actual a hoy. "mayo" sin año = mayo del año actual.
+- familia debe ser uno de: tinas, masajes, cabanas, otros (en minúsculas, sin acentos). Si la pregunta dice "tinas" → "tinas"; "masajes" → "masajes"; "cabañas" o "cabanas" → "cabanas". Si no menciona familia, dejar "".
+- servicio es para buscar por nombre parcial (ej: "tui-na", "sueco", "descontracturante"). Solo llenar si el usuario nombra un servicio específico dentro de una familia. Si solo dice "masajes" sin más, NO llenar servicio.
+- Si el rango pedido supera 3 meses, llena "error": "rango máximo permitido es 3 meses".
+- Si la pregunta no se trata de ventas, llena "error": "solo puedo responder preguntas de ventas".
+- NO incluyas explicación. NO uses markdown. Solo el JSON.
+
+EJEMPLOS:
+Pregunta: "ventas del 1 de mayo de 2026 familia masajes"
+Respuesta: {"fecha_desde":"2026-05-01","fecha_hasta":"2026-05-01","familia":"masajes","servicio":""}
+
+Pregunta: "tinas de la semana pasada"
+Respuesta: {"fecha_desde":"YYYY-MM-DD del lunes anterior","fecha_hasta":"YYYY-MM-DD del domingo anterior","familia":"tinas","servicio":""}
+
+Pregunta: "ventas de masaje sueco en abril"
+Respuesta: {"fecha_desde":"2026-04-01","fecha_hasta":"2026-04-30","familia":"masajes","servicio":"sueco"}
+
+Pregunta: "qué clima hay hoy"
+Respuesta: {"fecha_desde":"","fecha_hasta":"","familia":"","servicio":"","error":"solo puedo responder preguntas de ventas"}`, hoy, hoy)
+
+	res, err := c.Generate(ctx, systemPrompt, userQuery, "google/gemini-3.1-flash-lite", 0.0, 200)
+	if err != nil {
+		return nil, res, err
+	}
+	if res.Error != "" {
+		return nil, res, fmt.Errorf("LLM error: %s", res.Error)
+	}
+
+	text := res.Text
+	// El modelo a veces envuelve JSON en ```json ... ```; lo descartamos.
+	if start := bytes.IndexByte([]byte(text), '{'); start >= 0 {
+		if end := bytes.LastIndexByte([]byte(text), '}'); end > start {
+			text = text[start : end+1]
+		}
+	}
+
+	var q VentasDetalleQuery
+	if err := json.Unmarshal([]byte(text), &q); err != nil {
+		return nil, res, fmt.Errorf("LLM devolvió JSON inválido: %v (raw: %s)", err, res.Text)
+	}
+	return &q, res, nil
+}
+
 // trimForAIPrompt reduce el tamaño del payload para que entre en el límite de input
 // tokens de la API key. Trunca textos largos y limita listas a las entradas más relevantes.
 func trimForAIPrompt(data map[string]interface{}) map[string]interface{} {

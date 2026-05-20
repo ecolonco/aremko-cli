@@ -3,6 +3,7 @@ package bookings
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"time"
 )
@@ -384,6 +385,74 @@ func (c *Client) GetWeeklyBreakdown(weeks int) (*WeeklyBreakdown, error) {
 	}
 
 	return &breakdown, nil
+}
+
+// VentasDetalleRow describes a single reservation row from /bookings/detalle/.
+// One reservation may appear in multiple rows if it has different services.
+type VentasDetalleRow struct {
+	ReservaID        int     `json:"reserva_id"`
+	Fecha            string  `json:"fecha"`
+	Hora             string  `json:"hora"`
+	ClienteID        int     `json:"cliente_id"`
+	ClienteNombre    string  `json:"cliente_nombre"`
+	ClienteRUT       string  `json:"cliente_rut"`
+	ClienteEmail     string  `json:"cliente_email"`
+	ServicioID       int     `json:"servicio_id"`
+	ServicioNombre   string  `json:"servicio_nombre"`
+	Familia          string  `json:"familia"`
+	CantidadPersonas int     `json:"cantidad_personas"`
+	PrecioUnitario   float64 `json:"precio_unitario"`
+	Total            float64 `json:"total"`
+	MetodoPago       string  `json:"metodo_pago"`
+	Estado           string  `json:"estado"`
+	Nota             string  `json:"nota"`
+}
+
+// VentasDetalleResult is the response shape from /bookings/detalle/. Returned
+// unwrapped (no APIResponse envelope) because the endpoint streams the body directly.
+type VentasDetalleResult struct {
+	FechaDesde   string             `json:"fecha_desde"`
+	FechaHasta   string             `json:"fecha_hasta"`
+	Familia      string             `json:"familia"`
+	Servicio     string             `json:"servicio"`
+	TotalFilas   int                `json:"total_filas"`
+	TotalRevenue float64            `json:"total_revenue"`
+	Truncated    bool               `json:"truncated"`
+	Rows         []VentasDetalleRow `json:"rows"`
+}
+
+// GetVentasDetalle fetches detailed booking rows for a date range, optionally
+// filtered by familia (tinas/masajes/cabanas/otros) and servicio (partial match).
+func (c *Client) GetVentasDetalle(fechaDesde, fechaHasta, familia, servicio string) (*VentasDetalleResult, error) {
+	url := fmt.Sprintf("%s/ventas/api/aremko-cli/bookings/detalle/?fecha_desde=%s&fecha_hasta=%s",
+		c.BaseURL, fechaDesde, fechaHasta)
+	if familia != "" {
+		url = fmt.Sprintf("%s&familia=%s", url, familia)
+	}
+	if servicio != "" {
+		url = fmt.Sprintf("%s&servicio=%s", url, servicio)
+	}
+
+	resp, err := c.HTTPClient.Get(url)
+	if err != nil {
+		return nil, fmt.Errorf("error fetching ventas detalle: %w", err)
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("error reading detalle body: %w", err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("detalle endpoint returned %d: %s", resp.StatusCode, string(body))
+	}
+
+	var result VentasDetalleResult
+	if err := json.Unmarshal(body, &result); err != nil {
+		return nil, fmt.Errorf("error parsing detalle response: %w", err)
+	}
+	return &result, nil
 }
 
 // GetFamilyStatsMTD fetches the month-to-date breakdown by family with comparative
