@@ -23,7 +23,7 @@ export default function DashboardShell({ userRole, userName, userFullName, child
   }, []);
 
   return (
-    <div className="flex h-screen bg-gray-100">
+    <div className="flex h-screen bg-gray-100 print:h-auto print:overflow-visible print:block">
       <div className="no-print contents">
         <Sidebar
           userRole={userRole}
@@ -51,7 +51,7 @@ export default function DashboardShell({ userRole, userName, userFullName, child
           <span className="ml-2 text-sm text-gray-500 truncate">aremko-cli</span>
         </div>
 
-        <main className="flex-1 overflow-y-auto">{children}</main>
+        <main className="flex-1 overflow-y-auto print:overflow-visible print:h-auto">{children}</main>
       </div>
     </div>
   );

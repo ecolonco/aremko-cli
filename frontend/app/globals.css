@@ -30,7 +30,11 @@ body {
     size: letter;
     margin: 0.5in;
   }
-  body {
+  /* Quitar restricciones de altura y overflow para que TODO el contenido fluya entre páginas */
+  html, body {
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
     background: white !important;
     color: black !important;
   }
