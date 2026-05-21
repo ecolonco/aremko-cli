@@ -97,6 +97,9 @@ func (s *Server) setupRoutes() {
 		// Natural-language sales query (LLM parser + Django detalle endpoint)
 		r.Post("/analytics/nl-query", handlers.NLQuery(s.config))
 
+		// System documentation (live markdown snapshot of this codebase)
+		r.Get("/system-doc/markdown", handlers.SystemDocMarkdown())
+
 		// Stats endpoints (próximamente)
 		r.Get("/stats/overview", handlers.GetStatsOverview(s.config))
 	})

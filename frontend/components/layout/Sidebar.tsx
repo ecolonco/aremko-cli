@@ -11,6 +11,7 @@ import {
   UsersIcon,
   ArrowRightOnRectangleIcon,
   XMarkIcon,
+  BookOpenIcon,
 } from '@heroicons/react/24/outline';
 import { UserRole } from '@/lib/types/user';
 import { signOut } from 'next-auth/react';
@@ -27,6 +28,7 @@ interface SidebarProps {
 const navigation = {
   jorge: [
     { name: 'Informes', href: '/dashboard/jorge/brief', icon: DocumentTextIcon },
+    { name: 'Aremko-CLI Sistema', href: '/dashboard/jorge/sistema', icon: BookOpenIcon },
     { name: 'Configuración', href: '/dashboard/jorge/settings', icon: CogIcon },
   ],
   deborah: [
