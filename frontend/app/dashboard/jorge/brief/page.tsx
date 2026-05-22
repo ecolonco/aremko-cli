@@ -674,8 +674,8 @@ export default function BriefPage() {
                     <p className="text-sm font-medium text-muted-foreground">Clics</p>
                     <p className="text-2xl font-bold">{formatNumber(data.meta_ads.summary.clicks)}</p>
                   </div>
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">CTR</p>
+                  <div title="CTR — tasa de clics: % de personas que hicieron clic sobre las que vieron el aviso">
+                    <p className="text-sm font-medium text-muted-foreground cursor-help">CTR <span className="text-xs text-gray-400">(tasa de clics)</span></p>
                     <p className="text-2xl font-bold">{data.meta_ads.summary.ctr.toFixed(2)}%</p>
                   </div>
                 </div>
@@ -1664,18 +1664,22 @@ export default function BriefPage() {
                         </CardHeader>
                         <CardContent>
                           <div className="text-2xl font-bold">{formatNumber(data.meta_ads.summary.clicks)}</div>
-                          <p className="text-xs text-muted-foreground">CPC {formatCurrency(data.meta_ads.summary.cpc)}</p>
+                          <p className="text-xs text-muted-foreground" title="CPC — costo por clic">
+                            CPC <span className="text-gray-400">(costo/clic)</span> {formatCurrency(data.meta_ads.summary.cpc)}
+                          </p>
                         </CardContent>
                       </Card>
                       <Card>
                         <CardHeader className="pb-2">
-                          <CardTitle className="text-sm font-medium text-muted-foreground">
-                            CTR
+                          <CardTitle className="text-sm font-medium text-muted-foreground cursor-help" title="CTR — tasa de clics: % de personas que hicieron clic sobre las que vieron el aviso">
+                            CTR <span className="text-xs text-gray-400">(tasa de clics)</span>
                           </CardTitle>
                         </CardHeader>
                         <CardContent>
                           <div className="text-2xl font-bold">{data.meta_ads.summary.ctr?.toFixed(2)}%</div>
-                          <p className="text-xs text-muted-foreground">CPM {formatCurrency(data.meta_ads.summary.cpm)}</p>
+                          <p className="text-xs text-muted-foreground" title="CPM — costo por mil impresiones">
+                            CPM <span className="text-gray-400">(costo/1000 vistas)</span> {formatCurrency(data.meta_ads.summary.cpm)}
+                          </p>
                         </CardContent>
                       </Card>
                     </div>
@@ -1746,8 +1750,8 @@ export default function BriefPage() {
                                 <th className="text-right py-3 px-2 font-medium">Inversión</th>
                                 <th className="text-right py-3 px-2 font-medium">Alcance</th>
                                 <th className="text-right py-3 px-2 font-medium">Clics</th>
-                                <th className="text-right py-3 px-2 font-medium">CTR</th>
-                                <th className="text-right py-3 px-2 font-medium">CPC</th>
+                                <th className="text-right py-3 px-2 font-medium cursor-help" title="CTR — tasa de clics: clics sobre impresiones">CTR</th>
+                                <th className="text-right py-3 px-2 font-medium cursor-help" title="CPC — costo por clic">CPC</th>
                               </tr>
                             </thead>
                             <tbody>
@@ -2793,7 +2797,7 @@ export default function BriefPage() {
                 Análisis con IA
               </CardTitle>
               <CardDescription>
-                Análisis inteligente de reputación online, NPS y dimensiones del servicio
+                Análisis inteligente de reputación online, NPS (lealtad del cliente) y dimensiones del servicio
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -2964,7 +2968,7 @@ export default function BriefPage() {
                         </div>
                         {data.reviews.surveys.nps.score !== null && (
                           <div className="p-4 border rounded-lg">
-                            <p className="text-sm text-muted-foreground mb-1">NPS Score</p>
+                            <p className="text-sm text-muted-foreground mb-1 cursor-help" title="NPS — Net Promoter Score: indicador de lealtad del cliente (promotores menos detractores, escala -100 a +100)">NPS <span className="text-xs text-gray-400">(lealtad cliente)</span></p>
                             <p className={`text-3xl font-bold ${data.reviews.surveys.nps.score >= 50 ? 'text-green-600' : data.reviews.surveys.nps.score >= 0 ? 'text-yellow-600' : 'text-red-600'}`}>
                               {data.reviews.surveys.nps.score}
                             </p>

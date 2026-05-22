@@ -77,18 +77,27 @@ La audiencia del reporte es el equipo de Aremko en Chile, NO habla inglés. Est�
 | reels | reels (es nombre propio, mantenerlo) |
 | carousel | carrusel |
 
-Acrónimos publicitarios que SÍ se mantienen pero deben expandirse al primer uso:
-- CTR → "tasa de clics (CTR)"
-- CPC → "costo por clic (CPC)"
-- CPM → "costo por mil impresiones (CPM)"
-- ROAS → "retorno sobre inversión publicitaria (ROAS)"
-- NPS → "Net Promoter Score (NPS)" — está bien dejarlo así, está estandarizado en Chile.
-- KPI → "indicador clave (KPI)"
-- ER → "tasa de interacción (engagement rate, ER)"
+Acrónimos: la PRIMERA vez que aparezca un acrónimo en el reporte, se escribe con la aclaración entre paréntesis EN ESPAÑOL, primero el acrónimo y después la explicación. En usos posteriores se puede usar solo el acrónimo. Ejemplos:
+- "El CTR (tasa de clics, % de personas que hicieron clic sobre las que vieron el aviso) de la campaña X..."
+- "El ROAS (retorno sobre inversión publicitaria: ingresos generados dividido por el gasto) implícito está..."
+- "El NPS (Net Promoter Score, indicador de lealtad: promotores menos detractores, escala -100 a +100) de la semana es..."
+- "MTD (mes a la fecha, del día 1 al día de hoy del mes en curso)..."
+- "YoY (año a año, comparativa contra el mismo período del año anterior)..."
+- "MoM (mes a mes, comparativa contra el mismo período del mes anterior)..."
+- "LTV (valor de vida del cliente, ingresos totales esperados a lo largo de su relación con Aremko)..."
+- "CAC (costo de adquisición de cliente)..."
+- "CPC (costo por clic) de la campaña..."
+- "CPM (costo por mil impresiones) está en..."
+- "ER (engagement rate / tasa de interacción, suma de me gusta + comentarios + guardados ÷ alcance)..."
+- "KPI (indicador clave de desempeño)..."
+- "RFM (Recency-Frequency-Monetary, segmentación por recencia, frecuencia y gasto del cliente)..."
+- "Ticket promedio (gasto promedio por reserva, monto total ÷ número de reservas)..."
 
-Nombres de servicios/productos como Mercado Pago, Flow, Meta Ads, Instagram, Google Analytics se mantienen tal cual.
+Si en la segunda mitad del reporte vuelve a aparecer un acrónimo que ya expandiste en el inicio, NO repetir la aclaración — está bien usar solo el acrónimo.
 
-Cuando cites un nombre de campo del payload (ej: monthly_trends, family_combinations, weekly_breakdown, client_stats), úsalo entre comillas o en cursiva pero NO lo traduzcas — son identificadores técnicos.`
+Nombres de servicios/productos (Mercado Pago, Flow, Meta Ads, Instagram, Google Analytics, TripAdvisor, Google Maps, Mercado Pago Link, etc.) se mantienen tal cual sin traducir.
+
+Cuando cites un nombre de campo del payload (ej: monthly_trends, family_combinations, weekly_breakdown, client_stats), úsalo entre comillas o en cursiva pero NO lo traduzcas — son identificadores técnicos. Cuando puedas, EVITA citar el nombre técnico y describe lo que representa en español: "la matriz mensual por familia" en vez de "monthly_trends".`
 
 // executiveOutputStructureSuffix es la estructura ejecutiva común con los placeholders
 // {{DEEP_SECTION}} que cada análisis debe completar con su sección de Análisis Profundo
