@@ -45,7 +45,25 @@ PROHIBIDO: "mejorar atención", "optimizar X", "evaluar Y", "potenciar Z", "trab
 Cada sección debe cruzar AL MENOS 2 datasets del payload. Si una afirmación se sostiene en un solo número, busca el segundo dato que la confirme o la matice. La densidad analítica es el valor agregado de este reporte vs leer las tablas a mano.
 
 ## R8 — TODO en español, sin anglicismos
-La audiencia del reporte es el equipo de Aremko en Chile, NO habla inglés. Está PROHIBIDO usar anglicismos cuando hay equivalente en español. Usa la siguiente tabla de traducciones obligatorias:
+La audiencia del reporte es el equipo de Aremko en Chile, NO habla inglés. Está PROHIBIDO usar anglicismos cuando hay equivalente en español.
+
+### Distinción importante: ACRÓNIMOS vs ANGLICISMOS
+
+**ACRÓNIMOS** (siglas técnicas estandarizadas): se MANTIENEN en el texto pero la PRIMERA vez que aparecen llevan aclaración entre paréntesis.
+- ✅ "El CTR (tasa de clics) está en 3.21%". Después: "el CTR sigue alto".
+- ✅ "Su NPS (Net Promoter Score) de 83 es excelente". Después: "el NPS no cambió".
+
+**ANGLICISMOS** (palabras inglesas que tienen equivalente español): se REEMPLAZAN. NO se mantienen ni con aclaración. Está mal duplicar.
+- ❌ "El bundling (venta combinada) es alto" — MAL. El modelo deja la palabra inglesa.
+- ✅ "La venta combinada es alta" — BIEN. Sin el inglés.
+- ❌ "El share (participación) de Tinas" — MAL.
+- ✅ "La participación de Tinas" — BIEN.
+- ❌ "Incentivar el aumento de ticket (upsell)" — MAL.
+- ✅ "Incentivar la venta complementaria" o "el aumento de ticket" — BIEN.
+
+Regla mental: si la palabra está en la tabla de traducciones de abajo, NO la escribas en inglés. Solo escribe el equivalente en español.
+
+Usa la siguiente tabla de traducciones obligatorias:
 
 | En vez de | Usar |
 |---|---|
@@ -58,6 +76,12 @@ La audiencia del reporte es el equipo de Aremko en Chile, NO habla inglés. Est�
 | trigger (verbo o sustantivo) | disparador, automatización, gatillar |
 | brief (sustantivo) | informe, resumen ejecutivo |
 | tip | nota, sugerencia, consejo |
+| outlier | valor atípico, punto fuera de rango |
+| bounce rate | tasa de rebote |
+| copy (texto publicitario) | texto, mensaje, redacción |
+| lookalike | audiencia similar, similares |
+| upsell, upselling | venta complementaria, aumento de ticket |
+| cross-sell, cross selling | venta cruzada |
 | slope | pendiente |
 | trend | tendencia |
 | churn | tasa de fuga, abandono |
@@ -104,22 +128,35 @@ Nombres de servicios/productos (Mercado Pago, Flow, Meta Ads, Instagram, Google 
 Cuando cites un nombre de campo del payload (ej: monthly_trends, family_combinations, weekly_breakdown, client_stats), úsalo entre comillas o en cursiva pero NO lo traduzcas — son identificadores técnicos. Cuando puedas, EVITA citar el nombre técnico y describe lo que representa en español: "la matriz mensual por familia" en vez de "monthly_trends".
 
 ## R8.bis — VERIFICACIÓN DE CIERRE (antes de entregar el reporte)
-ANTES de cerrar el reporte, REVISA el texto completo de arriba abajo y verifica:
+ANTES de cerrar el reporte, REVISA el texto completo en ORDEN cronológico (Veredicto → 3 Cifras → Análisis Profundo → Hallazgos Cruzados → Estado por Área → Movida → Apuestas → Pausar → Riesgos → Bonus) y verifica:
 
-1. ¿La PRIMERA mención de cada uno de estos acrónimos lleva la aclaración entre paréntesis?
-   - CTR, CPC, CPM, ROAS, NPS, MTD, YoY, MoM, LTV, CAC, KPI, ER, SEO, RFM, AOV, CR, CPA
-   - Si NO, agrega la aclaración en esa primera aparición.
+**Paso 1 — Acrónimos en la PRIMERA mención del reporte:**
+Para cada acrónimo de esta lista, busca su PRIMERA aparición en cualquier parte del reporte (puede ser Veredicto, Cifras, o cualquier sección anterior):
+- CTR, CPC, CPM, ROAS, NPS, MTD, YoY, MoM, LTV, CAC, KPI, ER, SEO, RFM, AOV, CR, CPA, CAC, GA4
 
-2. ¿Aparece algún anglicismo PROHIBIDO sin traducir?
-   - revenue, bundling, cross-sell, upsell, share, spend, trigger, slope, trend, churn,
-     engagement, reach, insights, feedback, target, benchmark, performance, growth,
-     funnel, lead, awareness, top, posts, likes, comments, saves, brief, tip
-   - Si SÍ, reemplázalo por su equivalente en español de la tabla R8.
+Si su primera aparición NO tiene aclaración entre paréntesis, AGRÉGALA ahí. NO importa si después aparece expandido — la primera vez es la que cuenta. Atención especial al **Veredicto** y al **Estado por Área**: son secciones donde estos acrónimos típicamente aparecen primero y se olvidan de expandir.
 
-3. ¿Hay nombres técnicos de campos (monthly_trends, family_combinations, etc.) cuando podrías haber descrito el concepto en español?
-   - Si los hay, reemplázalos por una frase descriptiva en español.
+Ejemplo correcto si NPS aparece primero en el Veredicto:
+- Veredicto: "...con un NPS (Net Promoter Score) de 83..." (CON aclaración)
+- 3 Cifras: "Cifra: NPS = 83" (sin aclaración, ya está expandido arriba)
 
-Si encuentras algo en estas verificaciones, AJUSTA el texto antes de entregar. Esto NO es opcional — es un control de calidad que distingue un reporte profesional de un borrador con anglicismos sueltos.`
+**Paso 2 — Anglicismos PROHIBIDOS (deben REEMPLAZARSE, no anotarse):**
+Busca cualquier ocurrencia de estas palabras en inglés:
+- revenue, bundling, cross-sell, upsell, share, spend, trigger, slope, trend, churn,
+  engagement, reach, insights, feedback, target, benchmark, performance, growth,
+  funnel, lead, awareness, top, posts, likes, comments, saves, brief, tip,
+  outlier, bounce rate, copy, lookalike
+
+Si las encuentras, REEMPLAZA la palabra inglesa por su equivalente español de la tabla R8. NO basta con poner el equivalente en paréntesis — debes ELIMINAR la palabra inglesa.
+
+Mal: "El bundling (venta combinada) tuvo crecimiento" → MAL, sigue presente "bundling".
+Bien: "La venta combinada tuvo crecimiento" → BIEN, sin inglés.
+
+**Paso 3 — Nombres técnicos de campos:**
+¿Hay nombres como monthly_trends, family_combinations, weekly_breakdown, client_stats en el texto?
+Reemplázalos por frases descriptivas en español: "la matriz de combinaciones por reserva", "el desglose semanal", etc.
+
+Si encuentras incumplimientos en estos 3 pasos, AJUSTA el texto antes de entregar. Esto NO es opcional. Un reporte con un solo anglicismo no traducido o un acrónimo sin expandir al primer uso es defectuoso y debe corregirse antes de presentarlo.`
 
 // executiveOutputStructureSuffix es la estructura ejecutiva común con los placeholders
 // {{DEEP_SECTION}} que cada análisis debe completar con su sección de Análisis Profundo
