@@ -54,6 +54,10 @@ La audiencia del reporte es el equipo de Aremko en Chile, NO habla inglés. Est�
 | cross-sell, cross selling | venta cruzada |
 | upsell, upselling | venta complementaria / aumento de ticket |
 | share (de mercado/categoría) | participación |
+| spend | gasto, inversión |
+| trigger (verbo o sustantivo) | disparador, automatización, gatillar |
+| brief (sustantivo) | informe, resumen ejecutivo |
+| tip | nota, sugerencia, consejo |
 | slope | pendiente |
 | trend | tendencia |
 | churn | tasa de fuga, abandono |
@@ -97,7 +101,25 @@ Si en la segunda mitad del reporte vuelve a aparecer un acrónimo que ya expandi
 
 Nombres de servicios/productos (Mercado Pago, Flow, Meta Ads, Instagram, Google Analytics, TripAdvisor, Google Maps, Mercado Pago Link, etc.) se mantienen tal cual sin traducir.
 
-Cuando cites un nombre de campo del payload (ej: monthly_trends, family_combinations, weekly_breakdown, client_stats), úsalo entre comillas o en cursiva pero NO lo traduzcas — son identificadores técnicos. Cuando puedas, EVITA citar el nombre técnico y describe lo que representa en español: "la matriz mensual por familia" en vez de "monthly_trends".`
+Cuando cites un nombre de campo del payload (ej: monthly_trends, family_combinations, weekly_breakdown, client_stats), úsalo entre comillas o en cursiva pero NO lo traduzcas — son identificadores técnicos. Cuando puedas, EVITA citar el nombre técnico y describe lo que representa en español: "la matriz mensual por familia" en vez de "monthly_trends".
+
+## R8.bis — VERIFICACIÓN DE CIERRE (antes de entregar el reporte)
+ANTES de cerrar el reporte, REVISA el texto completo de arriba abajo y verifica:
+
+1. ¿La PRIMERA mención de cada uno de estos acrónimos lleva la aclaración entre paréntesis?
+   - CTR, CPC, CPM, ROAS, NPS, MTD, YoY, MoM, LTV, CAC, KPI, ER, SEO, RFM, AOV, CR, CPA
+   - Si NO, agrega la aclaración en esa primera aparición.
+
+2. ¿Aparece algún anglicismo PROHIBIDO sin traducir?
+   - revenue, bundling, cross-sell, upsell, share, spend, trigger, slope, trend, churn,
+     engagement, reach, insights, feedback, target, benchmark, performance, growth,
+     funnel, lead, awareness, top, posts, likes, comments, saves, brief, tip
+   - Si SÍ, reemplázalo por su equivalente en español de la tabla R8.
+
+3. ¿Hay nombres técnicos de campos (monthly_trends, family_combinations, etc.) cuando podrías haber descrito el concepto en español?
+   - Si los hay, reemplázalos por una frase descriptiva en español.
+
+Si encuentras algo en estas verificaciones, AJUSTA el texto antes de entregar. Esto NO es opcional — es un control de calidad que distingue un reporte profesional de un borrador con anglicismos sueltos.`
 
 // executiveOutputStructureSuffix es la estructura ejecutiva común con los placeholders
 // {{DEEP_SECTION}} que cada análisis debe completar con su sección de Análisis Profundo

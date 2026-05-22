@@ -479,7 +479,7 @@ export default function BriefPage() {
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
           <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-4" />
-          <p className="text-muted-foreground">Cargando Brief Semanal...</p>
+          <p className="text-muted-foreground">Cargando Informe Semanal...</p>
         </div>
       </div>
     );
@@ -496,7 +496,7 @@ export default function BriefPage() {
       {/* Header */}
       <div className="flex items-center justify-between space-y-2">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight">📊 Brief Semanal</h2>
+          <h2 className="text-3xl font-bold tracking-tight">📊 Informe Semanal</h2>
           <p className="text-muted-foreground">
             Análisis completo del {data.date_start} al {data.date_stop}
           </p>
@@ -3354,7 +3354,7 @@ export default function BriefPage() {
             <CardHeader>
               <CardTitle className="text-lg flex items-center">
                 <Sparkles className="h-5 w-5 mr-2 text-purple-600" />
-                Análisis Integral del Brief
+                Análisis Integral del Informe
               </CardTitle>
               <CardDescription>
                 Síntesis que cruza Web, Redes Sociales, Meta Ads, Ventas, Opiniones y Competencia.
@@ -3394,7 +3394,7 @@ export default function BriefPage() {
                 </div>
               )}
               <p className="text-xs text-muted-foreground mt-3">
-                Tip: este análisis tarda ~10-20 segundos porque recopila datos en vivo de 6 áreas
+                Nota: este análisis tarda ~10-20 segundos porque recopila datos en vivo de 6 áreas
                 (GA4, Instagram, Meta Ads, Reservas, Reviews y Competidores) antes de pedirle a la IA
                 que los integre.
               </p>
