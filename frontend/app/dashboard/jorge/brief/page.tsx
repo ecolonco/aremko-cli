@@ -275,7 +275,14 @@ export default function BriefPage() {
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
       const res = await fetch(`${apiUrl}/api/v1/bookings/monthly?months=${months}`);
-      const json = await res.json();
+      const text = await res.text();
+      let json: any;
+      try {
+        json = JSON.parse(text);
+      } catch {
+        const preview = text.length > 120 ? text.slice(0, 120) + '…' : text;
+        throw new Error(`HTTP ${res.status} — respuesta no es JSON. Inicio: "${preview}". Reintenta en unos segundos.`);
+      }
       if (!json.success) throw new Error(json.error || `HTTP ${res.status}`);
       setMonthlyTrends(json.data);
     } catch (e: any) {
@@ -295,7 +302,15 @@ export default function BriefPage() {
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
       const res = await fetch(`${apiUrl}/api/v1/bookings/family-combinations?months=24`);
-      const json = await res.json();
+      const text = await res.text();
+      let json: any;
+      try {
+        json = JSON.parse(text);
+      } catch {
+        // Respuesta no-JSON (cold start de Render, 502 de Cloudflare, deploy en curso)
+        const preview = text.length > 120 ? text.slice(0, 120) + '…' : text;
+        throw new Error(`HTTP ${res.status} — respuesta no es JSON. Inicio: "${preview}". Reintenta en unos segundos.`);
+      }
       if (!json.success) throw new Error(json.error || `HTTP ${res.status}`);
       setFamilyCombos(json.data);
     } catch (e: any) {
