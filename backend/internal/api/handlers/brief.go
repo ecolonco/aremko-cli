@@ -1097,6 +1097,18 @@ func AnalyzeSales(cfg *config.Config) http.HandlerFunc {
 		if dailyBookings, derr := bookingClient.GetDailyBookings(dateStart, dateStop); derr == nil {
 			salesData["daily"] = dailyBookings
 		}
+		// Mes a la Fecha (revenue corregido × cantidad_personas)
+		if mtdStats, merr := bookingClient.GetFamilyStatsMTD(""); merr == nil {
+			salesData["by_family_mtd"] = mtdStats
+		}
+		// Matriz 12 semanas (clientes nuevos vs recurrentes)
+		if weeklyBreakdown, werr := bookingClient.GetWeeklyBreakdown(12); werr == nil {
+			salesData["weekly_breakdown"] = weeklyBreakdown
+		}
+		// Tendencias mensuales 24 meses por familia (estacionalidad + slope)
+		if monthlyTrends, merr := bookingClient.GetMonthlyByFamily(24); merr == nil {
+			salesData["monthly_trends"] = monthlyTrends
+		}
 
 		aiClient := newAIClientWithOperatingContext(cfg)
 		ctx := context.Background()

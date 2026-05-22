@@ -478,6 +478,23 @@ ESTRUCTURA DEL ANÁLISIS:
 - Identificar la familia más rentable de la semana
 - Riesgos por concentración (¿demasiado dependientes de una sola familia?)
 
+## 📈 Tendencia de Largo Plazo (24 meses)
+Usa el campo monthly_trends del payload (matriz mes × familia con revenue y cantidad)
+y monthly_trends.summary_by_family (avg_monthly_revenue, best_month, worst_month,
+trend_slope_pct = % comparando promedio último cuarto vs primer cuarto).
+- ¿Cómo se ve la pendiente de cada familia a 24 meses? ¿Crecimiento, plateau o caída?
+- ¿Hay estacionalidad clara? (compara mismos meses año tras año en monthly_trends.data)
+- ¿La semana actual está sobre o bajo el promedio mensual histórico de su familia?
+- ¿El mes en curso (by_family_mtd) está alineado con el slope de largo plazo?
+- Si el slope de Otros es muy negativo, recordar que son ajustes/descuentos legítimos (no error).
+
+## 🔁 Adquisición vs Retención (12 semanas)
+Usa el campo weekly_breakdown.summary.trend (avg de primeras 4 vs últimas 4 semanas
+de clientes nuevos y recurrentes).
+- ¿La retención (recurrentes) está creciendo o cayendo?
+- ¿La adquisición (nuevos) compensa la fuga de recurrentes?
+- Combinado con client_stats, identificar si el growth viene de mejor retención o más prospección.
+
 ## 💳 Comportamiento de Pago
 - Tendencias por método de pago (Mercado Pago, Flow, Gift Card, etc.)
 - Cambios relevantes vs. períodos anteriores
