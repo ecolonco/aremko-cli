@@ -495,6 +495,24 @@ de clientes nuevos y recurrentes).
 - ¿La adquisición (nuevos) compensa la fuga de recurrentes?
 - Combinado con client_stats, identificar si el growth viene de mejor retención o más prospección.
 
+## 🔗 Bundling y Cross-sell entre Familias
+Usa el campo family_combinations: matriz mensual con cuántas RESERVAS cayeron en cada
+combinación de familias (solo_tinas, solo_masajes, solo_cabanas, tinas_masajes,
+cabanas_tinas, cabanas_masajes, cabanas_tinas_masajes, otros). Cada celda tiene
+count_reservas y revenue. summary.share_by_combination da el % del período y
+summary.trend_slope_pct_by_combination da el crecimiento por combinación.
+- ¿Qué combinaciones generan más revenue por reserva (ticket promedio implícito)?
+  Por ejemplo, cabanas_tinas_masajes es el pack completo — ¿está creciendo en share o
+  estancado?
+- ¿Las reservas "solo_tinas" (volumen alto, ticket bajo) están migrando a combos más
+  ricos como tinas_masajes? Comparar slope_pct de solo_tinas vs tinas_masajes.
+- ¿Las campañas de bundling están moviendo el mix? Si cabanas_tinas_masajes crece
+  más rápido que solo_cabanas, hay efecto bundling.
+- Si una combinación cae sostenidamente (slope negativo) mientras otras crecen,
+  probablemente hay canibalización por una campaña — señalarlo.
+- Recomendar dónde concentrar próxima campaña: combos con bajo share_pct pero alto
+  ticket implícito (revenue/reservas) son oportunidad de crecer.
+
 ## 💳 Comportamiento de Pago
 - Tendencias por método de pago (Mercado Pago, Flow, Gift Card, etc.)
 - Cambios relevantes vs. períodos anteriores

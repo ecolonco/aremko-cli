@@ -103,6 +103,9 @@ func (s *Server) setupRoutes() {
 		// Monthly trends by family (6/12/18/24 months)
 		r.Get("/bookings/monthly", handlers.MonthlyByFamily(s.config))
 
+		// Family combinations per reservation (bundling effectiveness)
+		r.Get("/bookings/family-combinations", handlers.FamilyCombinations(s.config))
+
 		// Stats endpoints (próximamente)
 		r.Get("/stats/overview", handlers.GetStatsOverview(s.config))
 	})

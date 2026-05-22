@@ -86,6 +86,12 @@ export default function BriefPage() {
   const [loadingMonthly, setLoadingMonthly] = useState(false);
   const [monthlyError, setMonthlyError] = useState<string | null>(null);
 
+  // Combinaciones de familias por reserva (bundling effectiveness)
+  const [familyCombos, setFamilyCombos] = useState<any>(null);
+  const [combosMetric, setCombosMetric] = useState<'count_reservas' | 'revenue'>('count_reservas');
+  const [loadingCombos, setLoadingCombos] = useState(false);
+  const [combosError, setCombosError] = useState<string | null>(null);
+
   // Consulta NL de ventas (parser LLM + endpoint Django /bookings/detalle/)
   const [nlQueryInput, setNlQueryInput] = useState('');
   const [nlQueryRunning, setNlQueryRunning] = useState(false);
@@ -282,6 +288,26 @@ export default function BriefPage() {
   useEffect(() => {
     fetchMonthlyTrends(monthlyRange);
   }, [monthlyRange, fetchMonthlyTrends]);
+
+  const fetchFamilyCombos = useCallback(async () => {
+    setLoadingCombos(true);
+    setCombosError(null);
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+      const res = await fetch(`${apiUrl}/api/v1/bookings/family-combinations?months=24`);
+      const json = await res.json();
+      if (!json.success) throw new Error(json.error || `HTTP ${res.status}`);
+      setFamilyCombos(json.data);
+    } catch (e: any) {
+      setCombosError(e?.message || 'Error cargando combinaciones');
+    } finally {
+      setLoadingCombos(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchFamilyCombos();
+  }, [fetchFamilyCombos]);
 
   const handleNLQuery = async () => {
     const query = nlQueryInput.trim();
@@ -2571,6 +2597,142 @@ export default function BriefPage() {
                   </div>
                 </>
               )}
+            </CardContent>
+          </Card>
+
+          {/* Combinaciones de Familias por Reserva (bundling effectiveness) */}
+          <Card>
+            <CardHeader>
+              <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3">
+                <div>
+                  <CardTitle className="text-lg">Combinaciones de Familias por Reserva</CardTitle>
+                  <CardDescription>
+                    Últimos 24 meses. Cada celda cuenta reservas (o revenue) según qué familias incluyó cada reserva. Útil para medir efectividad de campañas de bundling.
+                  </CardDescription>
+                </div>
+                <div className="inline-flex rounded-md border border-gray-200 overflow-hidden text-xs no-print h-fit">
+                  <button
+                    onClick={() => setCombosMetric('count_reservas')}
+                    className={`px-3 py-1.5 ${combosMetric === 'count_reservas' ? 'bg-indigo-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-50'}`}
+                  >
+                    Reservas
+                  </button>
+                  <button
+                    onClick={() => setCombosMetric('revenue')}
+                    className={`px-3 py-1.5 ${combosMetric === 'revenue' ? 'bg-indigo-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-50'}`}
+                  >
+                    Revenue
+                  </button>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {loadingCombos && (
+                <div className="flex items-center gap-2 py-8 justify-center text-gray-500 text-sm">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Cargando combinaciones…
+                </div>
+              )}
+              {combosError && !loadingCombos && (
+                <div className="bg-red-50 border border-red-200 rounded-md p-3 text-sm text-red-700">
+                  Error: {combosError}
+                </div>
+              )}
+              {familyCombos && !loadingCombos && (() => {
+                const cols = [
+                  { key: 'solo_tinas',            label: 'Solo Tinas',         color: 'text-sky-700' },
+                  { key: 'solo_masajes',          label: 'Solo Masajes',       color: 'text-purple-700' },
+                  { key: 'solo_cabanas',          label: 'Solo Cabañas',       color: 'text-emerald-700' },
+                  { key: 'tinas_masajes',         label: 'Tinas + Masajes',    color: 'text-blue-700' },
+                  { key: 'cabanas_tinas',         label: 'Cabañas + Tinas',    color: 'text-teal-700' },
+                  { key: 'cabanas_tinas_masajes', label: 'Cab + Tin + Mas',    color: 'text-amber-700' },
+                ];
+                const fmt = (v: number) =>
+                  combosMetric === 'revenue'
+                    ? `$${(v || 0).toLocaleString('es-CL', { maximumFractionDigits: 0 })}`
+                    : String(v || 0);
+                const summary = familyCombos.summary || {};
+                const share = summary.share_by_combination || {};
+                const slope = summary.trend_slope_pct_by_combination || {};
+                return (
+                  <>
+                    {/* Trend banner por combinación */}
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2 mb-4 text-xs">
+                      {cols.map((c) => {
+                        const sh = share[c.key];
+                        const sl = slope[c.key];
+                        const trendColor = sl == null ? 'bg-gray-50 text-gray-700 border-gray-200' :
+                          sl > 20 ? 'bg-emerald-50 text-emerald-800 border-emerald-200' :
+                          sl < -20 ? 'bg-red-50 text-red-800 border-red-200' :
+                          'bg-yellow-50 text-yellow-800 border-yellow-200';
+                        return (
+                          <div key={c.key} className={`border rounded-md p-2 ${trendColor}`}>
+                            <div className="font-semibold truncate">{c.label}</div>
+                            <div className="text-lg font-bold">
+                              {sl == null ? '—' : `${sl > 0 ? '+' : ''}${sl.toFixed(0)}%`}
+                            </div>
+                            {sh && (
+                              <div className="opacity-70">
+                                {sh.pct_reservas?.toFixed(1)}% res · {sh.pct_revenue?.toFixed(1)}% rev
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {/* Tabla scrollable */}
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-xs">
+                        <thead className="bg-gray-50">
+                          <tr>
+                            <th className="px-2 py-1.5 text-left font-medium sticky left-0 bg-gray-50">Mes</th>
+                            {cols.map((c) => (
+                              <th key={c.key} className={`px-2 py-1.5 text-right font-medium ${c.color}`}>
+                                {c.label}
+                              </th>
+                            ))}
+                            <th className="px-2 py-1.5 text-right font-medium border-l border-gray-200">Total</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {familyCombos.data?.map((d: any) => (
+                            <tr key={d.month} className="border-t hover:bg-gray-50">
+                              <td className="px-2 py-1.5 font-medium sticky left-0 bg-white">{d.month_label}</td>
+                              {cols.map((c) => (
+                                <td key={c.key} className="px-2 py-1.5 text-right">
+                                  {fmt(d.combinations?.[c.key]?.[combosMetric])}
+                                </td>
+                              ))}
+                              <td className="px-2 py-1.5 text-right font-semibold border-l border-gray-200">
+                                {fmt(d.total?.[combosMetric])}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                        <tfoot className="bg-gray-50 border-t-2">
+                          <tr>
+                            <td className="px-2 py-1.5 font-semibold sticky left-0 bg-gray-50">Período total</td>
+                            {cols.map((c) => {
+                              const sh = share[c.key];
+                              return (
+                                <td key={c.key} className="px-2 py-1.5 text-right text-gray-600">
+                                  {sh ? `${combosMetric === 'count_reservas' ? sh.pct_reservas?.toFixed(1) : sh.pct_revenue?.toFixed(1)}%` : '—'}
+                                </td>
+                              );
+                            })}
+                            <td className="px-2 py-1.5 text-right font-bold border-l border-gray-200">
+                              {combosMetric === 'count_reservas'
+                                ? `${summary.total_reservas?.toLocaleString('es-CL') || 0} res`
+                                : `$${(summary.total_revenue || 0).toLocaleString('es-CL', { maximumFractionDigits: 0 })}`}
+                            </td>
+                          </tr>
+                        </tfoot>
+                      </table>
+                    </div>
+                  </>
+                );
+              })()}
             </CardContent>
           </Card>
         </TabsContent>

@@ -1109,6 +1109,10 @@ func AnalyzeSales(cfg *config.Config) http.HandlerFunc {
 		if monthlyTrends, merr := bookingClient.GetMonthlyByFamily(24); merr == nil {
 			salesData["monthly_trends"] = monthlyTrends
 		}
+		// Combinaciones de familias por reserva (bundling effectiveness, últimos 24 meses)
+		if combos, cerr := bookingClient.GetFamilyCombinations(24); cerr == nil {
+			salesData["family_combinations"] = combos
+		}
 
 		aiClient := newAIClientWithOperatingContext(cfg)
 		ctx := context.Background()

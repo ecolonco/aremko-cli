@@ -444,6 +444,74 @@ func (c *Client) GetMonthlyByFamily(months int) (*MonthlyByFamilyResult, error) 
 	return &result, nil
 }
 
+// CombinationStats is the count + revenue for one combination in one month.
+type CombinationStats struct {
+	CountReservas int     `json:"count_reservas"`
+	Revenue       float64 `json:"revenue"`
+}
+
+// FamilyCombinationMonth represents one month of the family-combination matrix.
+type FamilyCombinationMonth struct {
+	Month        string                      `json:"month"`
+	MonthLabel   string                      `json:"month_label"`
+	Combinations map[string]CombinationStats `json:"combinations"`
+	Total        CombinationStats            `json:"total"`
+}
+
+// FamilyCombinationShare describes one combination's share of the total.
+type FamilyCombinationShare struct {
+	PctReservas float64 `json:"pct_reservas"`
+	PctRevenue  float64 `json:"pct_revenue"`
+}
+
+// FamilyCombinationsSummary is the period summary returned by Django.
+type FamilyCombinationsSummary struct {
+	TotalReservas              int                                `json:"total_reservas"`
+	TotalRevenue               float64                            `json:"total_revenue"`
+	ShareByCombination         map[string]FamilyCombinationShare  `json:"share_by_combination"`
+	TrendSlopePctByCombination map[string]*float64                `json:"trend_slope_pct_by_combination"`
+}
+
+// FamilyCombinationsResult is the response from /bookings/family-combinations/.
+type FamilyCombinationsResult struct {
+	Months     int                       `json:"months"`
+	FirstMonth string                    `json:"first_month"`
+	LastMonth  string                    `json:"last_month"`
+	Order      string                    `json:"order"`
+	Data       []FamilyCombinationMonth  `json:"data"`
+	Summary    FamilyCombinationsSummary `json:"summary"`
+}
+
+// GetFamilyCombinations fetches the matrix of reservation count + revenue grouped
+// by family combination (solo_tinas, tinas_masajes, cabanas_tinas_masajes, etc.).
+// Used to measure bundling effectiveness over time.
+func (c *Client) GetFamilyCombinations(months int) (*FamilyCombinationsResult, error) {
+	if months <= 0 {
+		months = 24
+	}
+	endpoint := fmt.Sprintf("%s/ventas/api/aremko-cli/bookings/family-combinations/?months=%d", c.BaseURL, months)
+
+	resp, err := c.HTTPClient.Get(endpoint)
+	if err != nil {
+		return nil, fmt.Errorf("error fetching family-combinations: %w", err)
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("error reading family-combinations body: %w", err)
+	}
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("family-combinations returned %d: %s", resp.StatusCode, string(body))
+	}
+
+	var result FamilyCombinationsResult
+	if err := json.Unmarshal(body, &result); err != nil {
+		return nil, fmt.Errorf("error parsing family-combinations: %w", err)
+	}
+	return &result, nil
+}
+
 // VentasDetalleRow describes a single reservation row from /bookings/detalle/.
 // One reservation may appear in multiple rows if it has different services.
 type VentasDetalleRow struct {
