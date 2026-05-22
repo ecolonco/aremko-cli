@@ -89,6 +89,7 @@ export default function BriefPage() {
   // Combinaciones de familias por reserva (bundling effectiveness)
   const [familyCombos, setFamilyCombos] = useState<any>(null);
   const [combosMetric, setCombosMetric] = useState<'count_reservas' | 'revenue'>('count_reservas');
+  const [combosFormat, setCombosFormat] = useState<'absolute' | 'percent'>('absolute');
   const [loadingCombos, setLoadingCombos] = useState(false);
   const [combosError, setCombosError] = useState<string | null>(null);
 
@@ -2625,19 +2626,37 @@ export default function BriefPage() {
                     Últimos 24 meses. Cada celda cuenta reservas (o revenue) según qué familias incluyó cada reserva. Útil para medir efectividad de campañas de bundling.
                   </CardDescription>
                 </div>
-                <div className="inline-flex rounded-md border border-gray-200 overflow-hidden text-xs no-print h-fit">
-                  <button
-                    onClick={() => setCombosMetric('count_reservas')}
-                    className={`px-3 py-1.5 ${combosMetric === 'count_reservas' ? 'bg-indigo-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-50'}`}
-                  >
-                    Reservas
-                  </button>
-                  <button
-                    onClick={() => setCombosMetric('revenue')}
-                    className={`px-3 py-1.5 ${combosMetric === 'revenue' ? 'bg-indigo-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-50'}`}
-                  >
-                    Revenue
-                  </button>
+                <div className="flex flex-wrap items-center gap-2 no-print h-fit">
+                  <div className="inline-flex rounded-md border border-gray-200 overflow-hidden text-xs">
+                    <button
+                      onClick={() => setCombosMetric('count_reservas')}
+                      className={`px-3 py-1.5 ${combosMetric === 'count_reservas' ? 'bg-indigo-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-50'}`}
+                    >
+                      Reservas
+                    </button>
+                    <button
+                      onClick={() => setCombosMetric('revenue')}
+                      className={`px-3 py-1.5 ${combosMetric === 'revenue' ? 'bg-indigo-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-50'}`}
+                    >
+                      Revenue
+                    </button>
+                  </div>
+                  <div className="inline-flex rounded-md border border-gray-200 overflow-hidden text-xs">
+                    <button
+                      onClick={() => setCombosFormat('absolute')}
+                      className={`px-3 py-1.5 ${combosFormat === 'absolute' ? 'bg-gray-900 text-white' : 'bg-white text-gray-700 hover:bg-gray-50'}`}
+                      title="Mostrar valor absoluto"
+                    >
+                      # Absoluto
+                    </button>
+                    <button
+                      onClick={() => setCombosFormat('percent')}
+                      className={`px-3 py-1.5 ${combosFormat === 'percent' ? 'bg-gray-900 text-white' : 'bg-white text-gray-700 hover:bg-gray-50'}`}
+                      title="Mostrar % del total del mes (sin decimales)"
+                    >
+                      % del mes
+                    </button>
+                  </div>
                 </div>
               </div>
             </CardHeader>
@@ -2662,10 +2681,15 @@ export default function BriefPage() {
                   { key: 'cabanas_tinas',         label: 'Cabañas + Tinas',    color: 'text-teal-700' },
                   { key: 'cabanas_tinas_masajes', label: 'Cab + Tin + Mas',    color: 'text-amber-700' },
                 ];
-                const fmt = (v: number) =>
-                  combosMetric === 'revenue'
+                const fmt = (v: number, rowTotal?: number) => {
+                  if (combosFormat === 'percent') {
+                    if (!rowTotal || rowTotal === 0) return '—';
+                    return `${Math.round(((v || 0) / rowTotal) * 100)}%`;
+                  }
+                  return combosMetric === 'revenue'
                     ? `$${(v || 0).toLocaleString('es-CL', { maximumFractionDigits: 0 })}`
                     : String(v || 0);
+                };
                 const summary = familyCombos.summary || {};
                 const share = summary.share_by_combination || {};
                 const slope = summary.trend_slope_pct_by_combination || {};
@@ -2711,19 +2735,26 @@ export default function BriefPage() {
                           </tr>
                         </thead>
                         <tbody>
-                          {familyCombos.data?.map((d: any) => (
-                            <tr key={d.month} className="border-t hover:bg-gray-50">
-                              <td className="px-2 py-1.5 font-medium sticky left-0 bg-white">{d.month_label}</td>
-                              {cols.map((c) => (
-                                <td key={c.key} className="px-2 py-1.5 text-right">
-                                  {fmt(d.combinations?.[c.key]?.[combosMetric])}
+                          {familyCombos.data?.map((d: any) => {
+                            const rowTotal = d.total?.[combosMetric] || 0;
+                            return (
+                              <tr key={d.month} className="border-t hover:bg-gray-50">
+                                <td className="px-2 py-1.5 font-medium sticky left-0 bg-white">{d.month_label}</td>
+                                {cols.map((c) => (
+                                  <td key={c.key} className="px-2 py-1.5 text-right">
+                                    {fmt(d.combinations?.[c.key]?.[combosMetric], rowTotal)}
+                                  </td>
+                                ))}
+                                <td className="px-2 py-1.5 text-right font-semibold border-l border-gray-200">
+                                  {combosFormat === 'percent'
+                                    ? '100%'
+                                    : (combosMetric === 'revenue'
+                                        ? `$${rowTotal.toLocaleString('es-CL', { maximumFractionDigits: 0 })}`
+                                        : String(rowTotal))}
                                 </td>
-                              ))}
-                              <td className="px-2 py-1.5 text-right font-semibold border-l border-gray-200">
-                                {fmt(d.total?.[combosMetric])}
-                              </td>
-                            </tr>
-                          ))}
+                              </tr>
+                            );
+                          })}
                         </tbody>
                         <tfoot className="bg-gray-50 border-t-2">
                           <tr>
