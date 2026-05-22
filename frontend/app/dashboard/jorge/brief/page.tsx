@@ -1180,7 +1180,7 @@ export default function BriefPage() {
                 <Image className="h-5 w-5 mr-2 text-pink-600" />
                 Instagram Orgánico
               </CardTitle>
-              <CardDescription>Alcance y engagement orgánico</CardDescription>
+              <CardDescription>Alcance e interacción orgánica</CardDescription>
             </CardHeader>
             <CardContent>
               {data?.instagram_organic?.status === 'real_data' ? (
@@ -1287,7 +1287,7 @@ export default function BriefPage() {
                         <Card>
                           <CardHeader className="pb-2">
                             <CardTitle className="text-sm font-medium text-muted-foreground">
-                              Posts
+                              Publicaciones
                             </CardTitle>
                           </CardHeader>
                           <CardContent>
@@ -1462,12 +1462,12 @@ export default function BriefPage() {
                       </Card>
                     )}
 
-                  {/* Top Posts Grid */}
+                  {/* Mejores publicaciones */}
                   {data.instagram_organic.top_posts && data.instagram_organic.top_posts.length > 0 && (
                     <Card>
                       <CardHeader>
-                        <CardTitle className="text-lg">Top Posts</CardTitle>
-                        <CardDescription>Posts con mejor engagement</CardDescription>
+                        <CardTitle className="text-lg">Mejores Publicaciones</CardTitle>
+                        <CardDescription>Publicaciones con mejor interacción</CardDescription>
                       </CardHeader>
                       <CardContent>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -1491,13 +1491,13 @@ export default function BriefPage() {
                                 <div className="grid grid-cols-3 gap-2 text-xs">
                                   <div className="text-center">
                                     <div className="font-semibold">{post.like_count?.toLocaleString() || '0'}</div>
-                                    <div className="text-muted-foreground">Likes</div>
+                                    <div className="text-muted-foreground">Me gusta</div>
                                   </div>
                                   <div className="text-center">
                                     <div className="font-semibold">
                                       {post.comments_count?.toLocaleString() || '0'}
                                     </div>
-                                    <div className="text-muted-foreground">Coments</div>
+                                    <div className="text-muted-foreground">Comentarios</div>
                                   </div>
                                   <div className="text-center">
                                     <div className="font-semibold">{post.saved_count?.toLocaleString() || '0'}</div>
@@ -1509,7 +1509,7 @@ export default function BriefPage() {
                                     <div className="text-sm font-semibold text-pink-600">
                                       {(post.engagement_rate * 100).toFixed(2)}%
                                     </div>
-                                    <div className="text-xs text-muted-foreground">Engagement</div>
+                                    <div className="text-xs text-muted-foreground">Interacción</div>
                                   </div>
                                 )}
                               </CardContent>
@@ -2308,7 +2308,7 @@ export default function BriefPage() {
                     Ventas por Familia — Mes a la Fecha
                   </CardTitle>
                   <CardDescription>
-                    Del {currentLabel} vs. mismos días del mes y año anterior. Revenue total real
+                    Del {currentLabel} vs. mismos días del mes y año anterior. Ingresos totales reales
                     (precio × cantidad de personas), no precio unitario.
                   </CardDescription>
                 </CardHeader>
@@ -2471,7 +2471,7 @@ export default function BriefPage() {
                 <div>
                   <CardTitle className="text-lg">Evolución por Familia — Largo Plazo</CardTitle>
                   <CardDescription>
-                    Revenue y cantidad de servicios por mes. Útil para ver estacionalidad y pendiente de crecimiento.
+                    Ingresos y cantidad de servicios por mes. Útil para ver estacionalidad y pendiente de crecimiento.
                   </CardDescription>
                 </div>
                 <div className="flex flex-wrap items-center gap-2 no-print">
@@ -2491,7 +2491,7 @@ export default function BriefPage() {
                       onClick={() => setMonthlyMetric('revenue')}
                       className={`px-3 py-1.5 ${monthlyMetric === 'revenue' ? 'bg-emerald-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-50'}`}
                     >
-                      Revenue
+                      Ingresos
                     </button>
                     <button
                       onClick={() => setMonthlyMetric('count')}
@@ -2616,14 +2616,14 @@ export default function BriefPage() {
             </CardContent>
           </Card>
 
-          {/* Combinaciones de Familias por Reserva (bundling effectiveness) */}
+          {/* Combinaciones de Familias por Reserva (efectividad de venta combinada) */}
           <Card>
             <CardHeader>
               <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3">
                 <div>
                   <CardTitle className="text-lg">Combinaciones de Familias por Reserva</CardTitle>
                   <CardDescription>
-                    Últimos 24 meses. Cada celda cuenta reservas (o revenue) según qué familias incluyó cada reserva. Útil para medir efectividad de campañas de bundling.
+                    Últimos 24 meses. Cada celda cuenta reservas (o ingresos) según qué familias incluyó cada reserva. Útil para medir efectividad de campañas de venta combinada.
                   </CardDescription>
                 </div>
                 <div className="flex flex-wrap items-center gap-2 no-print h-fit">
@@ -2638,7 +2638,7 @@ export default function BriefPage() {
                       onClick={() => setCombosMetric('revenue')}
                       className={`px-3 py-1.5 ${combosMetric === 'revenue' ? 'bg-indigo-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-50'}`}
                     >
-                      Revenue
+                      Ingresos
                     </button>
                   </div>
                   <div className="inline-flex rounded-md border border-gray-200 overflow-hidden text-xs">

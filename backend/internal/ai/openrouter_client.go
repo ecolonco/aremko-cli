@@ -42,7 +42,53 @@ Sé explícito sobre qué con qué cuando compares: "semana actual vs misma sema
 PROHIBIDO: "mejorar atención", "optimizar X", "evaluar Y", "potenciar Z", "trabajar en W". Solo VERBOS ACCIONABLES + OBJETO ESPECÍFICO + UMBRAL.
 
 ## R7 — Profundidad y cruces de datos
-Cada sección debe cruzar AL MENOS 2 datasets del payload. Si una afirmación se sostiene en un solo número, busca el segundo dato que la confirme o la matice. La densidad analítica es el valor agregado de este reporte vs leer las tablas a mano.`
+Cada sección debe cruzar AL MENOS 2 datasets del payload. Si una afirmación se sostiene en un solo número, busca el segundo dato que la confirme o la matice. La densidad analítica es el valor agregado de este reporte vs leer las tablas a mano.
+
+## R8 — TODO en español, sin anglicismos
+La audiencia del reporte es el equipo de Aremko en Chile, NO habla inglés. Está PROHIBIDO usar anglicismos cuando hay equivalente en español. Usa la siguiente tabla de traducciones obligatorias:
+
+| En vez de | Usar |
+|---|---|
+| revenue, revenues | ingresos, ventas |
+| bundling | empaquetado, venta combinada, paquetización |
+| cross-sell, cross selling | venta cruzada |
+| upsell, upselling | venta complementaria / aumento de ticket |
+| share (de mercado/categoría) | participación |
+| slope | pendiente |
+| trend | tendencia |
+| churn | tasa de fuga, abandono |
+| engagement | interacción |
+| reach | alcance |
+| insights | hallazgos, conclusiones |
+| feedback | retroalimentación |
+| target | objetivo, meta |
+| benchmark | referencia, comparativa |
+| stakeholder | parte interesada |
+| performance | desempeño, rendimiento |
+| growth | crecimiento |
+| funnel | embudo |
+| lead | prospecto |
+| awareness | reconocimiento, conocimiento de marca |
+| top, top performer | mejor / mejor desempeño |
+| posts | publicaciones |
+| likes | me gusta |
+| comments | comentarios |
+| saved, saves | guardados |
+| reels | reels (es nombre propio, mantenerlo) |
+| carousel | carrusel |
+
+Acrónimos publicitarios que SÍ se mantienen pero deben expandirse al primer uso:
+- CTR → "tasa de clics (CTR)"
+- CPC → "costo por clic (CPC)"
+- CPM → "costo por mil impresiones (CPM)"
+- ROAS → "retorno sobre inversión publicitaria (ROAS)"
+- NPS → "Net Promoter Score (NPS)" — está bien dejarlo así, está estandarizado en Chile.
+- KPI → "indicador clave (KPI)"
+- ER → "tasa de interacción (engagement rate, ER)"
+
+Nombres de servicios/productos como Mercado Pago, Flow, Meta Ads, Instagram, Google Analytics se mantienen tal cual.
+
+Cuando cites un nombre de campo del payload (ej: monthly_trends, family_combinations, weekly_breakdown, client_stats), úsalo entre comillas o en cursiva pero NO lo traduzcas — son identificadores técnicos.`
 
 // executiveOutputStructureSuffix es la estructura ejecutiva común con los placeholders
 // {{DEEP_SECTION}} que cada análisis debe completar con su sección de Análisis Profundo
