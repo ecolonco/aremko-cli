@@ -388,6 +388,62 @@ func (c *Client) GetWeeklyBreakdown(weeks int) (*WeeklyBreakdown, error) {
 	return &breakdown, nil
 }
 
+// MonthlyFamilyData is one row (one month) of the monthly-by-family matrix.
+type MonthlyFamilyData struct {
+	Month       string                     `json:"month"`
+	MonthLabel  string                     `json:"month_label"`
+	Families    map[string]FamilyBreakdown `json:"families"`
+	Total       FamilyBreakdown            `json:"total"`
+}
+
+// MonthlyFamilySummary describes aggregated stats per family for the period.
+type MonthlyFamilySummary struct {
+	TotalCount        int                    `json:"total_count"`
+	TotalRevenue      float64                `json:"total_revenue"`
+	AvgMonthlyRevenue float64                `json:"avg_monthly_revenue"`
+	BestMonth         map[string]interface{} `json:"best_month"`
+	WorstMonth        map[string]interface{} `json:"worst_month"`
+	TrendSlopePct     *float64               `json:"trend_slope_pct"`
+}
+
+// MonthlyByFamilyResult is the response from /bookings/monthly-by-family/.
+type MonthlyByFamilyResult struct {
+	Months          int                              `json:"months"`
+	FirstMonth      string                           `json:"first_month"`
+	LastMonth       string                           `json:"last_month"`
+	Data            []MonthlyFamilyData              `json:"data"`
+	SummaryByFamily map[string]MonthlyFamilySummary  `json:"summary_by_family"`
+}
+
+// GetMonthlyByFamily fetches the monthly revenue + count matrix by family for the
+// last N months (6, 12, 18 or 24 are the supported values from the UI; backend allows up to 36).
+func (c *Client) GetMonthlyByFamily(months int) (*MonthlyByFamilyResult, error) {
+	if months <= 0 {
+		months = 24
+	}
+	endpoint := fmt.Sprintf("%s/ventas/api/aremko-cli/bookings/monthly-by-family/?months=%d", c.BaseURL, months)
+
+	resp, err := c.HTTPClient.Get(endpoint)
+	if err != nil {
+		return nil, fmt.Errorf("error fetching monthly-by-family: %w", err)
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("error reading monthly-by-family body: %w", err)
+	}
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("monthly-by-family returned %d: %s", resp.StatusCode, string(body))
+	}
+
+	var result MonthlyByFamilyResult
+	if err := json.Unmarshal(body, &result); err != nil {
+		return nil, fmt.Errorf("error parsing monthly-by-family: %w", err)
+	}
+	return &result, nil
+}
+
 // VentasDetalleRow describes a single reservation row from /bookings/detalle/.
 // One reservation may appear in multiple rows if it has different services.
 type VentasDetalleRow struct {

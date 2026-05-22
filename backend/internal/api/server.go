@@ -100,6 +100,9 @@ func (s *Server) setupRoutes() {
 		// System documentation (live markdown snapshot of this codebase)
 		r.Get("/system-doc/markdown", handlers.SystemDocMarkdown())
 
+		// Monthly trends by family (6/12/18/24 months)
+		r.Get("/bookings/monthly", handlers.MonthlyByFamily(s.config))
+
 		// Stats endpoints (próximamente)
 		r.Get("/stats/overview", handlers.GetStatsOverview(s.config))
 	})

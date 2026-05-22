@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -77,6 +78,13 @@ export default function BriefPage() {
   const [overviewAnalysisAI, setOverviewAnalysisAI] = useState<any>(null);
   const [generatingOverviewAnalysis, setGeneratingOverviewAnalysis] = useState(false);
   const [overviewAnalysisError, setOverviewAnalysisError] = useState<string | null>(null);
+
+  // Tendencias mensuales por familia (6/12/18/24 meses)
+  const [monthlyTrends, setMonthlyTrends] = useState<any>(null);
+  const [monthlyRange, setMonthlyRange] = useState<number>(24);
+  const [monthlyMetric, setMonthlyMetric] = useState<'revenue' | 'count'>('revenue');
+  const [loadingMonthly, setLoadingMonthly] = useState(false);
+  const [monthlyError, setMonthlyError] = useState<string | null>(null);
 
   // Consulta NL de ventas (parser LLM + endpoint Django /bookings/detalle/)
   const [nlQueryInput, setNlQueryInput] = useState('');
@@ -254,6 +262,26 @@ export default function BriefPage() {
       setGeneratingReviewsAnalysis(false);
     }
   };
+
+  const fetchMonthlyTrends = useCallback(async (months: number) => {
+    setLoadingMonthly(true);
+    setMonthlyError(null);
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+      const res = await fetch(`${apiUrl}/api/v1/bookings/monthly?months=${months}`);
+      const json = await res.json();
+      if (!json.success) throw new Error(json.error || `HTTP ${res.status}`);
+      setMonthlyTrends(json.data);
+    } catch (e: any) {
+      setMonthlyError(e?.message || 'Error cargando tendencias');
+    } finally {
+      setLoadingMonthly(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchMonthlyTrends(monthlyRange);
+  }, [monthlyRange, fetchMonthlyTrends]);
 
   const handleNLQuery = async () => {
     const query = nlQueryInput.trim();
@@ -2393,6 +2421,158 @@ export default function BriefPage() {
               </CardContent>
             </Card>
           )}
+
+          {/* Tendencias mensuales largo plazo (6/12/18/24 meses) */}
+          <Card>
+            <CardHeader>
+              <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3">
+                <div>
+                  <CardTitle className="text-lg">Evolución por Familia — Largo Plazo</CardTitle>
+                  <CardDescription>
+                    Revenue y cantidad de servicios por mes. Útil para ver estacionalidad y pendiente de crecimiento.
+                  </CardDescription>
+                </div>
+                <div className="flex flex-wrap items-center gap-2 no-print">
+                  <div className="inline-flex rounded-md border border-gray-200 overflow-hidden text-xs">
+                    {[6, 12, 18, 24].map((m) => (
+                      <button
+                        key={m}
+                        onClick={() => setMonthlyRange(m)}
+                        className={`px-3 py-1.5 ${monthlyRange === m ? 'bg-gray-900 text-white' : 'bg-white text-gray-700 hover:bg-gray-50'}`}
+                      >
+                        {m}m
+                      </button>
+                    ))}
+                  </div>
+                  <div className="inline-flex rounded-md border border-gray-200 overflow-hidden text-xs">
+                    <button
+                      onClick={() => setMonthlyMetric('revenue')}
+                      className={`px-3 py-1.5 ${monthlyMetric === 'revenue' ? 'bg-emerald-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-50'}`}
+                    >
+                      Revenue
+                    </button>
+                    <button
+                      onClick={() => setMonthlyMetric('count')}
+                      className={`px-3 py-1.5 ${monthlyMetric === 'count' ? 'bg-emerald-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-50'}`}
+                    >
+                      Cantidad
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {loadingMonthly && (
+                <div className="flex items-center gap-2 py-8 justify-center text-gray-500 text-sm">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Cargando tendencias…
+                </div>
+              )}
+              {monthlyError && !loadingMonthly && (
+                <div className="bg-red-50 border border-red-200 rounded-md p-3 text-sm text-red-700">
+                  Error: {monthlyError}
+                </div>
+              )}
+              {monthlyTrends && !loadingMonthly && (
+                <>
+                  {/* Trend banner */}
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+                    {(['tinas', 'masajes', 'cabanas', 'otros'] as const).map((fam) => {
+                      const s = monthlyTrends.summary_by_family?.[fam];
+                      if (!s) return null;
+                      const trend = s.trend_slope_pct;
+                      const color = trend == null ? 'bg-gray-50 text-gray-700' : trend > 5 ? 'bg-emerald-50 text-emerald-800 border-emerald-200' : trend < -5 ? 'bg-red-50 text-red-800 border-red-200' : 'bg-yellow-50 text-yellow-800 border-yellow-200';
+                      return (
+                        <div key={fam} className={`border rounded-md p-3 ${color}`}>
+                          <div className="text-xs uppercase font-semibold opacity-70">{fam}</div>
+                          <div className="text-lg font-bold">
+                            {trend == null ? '—' : `${trend > 0 ? '+' : ''}${trend.toFixed(1)}%`}
+                          </div>
+                          <div className="text-xs opacity-70">
+                            promedio ${(s.avg_monthly_revenue || 0).toLocaleString('es-CL', { maximumFractionDigits: 0 })}/mes
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Chart */}
+                  <div className="w-full" style={{ height: 320 }}>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart
+                        data={monthlyTrends.data?.map((d: any) => ({
+                          month: d.month_label,
+                          Tinas: d.families?.tinas?.[monthlyMetric] ?? 0,
+                          Masajes: d.families?.masajes?.[monthlyMetric] ?? 0,
+                          Cabañas: d.families?.cabanas?.[monthlyMetric] ?? 0,
+                          Otros: d.families?.otros?.[monthlyMetric] ?? 0,
+                        }))}
+                        margin={{ top: 10, right: 20, left: 0, bottom: 0 }}
+                      >
+                        <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                        <XAxis dataKey="month" tick={{ fontSize: 11 }} interval="preserveStartEnd" />
+                        <YAxis
+                          tick={{ fontSize: 11 }}
+                          tickFormatter={(v) =>
+                            monthlyMetric === 'revenue'
+                              ? `$${(v / 1_000_000).toFixed(1)}M`
+                              : String(v)
+                          }
+                          width={70}
+                        />
+                        <Tooltip
+                          formatter={(v: any) =>
+                            monthlyMetric === 'revenue'
+                              ? `$${Number(v).toLocaleString('es-CL', { maximumFractionDigits: 0 })}`
+                              : `${v} servicios`
+                          }
+                        />
+                        <Legend wrapperStyle={{ fontSize: 12 }} />
+                        <Line type="monotone" dataKey="Tinas" stroke="#0ea5e9" strokeWidth={2} dot={{ r: 3 }} />
+                        <Line type="monotone" dataKey="Masajes" stroke="#a855f7" strokeWidth={2} dot={{ r: 3 }} />
+                        <Line type="monotone" dataKey="Cabañas" stroke="#10b981" strokeWidth={2} dot={{ r: 3 }} />
+                        <Line type="monotone" dataKey="Otros" stroke="#6b7280" strokeWidth={2} dot={{ r: 3 }} strokeDasharray="4 2" />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+
+                  {/* Table */}
+                  <div className="overflow-x-auto mt-4">
+                    <table className="w-full text-xs">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="px-2 py-1.5 text-left font-medium sticky left-0 bg-gray-50">Mes</th>
+                          <th className="px-2 py-1.5 text-right font-medium text-sky-700">Tinas</th>
+                          <th className="px-2 py-1.5 text-right font-medium text-purple-700">Masajes</th>
+                          <th className="px-2 py-1.5 text-right font-medium text-emerald-700">Cabañas</th>
+                          <th className="px-2 py-1.5 text-right font-medium text-gray-700">Otros</th>
+                          <th className="px-2 py-1.5 text-right font-medium border-l border-gray-200">Total</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {monthlyTrends.data?.map((d: any) => {
+                          const fmt = (v: number) =>
+                            monthlyMetric === 'revenue'
+                              ? `$${(v || 0).toLocaleString('es-CL', { maximumFractionDigits: 0 })}`
+                              : String(v || 0);
+                          return (
+                            <tr key={d.month} className="border-t hover:bg-gray-50">
+                              <td className="px-2 py-1.5 font-medium sticky left-0 bg-white">{d.month_label}</td>
+                              <td className="px-2 py-1.5 text-right">{fmt(d.families?.tinas?.[monthlyMetric])}</td>
+                              <td className="px-2 py-1.5 text-right">{fmt(d.families?.masajes?.[monthlyMetric])}</td>
+                              <td className="px-2 py-1.5 text-right">{fmt(d.families?.cabanas?.[monthlyMetric])}</td>
+                              <td className="px-2 py-1.5 text-right text-gray-500">{fmt(d.families?.otros?.[monthlyMetric])}</td>
+                              <td className="px-2 py-1.5 text-right font-semibold border-l border-gray-200">{fmt(d.total?.[monthlyMetric])}</td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
+              )}
+            </CardContent>
+          </Card>
         </TabsContent>
 
         {/* OPINIONES */}
