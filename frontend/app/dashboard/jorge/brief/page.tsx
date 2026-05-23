@@ -135,52 +135,8 @@ export default function BriefPage() {
         ignoreElements: (e: Element) => (e as HTMLElement).classList?.contains?.('no-print') ?? false,
       });
 
-      // Detectar puntos seguros de corte. Camina TODO el árbol del tab y
-      // recolecta el borde inferior de cada elemento visible que NO sea una
-      // tabla (cortar entre filas de tabla suele descuadrar el borde).
-      // Los elementos a respetar como bloque (no-break-inside): table, tr,
-      // .recharts-wrapper, svg. Sus bordes finales se agregan, pero sus
-      // bordes intermedios se omiten.
-      const containerRect = el.getBoundingClientRect();
-      const seen = new Set<number>();
-      const safeBreaks: number[] = [];
-      const addBreak = (yCanvas: number) => {
-        const rounded = Math.round(yCanvas);
-        if (rounded <= 0 || rounded > canvas.height) return;
-        // De-duplicar puntos cercanos (dentro de 6 px para evitar ruido)
-        for (const s of seen) {
-          if (Math.abs(s - rounded) < 6) return;
-        }
-        seen.add(rounded);
-        safeBreaks.push(rounded);
-      };
-      const NO_BREAK_SELECTORS = ['table', 'tbody', 'thead', 'tr', 'svg', '.recharts-wrapper', '.recharts-surface'];
-      const isInsideNoBreak = (node: HTMLElement): boolean => {
-        return NO_BREAK_SELECTORS.some((sel) => node.closest(sel) !== null);
-      };
-      const walk = (node: HTMLElement) => {
-        if (node.classList?.contains?.('no-print')) return;
-        if (node.offsetParent === null && getComputedStyle(node).position !== 'fixed') return;
-        const rect = node.getBoundingClientRect();
-        if (rect.height < 10) return; // saltar elementos minúsculos
-        // No agregar como break point a elementos DENTRO de tabla/svg, salvo que sea el cierre
-        // del bloque mismo (ej: la tabla termina, eso sí es break point seguro)
-        const isBlockEnd = NO_BREAK_SELECTORS.some((sel) => node.matches(sel));
-        if (!isInsideNoBreak(node) || isBlockEnd) {
-          const bottomYCanvas = (rect.bottom - containerRect.top) * scale;
-          addBreak(bottomYCanvas);
-        }
-        // Descender en los hijos solo si NO estamos dentro de un bloque indivisible
-        if (!isInsideNoBreak(node)) {
-          Array.from(node.children).forEach((child) => {
-            if (child instanceof HTMLElement) walk(child);
-          });
-        }
-      };
-      walk(el);
-      addBreak(canvas.height);
-      safeBreaks.sort((a, b) => a - b);
-
+      // Dimensiones del PDF (calculadas antes del walker para poder saber si una card
+      // entra entera en una página).
       const pdf = new JsPDFCtor({ unit: 'in', format: 'letter', orientation: 'portrait' });
       const pageWidth = pdf.internal.pageSize.getWidth();
       const pageHeight = pdf.internal.pageSize.getHeight();
@@ -189,6 +145,69 @@ export default function BriefPage() {
       const usableHeightInches = pageHeight - margin * 2;
       const pxPerInch = canvas.width / imgWidthInches;
       const usableHeightPx = usableHeightInches * pxPerInch;
+
+      // Detectar puntos seguros de corte. Reglas:
+      // 1. Cada CARD entera (shadcn Card root) es un bloque atómico: solo agregamos
+      //    el borde INFERIOR de la card como break point y NO descendemos adentro.
+      //    Esto evita romper entre header y body, o entre header y tabla.
+      // 2. EXCEPCIÓN: si la card es MÁS alta que una página completa (típico de
+      //    la card del análisis IA con texto markdown largo), descendemos para
+      //    encontrar break points internos en párrafos, items de lista, etc.
+      // 3. Tablas y SVG/recharts: igual atómicos, no descender.
+      const containerRect = el.getBoundingClientRect();
+      const seen = new Set<number>();
+      const safeBreaks: number[] = [];
+      const addBreak = (yCanvas: number) => {
+        const rounded = Math.round(yCanvas);
+        if (rounded <= 0 || rounded > canvas.height) return;
+        for (const s of seen) {
+          if (Math.abs(s - rounded) < 6) return;
+        }
+        seen.add(rounded);
+        safeBreaks.push(rounded);
+      };
+      const isShadcnCard = (node: HTMLElement): boolean => {
+        // Detección por la clase específica del componente Card de shadcn:
+        // "rounded-lg border bg-white text-gray-900 shadow-sm".
+        return node.classList.contains('rounded-lg') &&
+               node.classList.contains('border') &&
+               node.classList.contains('shadow-sm');
+      };
+      const isAtomicBlock = (node: HTMLElement): boolean => {
+        if (isShadcnCard(node)) return true;
+        const tag = node.tagName;
+        if (tag === 'TABLE' || tag === 'THEAD' || tag === 'TBODY' || tag === 'TR' || tag === 'SVG') return true;
+        if (node.classList.contains('recharts-wrapper') || node.classList.contains('recharts-surface')) return true;
+        return false;
+      };
+      const walk = (node: HTMLElement) => {
+        if (node.classList?.contains?.('no-print')) return;
+        if (node.offsetParent === null && getComputedStyle(node).position !== 'fixed') return;
+        const rect = node.getBoundingClientRect();
+        if (rect.height < 10) return;
+        const bottomYCanvas = (rect.bottom - containerRect.top) * scale;
+        const heightCanvasPx = rect.height * scale;
+
+        if (isAtomicBlock(node)) {
+          // Bloque atómico: agregar solo el borde inferior.
+          addBreak(bottomYCanvas);
+          // Solo descender si el bloque es más alto que una página (no entra entero).
+          if (heightCanvasPx > usableHeightPx * 0.95) {
+            Array.from(node.children).forEach((child) => {
+              if (child instanceof HTMLElement) walk(child);
+            });
+          }
+          return;
+        }
+
+        addBreak(bottomYCanvas);
+        Array.from(node.children).forEach((child) => {
+          if (child instanceof HTMLElement) walk(child);
+        });
+      };
+      walk(el);
+      addBreak(canvas.height);
+      safeBreaks.sort((a, b) => a - b);
 
       // Pagina cortando en el corte seguro más cercano antes del límite ideal de la página.
       // Si una sola card supera la altura de página, hace un corte forzado.
