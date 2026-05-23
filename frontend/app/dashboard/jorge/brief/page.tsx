@@ -127,32 +127,76 @@ export default function BriefPage() {
         return;
       }
 
+      const scale = 2;
       const canvas = await html2canvas(el, {
-        scale: 2,
+        scale,
         useCORS: true,
         backgroundColor: '#ffffff',
         ignoreElements: (e: Element) => (e as HTMLElement).classList?.contains?.('no-print') ?? false,
       });
 
-      const imgData = canvas.toDataURL('image/jpeg', 0.95);
+      // Detectar puntos seguros de corte = bordes inferiores de cada card directa.
+      // Así el salto de página cae en el espacio entre cards y nunca a mitad de tabla.
+      const containerRect = el.getBoundingClientRect();
+      const safeBreaks: number[] = [0];
+      Array.from(el.children).forEach((child) => {
+        if (!(child instanceof HTMLElement)) return;
+        if (child.classList?.contains?.('no-print')) return;
+        if (child.offsetParent === null && getComputedStyle(child).position !== 'fixed') return;
+        const childRect = child.getBoundingClientRect();
+        const bottomYCanvas = (childRect.bottom - containerRect.top) * scale;
+        if (bottomYCanvas > 0 && bottomYCanvas <= canvas.height) {
+          safeBreaks.push(bottomYCanvas);
+        }
+      });
+      safeBreaks.push(canvas.height);
+      safeBreaks.sort((a, b) => a - b);
+
       const pdf = new JsPDFCtor({ unit: 'in', format: 'letter', orientation: 'portrait' });
       const pageWidth = pdf.internal.pageSize.getWidth();
       const pageHeight = pdf.internal.pageSize.getHeight();
       const margin = 0.4;
-      const imgWidth = pageWidth - margin * 2;
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
-      const usablePageHeight = pageHeight - margin * 2;
+      const imgWidthInches = pageWidth - margin * 2;
+      const usableHeightInches = pageHeight - margin * 2;
+      const pxPerInch = canvas.width / imgWidthInches;
+      const usableHeightPx = usableHeightInches * pxPerInch;
 
-      let heightLeft = imgHeight;
-      let position = margin;
-      pdf.addImage(imgData, 'JPEG', margin, position, imgWidth, imgHeight);
-      heightLeft -= usablePageHeight;
+      // Pagina cortando en el corte seguro más cercano antes del límite ideal de la página.
+      // Si una sola card supera la altura de página, hace un corte forzado.
+      let pageStart = 0;
+      let firstPage = true;
+      let safetyCounter = 0; // límite contra loops infinitos
+      while (pageStart < canvas.height - 1 && safetyCounter < 50) {
+        safetyCounter++;
+        const idealEnd = pageStart + usableHeightPx;
+        let pageEnd: number;
+        const candidates = safeBreaks.filter((bp) => bp > pageStart + 50 && bp <= idealEnd);
+        if (candidates.length > 0) {
+          pageEnd = candidates[candidates.length - 1];
+        } else if (idealEnd >= canvas.height) {
+          pageEnd = canvas.height;
+        } else {
+          // Card más alta que una página — corte forzado al ideal.
+          pageEnd = idealEnd;
+        }
 
-      while (heightLeft > 0) {
-        pdf.addPage();
-        position = margin - (imgHeight - heightLeft);
-        pdf.addImage(imgData, 'JPEG', margin, position, imgWidth, imgHeight);
-        heightLeft -= usablePageHeight;
+        const sliceHeight = pageEnd - pageStart;
+        const sliceCanvas = document.createElement('canvas');
+        sliceCanvas.width = canvas.width;
+        sliceCanvas.height = sliceHeight;
+        const ctx = sliceCanvas.getContext('2d');
+        if (!ctx) throw new Error('No se pudo obtener contexto 2d para el slice');
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, canvas.width, sliceHeight);
+        ctx.drawImage(canvas, 0, -pageStart);
+
+        const sliceImg = sliceCanvas.toDataURL('image/jpeg', 0.95);
+        const sliceHeightInches = sliceHeight / pxPerInch;
+
+        if (!firstPage) pdf.addPage();
+        pdf.addImage(sliceImg, 'JPEG', margin, margin, imgWidthInches, sliceHeightInches);
+        firstPage = false;
+        pageStart = pageEnd;
       }
 
       const today = new Date().toISOString().slice(0, 10);

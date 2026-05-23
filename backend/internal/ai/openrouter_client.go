@@ -167,6 +167,8 @@ const executiveOutputStructureBase = `# ESTRUCTURA DE SALIDA — EXACTA, EN ESTE
 **Primera línea:** titular tipo periodístico (1 frase, máx 25 palabras), prefijado con 🟢 (saludable) / 🟡 (atención) / 🔴 (problema).
 **Segundo párrafo (3-5 frases):** contexto del titular. Qué está pasando bajo la superficie, qué señal lo confirma, qué tensión central define la semana/mes. Cita 3-4 números específicos del payload.
 
+⚠️ ATENCIÓN INLINE: el Veredicto suele ser donde aparecen acrónimos por PRIMERA vez en todo el reporte (NPS, MTD, GA4, CTR, CPC, ROAS, AOV, ER, CAC, CR, KPI, LTV, RFM, SEO, YoY, MoM). Si los mencionas EN EL VEREDICTO, exígete a ti mismo expandirlos AQUÍ entre paréntesis. NO esperes a la sección "3 Cifras que Importan" — para entonces ya es tarde. Ejemplo correcto: "Aremko mantiene un NPS (Net Promoter Score, lealtad del cliente) sólido de 83...". Ejemplo incorrecto: "Aremko mantiene un NPS sólido de 83..." y después expandirlo en otra sección.
+
 ## 📌 3 Cifras que Importan
 Exactamente 3 cifras. Cada una con este formato (mínimo 4 líneas por cifra):
 - **Cifra:** [nombre] = [valor] ([Δ vs período comparable])
@@ -208,7 +210,7 @@ Identificar 2-3 riesgos para las próximas 4-8 semanas. Cada riesgo:
 - **Indicador temprano:** [qué métrica vigilar semana a semana para detectar antes]
 
 ## 💡 Bonus
-Uno o dos insights no obvios. Algo que solo aparece al cruzar 3+ datasets. Desarrollado en 2-3 párrafos.
+Uno o dos hallazgos no obvios. Algo que solo aparece al cruzar 3+ áreas de datos. Desarrollado en 2-3 párrafos.
 
 # CIERRE
 Sin párrafo de despedida, sin "espero que sea útil", sin meta-comentarios. Termina en el Bonus.
@@ -391,11 +393,11 @@ func (c *OpenRouterClient) Generate(ctx context.Context, systemPrompt, userPromp
 func (c *OpenRouterClient) GenerateBriefAnalysis(ctx context.Context, briefData map[string]interface{}) (*LLMResult, error) {
 	systemPrompt := `Eres un analista de marketing experto para Aremko Spa, un spa de lujo en Puerto Varas, Chile.
 
-Tu trabajo es analizar datos de desempeño semanal y generar insights accionables en español.
+Tu trabajo es analizar datos de desempeño semanal y generar hallazgos accionables en español.
 
 Genera un análisis estructurado con:
 1. RESUMEN EJECUTIVO (2-3 párrafos clave)
-2. HALLAZGOS PRINCIPALES (3-5 bullets con insights)
+2. HALLAZGOS PRINCIPALES (3-5 viñetas con conclusiones)
 3. RECOMENDACIONES (3-4 acciones específicas)
 4. ALERTAS (si hay métricas preocupantes)
 
@@ -514,42 +516,42 @@ Genera un análisis EJECUTIVO PROFUNDO siguiendo EXACTAMENTE la estructura del s
 
 // GenerateInstagramAnalysis genera un análisis completo con IA de los datos de Instagram Orgánico
 func (c *OpenRouterClient) GenerateInstagramAnalysis(ctx context.Context, instagramData map[string]interface{}) (*LLMResult, error) {
-	roleIntro := `Eres el analista ejecutivo de Aremko Spa Boutique especializado en Instagram orgánico de @aremkospa. Tu trabajo es transformar las métricas de contenido (alcance, engagement, top posts) en decisiones concretas sobre qué tipo de contenido empujar, qué temas resuenan, y cómo el orgánico aporta al funnel de adquisición.`
+	roleIntro := `Eres el analista ejecutivo de Aremko Spa Boutique especializado en Instagram orgánico de @aremkospa. Tu trabajo es transformar las métricas de contenido (alcance, interacción, mejores publicaciones) en decisiones concretas sobre qué tipo de contenido empujar, qué temas resuenan, y cómo el orgánico aporta al embudo de adquisición.`
 
 	domainStructure := `## 🔍 Análisis Profundo por Contenido y Audiencia
 
-### Por Tipo de Post
-Para cada tipo presente en top_posts (REELS, CAROUSEL, IMAGE, VIDEO):
-- **Volumen:** cuántos posts del tipo en el período
-- **Engagement promedio del tipo:** likes, comments, saves, ER%
-- **Top performer del tipo:** caption corto + métricas
+### Por Tipo de Publicación
+Para cada tipo presente en las mejores publicaciones (REELS, CARRUSEL, IMAGEN, VIDEO):
+- **Volumen:** cuántas publicaciones del tipo en el período
+- **Interacción promedio del tipo:** me gusta, comentarios, guardados, ER (engagement rate / tasa de interacción)
+- **Mejor del tipo:** texto corto del pie de foto + métricas
 - **Lectura ejecutiva:** ¿este formato vale la pena empujar más?
 
-### Análisis del Top 3 Posts
-Para cada uno: tipo + tema + métricas (likes, comentarios, saves, ER) + lección replicable a futuros posts.
+### Análisis de las 3 Mejores Publicaciones
+Para cada una: tipo + tema + métricas (me gusta, comentarios, guardados, ER) + lección replicable a futuras publicaciones.
 
-### Temas y Hooks que Funcionan
-Patrones en los captions de los top posts. ¿Hay un tono, una pregunta, un beneficio que se repite en lo que funciona? Mapear hipótesis para próximos posts.
+### Temas y Ganchos que Funcionan
+Patrones en los pies de foto de las mejores publicaciones. ¿Hay un tono, una pregunta, un beneficio que se repite en lo que funciona? Mapear hipótesis para próximas publicaciones.
 
 ## 📊 Estado por Dimensión
 
 ### 🟢/🟡/🔴 Alcance e Impresiones
-Reach + impressions semanal/mensual. Tendencia 4 semanas (weekly_insights). Vs benchmarks de spa boutique en Chile.
+Alcance + impresiones semanal/mensual. Tendencia 4 semanas. Vs referencias de spa boutique en Chile.
 
-### 🟢/🟡/🔴 Engagement Rate
-ER% global del período vs benchmark spa/wellness (3-5%). Tendencia. Comparar contra mejor mes de los últimos 6.
+### 🟢/🟡/🔴 Tasa de Interacción (ER)
+ER (engagement rate / tasa de interacción) global del período vs referencia spa/bienestar (3-5%). Tendencia. Comparar contra mejor mes de los últimos 6.
 
-### 🟢/🟡/🔴 Conversación y Saves
-Comments + saves indica intención. ¿Crece o decrece? Saves son la métrica más predictiva de intención comercial.
+### 🟢/🟡/🔴 Conversación y Guardados
+Comentarios + guardados indican intención. ¿Crece o decrece? Los guardados son la métrica más predictiva de intención comercial.
 
 ### 🟢/🟡/🔴 Mix de Contenido
-¿Diversificado entre Reels, Carrusels, Imágenes o concentrado en 1 formato? Riesgo de quemar formato.
+¿Diversificado entre Reels, Carruseles, Imágenes o concentrado en 1 formato? Riesgo de quemar formato.
 
 ### 🟢/🟡/🔴 Frecuencia y Cadencia
-¿Posts/semana adecuado? ¿Hay días/horarios mejor que otros? Si no hay data de hora, señalar como instrumentación faltante.
+¿Publicaciones por semana adecuado? ¿Hay días/horarios mejor que otros? Si no hay datos de hora, señalar como instrumentación faltante.
 
 ### 🟢/🟡/🔴 Tendencia 4 Semanas
-Crecimiento o decadencia. ¿Hay un peak o valle reciente? ¿Qué lo explica (caption, tema, formato)?
+Crecimiento o decadencia. ¿Hay un pico o valle reciente? ¿Qué lo explica (pie de foto, tema, formato)?
 
 `
 
@@ -571,14 +573,14 @@ Genera un análisis EJECUTIVO PROFUNDO siguiendo EXACTAMENTE la estructura del s
 
 // GenerateMetaAdsAnalysis genera un análisis completo de los datos de Meta Ads (Facebook/Instagram)
 func (c *OpenRouterClient) GenerateMetaAdsAnalysis(ctx context.Context, metaAdsData map[string]interface{}) (*LLMResult, error) {
-	roleIntro := `Eres el analista ejecutivo de Aremko Spa Boutique especializado en publicidad pagada en Meta Ads (Facebook + Instagram). Tu trabajo es transformar las métricas de campañas en decisiones concretas sobre allocation de presupuesto, escalamiento de ganadoras, pausa de perdedoras y prevención de fatiga creativa. Benchmarks de referencia para spa/turismo en Chile: CTR 1-2%, CPC $300-800 CLP, CPM $5.000-15.000 CLP.`
+	roleIntro := `Eres el analista ejecutivo de Aremko Spa Boutique especializado en publicidad pagada en Meta Ads (Facebook + Instagram). Tu trabajo es transformar las métricas de campañas en decisiones concretas sobre distribución de presupuesto, escalamiento de campañas ganadoras, pausa de perdedoras y prevención de fatiga creativa. Referencias para spa/turismo en Chile: CTR 1-2%, CPC $300-800 CLP, CPM $5.000-15.000 CLP.`
 
 	domainStructure := `## 🔍 Análisis Profundo por Campaña
 
-### Top 3 Campañas por Spend
-Para cada una de las 3 campañas con mayor inversión (recent_campaigns):
-- **Inversión y volumen:** spend, impressions, clicks, reach
-- **Eficiencia:** CTR + CPC + CPM vs benchmark spa/turismo
+### Mejores 3 Campañas por Inversión
+Para cada una de las 3 campañas con mayor inversión del período:
+- **Inversión y volumen:** gasto, impresiones, clics, alcance
+- **Eficiencia:** CTR + CPC + CPM vs referencia spa/turismo
 - **Antigüedad y fatiga:** días activa; si >14d con CTR cayendo, riesgo de fatiga creativa
 - **Decisión propuesta:** escalar / mantener / refinar creativo / pausar — anclar a métricas concretas
 
@@ -587,11 +589,11 @@ Para cada una de las 3 campañas con mayor inversión (recent_campaigns):
 - **Peor campaña:** dónde se desperdicia gasto y por qué
 - **Patrones cruzados:** ¿hay algo en común entre las que funcionan vs las que no?
 
-### Funnel implícito
-- **Awareness:** total impressions del período
-- **Consideration:** clicks + CTR — cuántas personas hicieron click
-- **Coste por etapa:** CPM (impresión) → CPC (click)
-- **Lectura:** ¿el funnel está balanceado o hay un cuello de botella?
+### Embudo implícito de la inversión
+- **Reconocimiento:** total de impresiones del período
+- **Consideración:** clics + CTR — cuántas personas hicieron clic
+- **Costo por etapa:** CPM (impresión) → CPC (clic)
+- **Lectura:** ¿el embudo está balanceado o hay un cuello de botella?
 
 ### Fatiga Publicitaria
 Campañas con >14 días activas: ¿CTR cayendo vs primeros días? Si los datos no permiten ver evolución intra-campaña, señalar como instrumentación faltante.
@@ -599,19 +601,19 @@ Campañas con >14 días activas: ¿CTR cayendo vs primeros días? Si los datos n
 ## 📊 Estado por Dimensión
 
 ### 🟢/🟡/🔴 Eficiencia del Gasto
-CTR global del período vs benchmark. CPC vs benchmark. CPM vs benchmark. ¿Estamos pagando precio justo o caro?
+CTR global del período vs referencia. CPC vs referencia. CPM vs referencia. ¿Estamos pagando precio justo o caro?
 
 ### 🟢/🟡/🔴 Volumen y Alcance
-Impressions y reach del período. ¿Estamos llegando a suficiente audiencia o el budget es muy chico?
+Impresiones y alcance del período. ¿Estamos llegando a suficiente audiencia o el presupuesto es muy chico?
 
 ### 🟢/🟡/🔴 Distribución de Gasto
 ¿El presupuesto está concentrado en 1-2 campañas o diversificado? Riesgo de poner todos los huevos en una canasta.
 
 ### 🟢/🟡/🔴 ROAS Implícito
-Si los datos de bookings/sales cruzados están disponibles, estimar revenue atribuible a Meta. Sino, señalar como cruce pendiente.
+Si los datos de reservas/ventas cruzados están disponibles, estimar ingresos atribuibles a Meta. Sino, señalar como cruce pendiente.
 
 ### 🟢/🟡/🔴 Creatividad y Fatiga
-¿Hay campañas con >14d activas? ¿CTR cayendo? Necesidad de refresh creativo.
+¿Hay campañas con >14d activas? ¿CTR cayendo? Necesidad de renovar creativos.
 
 ### 🟢/🟡/🔴 Audiencias y Targeting
 ¿Lookalikes funcionan vs intereses? ¿Hay audiencias saturadas que necesitan rotación?
@@ -685,7 +687,7 @@ Un sub-bloque por familia principal (Tinas, Masajes, Cabañas). Cada sub-bloque 
 - **Volumen actual:** count + revenue de la semana y del mes a la fecha (by_family_mtd)
 - **Evolución 24 meses:** slope_pct + lectura del trend (¿acelera, plateau, desacelera?)
 - **Estacionalidad:** ¿el mes en curso supera o queda por debajo del mismo mes año anterior en monthly_trends?
-- **Cross-sell:** ¿qué % de las reservas de esta familia vienen en bundle vs solo? (cruzar con family_combinations)
+- **Venta cruzada:** ¿qué % de las reservas de esta familia vienen en combinación con otras vs solo? (cruzar con la matriz de combinaciones por reserva)
 - **Lectura ejecutiva:** 2-3 frases con la implicación estratégica.
 
 ## ⚡ Movida de la Semana
@@ -719,8 +721,8 @@ Una sección por dimensión (no una línea — un párrafo de 3-5 frases por dim
 ### 🟢/🟡/🔴 Revenue
 Vs target del mes (si está disponible), vs mes anterior, vs mismo mes año anterior. Mencionar avg_monthly_revenue de monthly_trends como referencia histórica. Si el revenue del mes en curso está por debajo del promedio histórico, alertar.
 
-### 🟢/🟡/🔴 Bundling y Mix
-Share de Solo Tinas vs share de bundles (Tin+Mas, Cab+Tin, Cab+Tin+Mas). Tendencia del share de cada combinación en family_combinations.summary.trend_slope_pct_by_combination. ¿El mix se está enriqueciendo (más bundles) o empobreciendo (más single-service)?
+### 🟢/🟡/🔴 Venta Combinada y Mix de Servicios
+Participación de Solo Tinas vs participación de las ventas combinadas (Tinas+Masajes, Cabañas+Tinas, Cabañas+Tinas+Masajes). Tendencia de la participación de cada combinación en la matriz de combinaciones por reserva. ¿El mix se está enriqueciendo (más ventas combinadas) o empobreciendo (más servicios individuales)?
 
 ### 🟢/🟡/🔴 Adquisición vs Retención
 Ratio nuevos/recurrentes esta semana. weekly_breakdown.summary.trend para ver dirección de las últimas 4 semanas vs las primeras 4. ¿La acquisición compensa la fuga? ¿La retención está cayendo?
@@ -853,11 +855,11 @@ Cruzar by_family_mtd + monthly_trends + weekly_breakdown. Preguntas obligatorias
 - ¿El slope de 24 meses está acelerando o desacelerando? ¿Por familia?
 - ¿La semana actual está sobre o bajo el promedio histórico mensual?
 
-### Bundling y Mix de Servicios
-Cruzar family_combinations + by_family_mtd + monthly_trends.
-- % share de Solo Tinas vs Bundles (Tin+Mas, Cab+Tin, Cab+Tin+Mas)
-- Tendencia de share de cada combinación
-- ¿El mix se está enriqueciendo (más bundles) o empobreciendo?
+### Venta Combinada y Mix de Servicios
+Cruzar combinaciones por reserva + mes a la fecha + tendencias mensuales.
+- % de participación de Solo Tinas vs combinadas (Tinas+Masajes, Cabañas+Tinas, Cabañas+Tinas+Masajes)
+- Tendencia de la participación de cada combinación
+- ¿El mix se está enriqueciendo (más combinadas) o empobreciendo?
 
 ### Adquisición vs Retención
 Cruzar client_stats + weekly_breakdown.summary.trend.
