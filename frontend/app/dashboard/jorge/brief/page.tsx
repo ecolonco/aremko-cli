@@ -135,21 +135,50 @@ export default function BriefPage() {
         ignoreElements: (e: Element) => (e as HTMLElement).classList?.contains?.('no-print') ?? false,
       });
 
-      // Detectar puntos seguros de corte = bordes inferiores de cada card directa.
-      // Así el salto de página cae en el espacio entre cards y nunca a mitad de tabla.
+      // Detectar puntos seguros de corte. Camina TODO el árbol del tab y
+      // recolecta el borde inferior de cada elemento visible que NO sea una
+      // tabla (cortar entre filas de tabla suele descuadrar el borde).
+      // Los elementos a respetar como bloque (no-break-inside): table, tr,
+      // .recharts-wrapper, svg. Sus bordes finales se agregan, pero sus
+      // bordes intermedios se omiten.
       const containerRect = el.getBoundingClientRect();
-      const safeBreaks: number[] = [0];
-      Array.from(el.children).forEach((child) => {
-        if (!(child instanceof HTMLElement)) return;
-        if (child.classList?.contains?.('no-print')) return;
-        if (child.offsetParent === null && getComputedStyle(child).position !== 'fixed') return;
-        const childRect = child.getBoundingClientRect();
-        const bottomYCanvas = (childRect.bottom - containerRect.top) * scale;
-        if (bottomYCanvas > 0 && bottomYCanvas <= canvas.height) {
-          safeBreaks.push(bottomYCanvas);
+      const seen = new Set<number>();
+      const safeBreaks: number[] = [];
+      const addBreak = (yCanvas: number) => {
+        const rounded = Math.round(yCanvas);
+        if (rounded <= 0 || rounded > canvas.height) return;
+        // De-duplicar puntos cercanos (dentro de 6 px para evitar ruido)
+        for (const s of seen) {
+          if (Math.abs(s - rounded) < 6) return;
         }
-      });
-      safeBreaks.push(canvas.height);
+        seen.add(rounded);
+        safeBreaks.push(rounded);
+      };
+      const NO_BREAK_SELECTORS = ['table', 'tbody', 'thead', 'tr', 'svg', '.recharts-wrapper', '.recharts-surface'];
+      const isInsideNoBreak = (node: HTMLElement): boolean => {
+        return NO_BREAK_SELECTORS.some((sel) => node.closest(sel) !== null);
+      };
+      const walk = (node: HTMLElement) => {
+        if (node.classList?.contains?.('no-print')) return;
+        if (node.offsetParent === null && getComputedStyle(node).position !== 'fixed') return;
+        const rect = node.getBoundingClientRect();
+        if (rect.height < 10) return; // saltar elementos minúsculos
+        // No agregar como break point a elementos DENTRO de tabla/svg, salvo que sea el cierre
+        // del bloque mismo (ej: la tabla termina, eso sí es break point seguro)
+        const isBlockEnd = NO_BREAK_SELECTORS.some((sel) => node.matches(sel));
+        if (!isInsideNoBreak(node) || isBlockEnd) {
+          const bottomYCanvas = (rect.bottom - containerRect.top) * scale;
+          addBreak(bottomYCanvas);
+        }
+        // Descender en los hijos solo si NO estamos dentro de un bloque indivisible
+        if (!isInsideNoBreak(node)) {
+          Array.from(node.children).forEach((child) => {
+            if (child instanceof HTMLElement) walk(child);
+          });
+        }
+      };
+      walk(el);
+      addBreak(canvas.height);
       safeBreaks.sort((a, b) => a - b);
 
       const pdf = new JsPDFCtor({ unit: 'in', format: 'letter', orientation: 'portrait' });
