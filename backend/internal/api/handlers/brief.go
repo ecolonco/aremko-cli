@@ -16,7 +16,22 @@ import (
 	"github.com/aremko/aremko-cli/internal/meta"
 	"github.com/aremko/aremko-cli/internal/reviews"
 	"github.com/aremko/aremko-cli/internal/social"
+	"github.com/aremko/aremko-cli/internal/taxonomy"
 )
+
+// topNBuckets devuelve los N primeros de una lista de EjeBucket por count descendente.
+func topNBuckets(buckets []taxonomy.EjeBucket, n int) []taxonomy.EjeBucket {
+	if len(buckets) == 0 {
+		return buckets
+	}
+	sorted := make([]taxonomy.EjeBucket, len(buckets))
+	copy(sorted, buckets)
+	sort.Slice(sorted, func(i, j int) bool { return sorted[i].Count > sorted[j].Count })
+	if n > len(sorted) {
+		n = len(sorted)
+	}
+	return sorted[:n]
+}
 
 // GetWeeklyBrief retorna el brief semanal en formato JSON
 func GetWeeklyBrief(cfg *config.Config) http.HandlerFunc {
@@ -1112,6 +1127,22 @@ func AnalyzeSales(cfg *config.Config) http.HandlerFunc {
 		// Combinaciones de familias por reserva (bundling effectiveness, últimos 24 meses)
 		if combos, cerr := bookingClient.GetFamilyCombinations(24); cerr == nil {
 			salesData["family_combinations"] = combos
+		}
+		// Resumen lite de la taxonomía de clientes (3-4 líneas para que el modelo
+		// tenga contexto sin saturar el prompt).
+		if cfg.BookingSystemURL != "" {
+			taxClient := taxonomy.NewClient(cfg.BookingSystemURL)
+			if segs, terr := taxClient.GetSegments(); terr == nil && segs != nil {
+				salesData["customer_segments_summary"] = map[string]interface{}{
+					"total_clientes":      segs.TotalClientes,
+					"n_sistema_actual":    segs.NSistemaActual,
+					"n_pre_sistema":       segs.NPreSistema,
+					"top_3_estilos":       topNBuckets(segs.EjeEstilo, 3),
+					"top_3_contextos":     topNBuckets(segs.EjeContexto, 3),
+					"valor_distribucion":  segs.EjeValor,
+					"nota":                "Para drill-down completo de cohortes, ver pestaña Perfiles del dashboard.",
+				}
+			}
 		}
 
 		aiClient := newAIClientWithOperatingContext(cfg)

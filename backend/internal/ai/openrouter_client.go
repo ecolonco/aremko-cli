@@ -930,6 +930,64 @@ Genera el análisis EJECUTIVO PROFUNDO siguiendo EXACTAMENTE la estructura del s
 	return c.Generate(ctx, c.wrapSystemPrompt(systemPrompt), userPrompt, "google/gemini-3.1-flash-lite", 0.7, 6000)
 }
 
+// GenerateProfilesAnalysis genera un análisis IA profundo sobre la taxonomía
+// de clientes (los 3 ejes Valor × Estilo × Contexto + cohortes accionables).
+func (c *OpenRouterClient) GenerateProfilesAnalysis(ctx context.Context, profilesData map[string]interface{}) (*LLMResult, error) {
+	roleIntro := `Eres el consultor senior de gestión de clientes (CRM) de Aremko Spa Boutique. Tu trabajo es transformar la taxonomía multidimensional de clientes (3 ejes: Valor, Estilo, Contexto) en decisiones operativas concretas de retención, reactivación y crecimiento. El dueño tiene 14.228 clientes en BD pero solo ~3.900 son del sistema actual y ~120 son verdaderamente "leales activos" (Campeones + Leales + Gran Gastador Ocasional). Tu análisis debe darle el mapa para mover clientes hacia arriba en valor, sin perder a los que ya están altos.`
+
+	domainStructure := `## 🔍 Análisis Profundo por Cohorte
+
+### Las 5 cohortes más grandes
+Para cada una de las cohortes en el campo top_cohorts del payload:
+- **Identificación:** estilo × contexto + count del segmento
+- **Perfil económico:** gasto total agregado, gasto promedio por cliente, ticket promedio, visitas promedio
+- **Estado:** % de la cohorte en cada eje Valor (Campeón, Leal, Regular, En Riesgo, Dormido). Saca el dato del campo segments del payload + tu razonamiento.
+- **Estrategia recomendada:** qué hacer concretamente con esta cohorte. Cita ejemplos: secuencia de comunicación, oferta específica, refinamiento de campaña existente del contexto operativo.
+- **Cliente arquetipo:** dado el perfil económico y de comportamiento, describe en 2-3 frases cómo se ve un cliente típico de esta cohorte. Esto es útil para que el equipo lo VISUALICE.
+
+### Cohortes en riesgo crítico (alto valor + recencia mala)
+Identificar y desarrollar 2-3 cohortes donde aparezcan Campeones o Leales o Gran Gastador Ocasional. Estos clientes son el corazón del negocio. Para cada cohorte crítica:
+- ¿Cuántos clientes valiosos hay en cada estilo/contexto?
+- ¿Cuál es la acción de retención específica que se justifica con su gasto?
+
+## 📊 Estado por Dimensión
+
+### 🟢/🟡/🔴 Concentración de Valor
+% de clientes en cada categoría de Valor. ¿La distribución es sana o concentrada en fuga? Calcular: % activos saludables (Campeón+Leal+Gran Gastador Ocasional+Regular) vs % en peligro (En Riesgo+Dormido+Perdido). Comparar con benchmark de spa boutique: 15-25% activos saludables es normal, <10% es alarma roja.
+
+### 🟢/🟡/🔴 Diversidad de Estilo
+% en cada estilo. ¿Hay equilibrio entre Devotos del Masaje, Amantes de las Tinas, Experiencia Completa? O ¿está concentrado en uno solo? Riesgo de monocultivo (si todos son Amantes de las Tinas, cualquier problema con tinas tumba el negocio).
+
+### 🟢/🟡/🔴 Cross-sell potential
+% de clientes en estilos "puros" (Devoto Masaje, Amante Tinas) vs % en Experiencia Completa. Los puros son candidatos a cross-sell. Cuantos más, más potencial sin tocar.
+
+### 🟢/🟡/🔴 Mix de Contexto
+% Visitante Pareja vs Solo vs Grupal. ¿Aremko se está convirtiendo en spa-de-pareja exclusivamente o mantiene otros contextos sanos?
+
+### 🟢/🟡/🔴 Antigüedad de la Base
+Comentar sobre n_pre_sistema vs n_sistema_actual. ¿Cuántos clientes del CSV histórico volvieron al sistema actual? ¿Hay oportunidad masiva de reactivar pre-sistema?
+
+### 🟢/🟡/🔴 Probadores Esporádicos
+% en Probador Esporádico. Esta es la cantera de futuros leales o de futuros perdidos. ¿Cuántos son y qué intervención los empuja a Regular?
+
+`
+
+	systemPrompt := roleIntro + "\n\n" + executiveAnalystCore + "\n\n" + executiveOutputStructureBase + "\n" + domainStructure + "\n" + executiveOutputStructureTail
+
+	dataJSON, err := json.Marshal(profilesData)
+	if err != nil {
+		return &LLMResult{Error: fmt.Sprintf("error marshaling data: %v", err)}, err
+	}
+
+	userPrompt := fmt.Sprintf(`Aquí tienes la taxonomía actual de clientes de Aremko Spa. Incluye distribución agregada en los 3 ejes (segments) + drill-down de las 5 cohortes más grandes con ID de top 10 clientes (top_cohorts):
+
+%s
+
+Genera el análisis EJECUTIVO PROFUNDO siguiendo EXACTAMENTE la estructura del system prompt. La sección "Análisis Profundo por Cohorte" es la más valiosa — debe entregar estrategia accionable POR cohorte, no generalidades. La sección "Cohortes en riesgo crítico" debe identificar específicamente los Campeones/Leales que están a un paso de fuga (En Riesgo) y proponer su retención. Cita números concretos del payload en cada afirmación.`, string(dataJSON))
+
+	return c.Generate(ctx, c.wrapSystemPrompt(systemPrompt), userPrompt, "google/gemini-3.1-flash-lite", 0.7, 6000)
+}
+
 // VentasDetalleQuery is the structured shape the LLM must return when parsing
 // a natural-language sales query. All dates are absolute YYYY-MM-DD.
 type VentasDetalleQuery struct {

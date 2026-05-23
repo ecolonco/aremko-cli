@@ -106,6 +106,11 @@ func (s *Server) setupRoutes() {
 		// Family combinations per reservation (bundling effectiveness)
 		r.Get("/bookings/family-combinations", handlers.FamilyCombinations(s.config))
 
+		// Taxonomía de clientes (3 ejes: Valor x Estilo x Contexto)
+		r.Get("/clients/segments", handlers.ClientsSegments(s.config))
+		r.Get("/clients/cohort", handlers.ClientsCohort(s.config))
+		r.Post("/analytics/profiles/analyze", handlers.AnalyzeProfiles(s.config))
+
 		// Stats endpoints (próximamente)
 		r.Get("/stats/overview", handlers.GetStatsOverview(s.config))
 	})
