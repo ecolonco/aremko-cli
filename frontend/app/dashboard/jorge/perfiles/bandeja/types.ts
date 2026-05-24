@@ -111,3 +111,38 @@ export type PantallaAsistente =
   | 'transicion'
   | 'fin_del_dia'
   | 'error';
+
+// Estados posibles de un ContactoWhatsApp (espejo de Django choices)
+export type EstadoContacto =
+  | 'pendiente'
+  | 'enviado'
+  | 'omitido'
+  | 'no_aplica'
+  | 'descartado';
+
+// Versión extendida del Contacto que devuelve el endpoint /del-dia/.
+// Incluye estado actual + metadatos de quién y cuándo.
+export interface ContactoHistorial extends Omit<Contacto, 'mensaje_enviado_editado'> {
+  estado: EstadoContacto;
+  fecha_envio?: string;
+  operador?: string;
+  mensaje_enviado_editado?: string;
+  respondio: boolean;
+  tipo_respuesta?: TipoRespuesta | '';
+  nota_operador?: string;
+  cliente_opt_out_actual: boolean;
+}
+
+export interface DelDiaResponse {
+  fecha: string;
+  operador_filtro?: string;
+  total: number;
+  stats: {
+    enviados: number;
+    omitidos: number;
+    no_aplica: number;
+    pendientes: number;
+    descartados: number;
+  };
+  contactos: ContactoHistorial[];
+}

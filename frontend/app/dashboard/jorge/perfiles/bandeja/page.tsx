@@ -29,6 +29,8 @@ import type {
 import { TarjetaCliente } from './TarjetaCliente';
 import { TarjetaRegistrarRespuesta } from './TarjetaRegistrarRespuesta';
 import { TarjetaCelebracion } from './TarjetaCelebracion';
+import { HistorialDrawer } from './HistorialDrawer';
+import { History } from 'lucide-react';
 
 export default function BandejaPage() {
   const { data: session, status: sessionStatus } = useSession();
@@ -39,6 +41,7 @@ export default function BandejaPage() {
   const [error, setError] = useState<string | null>(null);
   const [actuando, setActuando] = useState(false);
   const [transicionMsg, setTransicionMsg] = useState<string>('');
+  const [historialOpen, setHistorialOpen] = useState(false);
 
   // Fetch del próximo cliente / respuesta pendiente / celebración / fin del día.
   const cargarSiguiente = useCallback(async () => {
@@ -324,14 +327,28 @@ export default function BandejaPage() {
                 </ul>
               </div>
             )}
-            <div className="pt-2">
+            <div className="flex flex-wrap gap-2 pt-2">
               <Button onClick={() => cargarSiguiente()} variant="outline">
                 <ArrowRight className="mr-2 h-4 w-4" />
                 Volver a chequear
               </Button>
+              <Button
+                onClick={() => setHistorialOpen(true)}
+                variant="outline"
+              >
+                <History className="mr-2 h-4 w-4" />
+                Ver historial de hoy
+              </Button>
             </div>
           </CardContent>
         </Card>
+
+        <HistorialDrawer
+          open={historialOpen}
+          onClose={() => setHistorialOpen(false)}
+          operadorActivo={operador}
+          onAccionAplicada={cargarSiguiente}
+        />
       </div>
     );
   }
@@ -354,13 +371,22 @@ export default function BandejaPage() {
 
   return (
     <div className="mx-auto max-w-3xl p-4">
-      {/* Header con progreso + operador activo */}
+      {/* Header con progreso + operador activo + acceso historial */}
       <div className="mb-4 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
         <span className="inline-flex items-center gap-2">
           <UserCircle className="h-3.5 w-3.5" />
           Operando como{' '}
           <strong className="text-slate-800">{operadorNombre || operador}</strong>
         </span>
+        <button
+          type="button"
+          onClick={() => setHistorialOpen(true)}
+          className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-2 py-1 text-xs text-slate-600 hover:bg-slate-50"
+          title="Volver atrás — historial editable del día"
+        >
+          <History className="h-3.5 w-3.5" />
+          Historial de hoy
+        </button>
         {esRespuestaPendiente ? (
           <span className="rounded-full bg-indigo-100 px-2 py-0.5 font-medium text-indigo-800">
             Respuestas pendientes:{' '}
@@ -408,6 +434,14 @@ export default function BandejaPage() {
           onBloquear={handleBloquear}
         />
       )}
+
+      {/* Drawer "Historial de hoy" — montado siempre, abre/cierra con state */}
+      <HistorialDrawer
+        open={historialOpen}
+        onClose={() => setHistorialOpen(false)}
+        operadorActivo={operador}
+        onAccionAplicada={cargarSiguiente}
+      />
     </div>
   );
 }

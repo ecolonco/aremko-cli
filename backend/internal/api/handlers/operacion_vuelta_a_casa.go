@@ -262,6 +262,51 @@ func OVCRegistrarRespuesta(cfg *config.Config) http.HandlerFunc {
 }
 
 // ============================================================================
+// 1.bis GET /del-dia/  (Etapa 5.6 — historial del día)
+// ============================================================================
+
+func OVCDelDia(cfg *config.Config) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		client, err := newOVCClient(cfg)
+		if err != nil {
+			respondJSON(w, http.StatusServiceUnavailable, map[string]interface{}{
+				"success": false, "error": err.Error(),
+			})
+			return
+		}
+		opts := ovc.DelDiaOptions{
+			Fecha:    r.URL.Query().Get("fecha"),
+			Operador: r.URL.Query().Get("operador"),
+		}
+		if opts.Fecha != "" {
+			if _, perr := time.Parse("2006-01-02", opts.Fecha); perr != nil {
+				respondJSON(w, http.StatusBadRequest, map[string]interface{}{
+					"success": false,
+					"error":   "fecha debe tener formato YYYY-MM-DD",
+				})
+				return
+			}
+		}
+		if l := r.URL.Query().Get("limit"); l != "" {
+			parsed, perr := strconv.Atoi(l)
+			if perr == nil && parsed > 0 && parsed <= 500 {
+				opts.Limit = parsed
+			}
+		}
+		result, err := client.GetDelDia(opts)
+		if err != nil {
+			respondJSON(w, http.StatusBadGateway, map[string]interface{}{
+				"success": false, "error": err.Error(),
+			})
+			return
+		}
+		respondJSON(w, http.StatusOK, map[string]interface{}{
+			"success": true, "data": result,
+		})
+	}
+}
+
+// ============================================================================
 // 5.bis POST /{contactoID}/bloquear-cliente/  (Etapa 5.5.2 — bloqueo permanente)
 // ============================================================================
 

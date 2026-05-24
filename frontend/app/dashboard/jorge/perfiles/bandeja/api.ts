@@ -6,6 +6,7 @@ import type {
   Conflict409,
   ResumenDia,
   TipoRespuesta,
+  DelDiaResponse,
 } from './types';
 
 const apiBase = () =>
@@ -44,6 +45,26 @@ async function postJSON<T>(path: string, body: unknown): Promise<{ data: T; conf
 // ====================================================================
 export const fetchSiguiente = () =>
   getJSON<SiguienteResponse>(`${OVC}/bandeja-whatsapp/siguiente`);
+
+// ====================================================================
+// 1.bis GET del-dia (Etapa 5.6 — historial editable)
+// ====================================================================
+export interface DelDiaOptions {
+  fecha?: string;      // YYYY-MM-DD, default: hoy
+  operador?: string;   // username, default: todos
+  limit?: number;      // default 100, max 500
+}
+
+export const fetchDelDia = (opts: DelDiaOptions = {}) => {
+  const q = new URLSearchParams();
+  if (opts.fecha) q.set('fecha', opts.fecha);
+  if (opts.operador) q.set('operador', opts.operador);
+  if (opts.limit) q.set('limit', String(opts.limit));
+  const query = q.toString();
+  return getJSON<DelDiaResponse>(
+    `${OVC}/bandeja-whatsapp/del-dia${query ? `?${query}` : ''}`
+  );
+};
 
 // ====================================================================
 // 2. POST marcar-enviado

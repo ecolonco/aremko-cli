@@ -114,6 +114,7 @@ func (s *Server) setupRoutes() {
 		// Operación Vuelta a Casa — Asistente Deborah (9 endpoints)
 		r.Route("/ovc", func(r chi.Router) {
 			r.Get("/bandeja-whatsapp/siguiente", handlers.OVCSiguiente(s.config))
+			r.Get("/bandeja-whatsapp/del-dia", handlers.OVCDelDia(s.config))
 			r.Post("/bandeja-whatsapp/{contactoID}/marcar-enviado", handlers.OVCMarcarEnviado(s.config))
 			r.Post("/bandeja-whatsapp/{contactoID}/marcar-omitido", handlers.OVCMarcarOmitido(s.config))
 			r.Post("/bandeja-whatsapp/{contactoID}/marcar-no-aplica", handlers.OVCMarcarNoAplica(s.config))

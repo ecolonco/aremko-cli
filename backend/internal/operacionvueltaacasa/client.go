@@ -436,6 +436,82 @@ func (c *Client) GetMovimientos(desde, hasta string) (*MovimientosResponse, erro
 	return &result, nil
 }
 
+// ContactoHistorial es la versión extendida del Contacto devuelta por /del-dia/.
+type ContactoHistorial struct {
+	ID                    int            `json:"id"`
+	Cliente               ClienteSummary `json:"cliente"`
+	PerfilResumen         PerfilResumen  `json:"perfil_resumen"`
+	ScriptID              string         `json:"script_id"`
+	Salva                 int            `json:"salva"`
+	MensajeRenderizado    string         `json:"mensaje_renderizado"`
+	MensajeEnviadoEditado string         `json:"mensaje_enviado_editado,omitempty"`
+	Prioridad             int            `json:"prioridad"`
+	Estado                string         `json:"estado"`
+	FechaEnvio            string         `json:"fecha_envio,omitempty"`
+	Operador              string         `json:"operador,omitempty"`
+	Respondio             bool           `json:"respondio"`
+	TipoRespuesta         string         `json:"tipo_respuesta,omitempty"`
+	NotaOperador          string         `json:"nota_operador,omitempty"`
+	ClienteOptOutActual   bool           `json:"cliente_opt_out_actual"`
+}
+
+// DelDiaStats son los conteos por estado del día.
+type DelDiaStats struct {
+	Enviados    int `json:"enviados"`
+	Omitidos    int `json:"omitidos"`
+	NoAplica    int `json:"no_aplica"`
+	Pendientes  int `json:"pendientes"`
+	Descartados int `json:"descartados"`
+}
+
+// DelDiaResponse es el shape del endpoint /bandeja-whatsapp/del-dia/.
+type DelDiaResponse struct {
+	Fecha           string              `json:"fecha"`
+	OperadorFiltro  string              `json:"operador_filtro,omitempty"`
+	Total           int                 `json:"total"`
+	Stats           DelDiaStats         `json:"stats"`
+	Contactos       []ContactoHistorial `json:"contactos"`
+}
+
+// DelDiaOptions son los parámetros para GetDelDia.
+type DelDiaOptions struct {
+	Fecha    string // YYYY-MM-DD, vacío = hoy
+	Operador string // vacío = todos
+	Limit    int    // 0 = default (100)
+}
+
+// GetDelDia lista todos los contactos del día (procesados + pendientes) para el
+// drawer "Historial del día" del Asistente Deborah.
+func (c *Client) GetDelDia(opts DelDiaOptions) (*DelDiaResponse, error) {
+	q := url.Values{}
+	if opts.Fecha != "" {
+		q.Set("fecha", opts.Fecha)
+	}
+	if opts.Operador != "" {
+		q.Set("operador", opts.Operador)
+	}
+	if opts.Limit > 0 {
+		q.Set("limit", fmt.Sprintf("%d", opts.Limit))
+	}
+	path := "/bandeja-whatsapp/del-dia/"
+	if encoded := q.Encode(); encoded != "" {
+		path += "?" + encoded
+	}
+	req, err := c.buildRequest("GET", path, nil)
+	if err != nil {
+		return nil, err
+	}
+	var result DelDiaResponse
+	status, body, err := c.doJSON(req, &result)
+	if err != nil {
+		return nil, err
+	}
+	if status != http.StatusOK {
+		return nil, fmt.Errorf("del-dia returned %d: %s", status, string(body))
+	}
+	return &result, nil
+}
+
 // BloquearCliente marca permanentemente al cliente como opt_out_whatsapp=true
 // y, si el contacto está pendiente, lo marca como no_aplica.
 // Idempotente: bloquear 2 veces devuelve cliente_bloqueado=false la 2ª vez.
