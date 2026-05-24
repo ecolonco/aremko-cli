@@ -1,0 +1,416 @@
+'use client';
+
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import {
+  CheckCircle2,
+  SkipForward,
+  XCircle,
+  Copy,
+  ExternalLink,
+  Edit3,
+  Save,
+  Undo2,
+  Sparkles,
+  Loader2,
+} from 'lucide-react';
+import type { Contacto } from './types';
+import { fetchExplicacion } from './api';
+import { useDraftStore } from './useDraftStore';
+
+interface TarjetaClienteProps {
+  contacto: Contacto;
+  disabled?: boolean;
+  onEnviado: (contacto: Contacto, mensajeEditado?: string) => void;
+  onOmitir: (contacto: Contacto) => void;
+  onNoAplica: (contacto: Contacto) => void;
+}
+
+const valorColor: Record<string, string> = {
+  Campeón: 'bg-emerald-100 text-emerald-900',
+  Leal: 'bg-emerald-50 text-emerald-800',
+  'Gran Gastador Ocasional': 'bg-blue-50 text-blue-800',
+  Regular: 'bg-sky-50 text-sky-800',
+  'En Prueba': 'bg-yellow-50 text-yellow-800',
+  'En Riesgo': 'bg-orange-100 text-orange-900',
+  Dormido: 'bg-red-100 text-red-900',
+  Perdido: 'bg-gray-100 text-gray-800',
+  'Pre-sistema': 'bg-purple-50 text-purple-800',
+};
+
+// Detecta si el evento de teclado se originó en un input/textarea para
+// no disparar atajos mientras el operador escribe.
+const isTypingTarget = (target: EventTarget | null): boolean => {
+  if (!(target instanceof HTMLElement)) return false;
+  const tag = target.tagName.toLowerCase();
+  return tag === 'input' || tag === 'textarea' || target.isContentEditable;
+};
+
+export function TarjetaCliente({
+  contacto,
+  disabled,
+  onEnviado,
+  onOmitir,
+  onNoAplica,
+}: TarjetaClienteProps) {
+  const { cliente, perfil_resumen: perfil, mensaje_renderizado } = contacto;
+  const badge = valorColor[perfil.estado_valor] ?? 'bg-slate-100 text-slate-800';
+  const nombreCorto = cliente.nombre.split(' ')[0];
+
+  // Edición del mensaje — persistido en localStorage por contacto_id
+  // (si Deborah cierra el navegador en mitad de una edición, retoma).
+  const [editando, setEditando] = useState(false);
+  const [textoEditado, setTextoEditado, clearDraftEditado] = useDraftStore(
+    contacto.id,
+    mensaje_renderizado
+  );
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+
+  // Si al cargar el contacto ya hay un borrador persistido distinto del original,
+  // abrir el editor automáticamente — señal de que la sesión anterior estaba editando.
+  useEffect(() => {
+    if (textoEditado !== mensaje_renderizado) {
+      setEditando(true);
+    }
+    // intencional: solo al cambiar de contacto
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [contacto.id]);
+
+  // Explicación generada por IA (stub por ahora)
+  const [explicacion, setExplicacion] = useState<string | null>(null);
+  const [cargandoExpl, setCargandoExpl] = useState(false);
+
+  // Toast simple de copia (se borra solo)
+  const [toast, setToast] = useState<string | null>(null);
+
+  // Al cambiar de contacto, resetear UI estado (la edición persistida ya viene
+  // del hook useDraftStore que lee localStorage del nuevo contacto.id).
+  useEffect(() => {
+    setEditando(false);
+    setExplicacion(null);
+  }, [contacto.id]);
+
+  // Cargar explicación con lazy fetch al montar (no bloquea el render principal)
+  useEffect(() => {
+    let cancelado = false;
+    setCargandoExpl(true);
+    fetchExplicacion(contacto.id)
+      .then((r) => {
+        if (!cancelado) setExplicacion(r.explicacion || '');
+      })
+      .catch(() => {
+        if (!cancelado) setExplicacion('');
+      })
+      .finally(() => {
+        if (!cancelado) setCargandoExpl(false);
+      });
+    return () => {
+      cancelado = true;
+    };
+  }, [contacto.id]);
+
+  // Auto-focus en textarea al entrar en modo edición
+  useEffect(() => {
+    if (editando && textareaRef.current) {
+      textareaRef.current.focus();
+      // Mover cursor al final
+      const len = textareaRef.current.value.length;
+      textareaRef.current.setSelectionRange(len, len);
+    }
+  }, [editando]);
+
+  // Mostrar toast por 2s
+  const showToast = useCallback((msg: string) => {
+    setToast(msg);
+    window.setTimeout(() => setToast(null), 2000);
+  }, []);
+
+  const textoActual = editando ? textoEditado : mensaje_renderizado;
+  const textoFueEditado = textoEditado !== mensaje_renderizado;
+
+  const handleCopiar = useCallback(async () => {
+    try {
+      await navigator.clipboard.writeText(textoActual);
+      showToast('Mensaje copiado');
+    } catch {
+      showToast('No pude copiar — copia manualmente');
+    }
+  }, [textoActual, showToast]);
+
+  const handleAbrirWhatsApp = useCallback(() => {
+    const tel = cliente.telefono_limpio || cliente.telefono.replace(/\D/g, '');
+    const url = `https://wa.me/${tel}?text=${encodeURIComponent(textoActual)}`;
+    window.open(url, '_blank', 'noopener,noreferrer');
+  }, [cliente, textoActual]);
+
+  const handleEnviadoLocal = useCallback(() => {
+    onEnviado(contacto, textoFueEditado ? textoEditado : undefined);
+    // El draft ya cumplió su propósito (mensaje enviado real), limpiar storage.
+    clearDraftEditado();
+  }, [contacto, onEnviado, textoFueEditado, textoEditado, clearDraftEditado]);
+
+  const handleToggleEdicion = useCallback(() => {
+    setEditando((e) => !e);
+  }, []);
+
+  const handleDescartarEdicion = useCallback(() => {
+    setTextoEditado(mensaje_renderizado);
+    clearDraftEditado();
+    setEditando(false);
+  }, [mensaje_renderizado, setTextoEditado, clearDraftEditado]);
+
+  // Atajos de teclado: Enter (enviado), S (saltar), N (no aplica), E (editar).
+  // Solo si el foco NO está en input/textarea (para no chocar con la edición).
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (disabled) return;
+      if (isTypingTarget(e.target)) return;
+
+      switch (e.key.toLowerCase()) {
+        case 'enter':
+          e.preventDefault();
+          handleEnviadoLocal();
+          break;
+        case 's':
+          e.preventDefault();
+          onOmitir(contacto);
+          break;
+        case 'n':
+          e.preventDefault();
+          onNoAplica(contacto);
+          break;
+        case 'e':
+          e.preventDefault();
+          handleToggleEdicion();
+          break;
+        case 'c':
+          // Solo Ctrl/Cmd+C es nativo; sin modificador, c = copiar mensaje
+          if (!e.metaKey && !e.ctrlKey) {
+            e.preventDefault();
+            handleCopiar();
+          }
+          break;
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [
+    disabled,
+    contacto,
+    handleEnviadoLocal,
+    onOmitir,
+    onNoAplica,
+    handleToggleEdicion,
+    handleCopiar,
+  ]);
+
+  return (
+    <Card className="relative overflow-hidden">
+      <CardHeader className="border-b bg-slate-50 pb-4">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <CardTitle className="text-xl">{cliente.nombre}</CardTitle>
+            <a
+              href={`https://wa.me/${cliente.telefono_limpio}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-1 inline-flex items-center gap-1 text-sm text-emerald-700 hover:underline"
+              title="Abrir chat en WhatsApp"
+            >
+              {cliente.telefono} <ExternalLink className="h-3 w-3" />
+            </a>
+          </div>
+          <span
+            className={`rounded-full px-3 py-1 text-xs font-medium ${badge}`}
+          >
+            {perfil.estado_valor}
+          </span>
+        </div>
+      </CardHeader>
+
+      <CardContent className="space-y-6 p-6">
+        {/* Perfil resumen */}
+        <section className="rounded-lg border border-slate-200 bg-white p-4 text-sm">
+          <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+            Perfil
+          </h3>
+          <ul className="grid grid-cols-1 gap-1 sm:grid-cols-2">
+            <li>
+              <strong>Cohorte:</strong> {perfil.cohorte}
+            </li>
+            <li>
+              <strong>Visitas:</strong> {perfil.visitas_totales} ·{' '}
+              <strong>Gasto:</strong> $
+              {perfil.gasto_historico.toLocaleString('es-CL')}
+            </li>
+            <li>
+              <strong>Última visita:</strong>{' '}
+              {perfil.ultima_visita_humanizada || perfil.ultima_visita} (
+              {perfil.dias_sin_venir} días)
+            </li>
+            {perfil.patron_habitual && (
+              <li>
+                <strong>Patrón:</strong> {perfil.patron_habitual}
+              </li>
+            )}
+          </ul>
+          {perfil.servicios_favoritos && perfil.servicios_favoritos.length > 0 && (
+            <p className="mt-2 text-xs text-slate-500">
+              <strong>Favoritos:</strong>{' '}
+              {perfil.servicios_favoritos.join(', ')}
+            </p>
+          )}
+        </section>
+
+        {/* Mensaje sugerido */}
+        <section>
+          <div className="mb-2 flex items-center justify-between">
+            <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+              Mensaje sugerido (script {contacto.script_id} · salva{' '}
+              {contacto.salva}){textoFueEditado && ' · editado'}
+            </h3>
+            <div className="flex gap-1">
+              {!editando ? (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleToggleEdicion}
+                  title="Editar (E)"
+                  className="h-7 px-2"
+                >
+                  <Edit3 className="h-3.5 w-3.5" />
+                </Button>
+              ) : (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleDescartarEdicion}
+                  title="Descartar cambios"
+                  className="h-7 px-2 text-slate-500"
+                >
+                  <Undo2 className="h-3.5 w-3.5" />
+                </Button>
+              )}
+            </div>
+          </div>
+
+          {editando ? (
+            <div className="space-y-2">
+              <textarea
+                ref={textareaRef}
+                value={textoEditado}
+                onChange={(e) => setTextoEditado(e.target.value)}
+                rows={Math.max(5, textoEditado.split('\n').length + 1)}
+                className="w-full resize-y rounded-lg border border-slate-300 bg-white p-3 font-sans text-sm leading-relaxed text-slate-800 focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
+              />
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setEditando(false)}
+                className="text-xs"
+              >
+                <Save className="mr-1 h-3.5 w-3.5" />
+                Listo, mensaje editado
+              </Button>
+            </div>
+          ) : (
+            <pre className="whitespace-pre-wrap rounded-lg border border-slate-200 bg-slate-50 p-4 font-sans text-sm leading-relaxed text-slate-800">
+              {mensaje_renderizado}
+            </pre>
+          )}
+
+          <div className="mt-3 flex flex-wrap gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleCopiar}
+              disabled={disabled}
+              title="Copiar mensaje (C)"
+            >
+              <Copy className="mr-2 h-3.5 w-3.5" />
+              Copiar mensaje
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleAbrirWhatsApp}
+              disabled={disabled}
+              title="Abrir WhatsApp con mensaje pre-cargado"
+            >
+              <ExternalLink className="mr-2 h-3.5 w-3.5" />
+              Abrir WhatsApp con mensaje
+            </Button>
+          </div>
+        </section>
+
+        {/* Por qué este mensaje (IA) */}
+        {(cargandoExpl || explicacion) && (
+          <section className="rounded-lg border border-amber-100 bg-amber-50 p-3 text-xs text-amber-900">
+            <div className="mb-1 flex items-center gap-1 font-semibold uppercase tracking-wide">
+              <Sparkles className="h-3.5 w-3.5" /> Por qué este mensaje
+            </div>
+            {cargandoExpl ? (
+              <p className="flex items-center gap-2 text-amber-700">
+                <Loader2 className="h-3 w-3 animate-spin" /> Generando…
+              </p>
+            ) : explicacion ? (
+              <p className="leading-relaxed">{explicacion}</p>
+            ) : (
+              <p className="text-amber-700">
+                (sin explicación disponible — el endpoint LLM aún es stub)
+              </p>
+            )}
+          </section>
+        )}
+
+        {/* Acciones principales */}
+        <div className="flex flex-wrap items-center justify-end gap-2 border-t pt-4">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => onNoAplica(contacto)}
+            disabled={disabled}
+            title="No aplica (N)"
+          >
+            <XCircle className="mr-2 h-4 w-4" />
+            No aplica · <kbd className="ml-1 text-[10px] opacity-60">N</kbd>
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => onOmitir(contacto)}
+            disabled={disabled}
+            title="Saltar (S)"
+          >
+            <SkipForward className="mr-2 h-4 w-4" />
+            Saltar · <kbd className="ml-1 text-[10px] opacity-60">S</kbd>
+          </Button>
+          <Button
+            size="sm"
+            onClick={handleEnviadoLocal}
+            disabled={disabled}
+            title="Ya le escribí (Enter)"
+          >
+            <CheckCircle2 className="mr-2 h-4 w-4" />
+            Ya le escribí a {nombreCorto} ·{' '}
+            <kbd className="ml-1 text-[10px] opacity-60">Enter</kbd>
+          </Button>
+        </div>
+
+        {/* Atajos de teclado, recordatorio sutil */}
+        <p className="text-center text-[11px] text-slate-400">
+          Atajos: <kbd>Enter</kbd> enviado · <kbd>S</kbd> saltar ·{' '}
+          <kbd>N</kbd> no aplica · <kbd>E</kbd> editar · <kbd>C</kbd> copiar
+        </p>
+      </CardContent>
+
+      {/* Toast flotante */}
+      {toast && (
+        <div className="pointer-events-none absolute right-4 top-4 rounded-md bg-slate-900 px-3 py-1.5 text-xs text-white shadow-lg">
+          {toast}
+        </div>
+      )}
+    </Card>
+  );
+}

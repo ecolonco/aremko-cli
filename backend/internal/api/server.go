@@ -111,6 +111,19 @@ func (s *Server) setupRoutes() {
 		r.Get("/clients/cohort", handlers.ClientsCohort(s.config))
 		r.Post("/analytics/profiles/analyze", handlers.AnalyzeProfiles(s.config))
 
+		// Operación Vuelta a Casa — Asistente Deborah (9 endpoints)
+		r.Route("/ovc", func(r chi.Router) {
+			r.Get("/bandeja-whatsapp/siguiente", handlers.OVCSiguiente(s.config))
+			r.Post("/bandeja-whatsapp/{contactoID}/marcar-enviado", handlers.OVCMarcarEnviado(s.config))
+			r.Post("/bandeja-whatsapp/{contactoID}/marcar-omitido", handlers.OVCMarcarOmitido(s.config))
+			r.Post("/bandeja-whatsapp/{contactoID}/marcar-no-aplica", handlers.OVCMarcarNoAplica(s.config))
+			r.Post("/bandeja-whatsapp/{contactoID}/registrar-respuesta", handlers.OVCRegistrarRespuesta(s.config))
+			r.Get("/bandeja-whatsapp/explicacion/{contactoID}", handlers.OVCExplicacion(s.config))
+			r.Get("/bandeja-whatsapp/resumen-dia", handlers.OVCResumenDia(s.config))
+			r.Get("/movimientos", handlers.OVCMovimientos(s.config))
+			r.Get("/scripts-estadisticas", handlers.OVCScriptsEstadisticas(s.config))
+		})
+
 		// Stats endpoints (próximamente)
 		r.Get("/stats/overview", handlers.GetStatsOverview(s.config))
 	})

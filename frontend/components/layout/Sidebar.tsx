@@ -12,6 +12,7 @@ import {
   ArrowRightOnRectangleIcon,
   XMarkIcon,
   BookOpenIcon,
+  ChatBubbleLeftRightIcon,
 } from '@heroicons/react/24/outline';
 import { UserRole } from '@/lib/types/user';
 import { signOut } from 'next-auth/react';
@@ -29,22 +30,27 @@ const navigation = {
   jorge: [
     { name: 'Informes', href: '/dashboard/jorge/brief', icon: DocumentTextIcon },
     { name: 'Perfiles', href: '/dashboard/jorge/perfiles', icon: UsersIcon },
+    { name: 'Bandeja WhatsApp', href: '/dashboard/jorge/perfiles/bandeja', icon: ChatBubbleLeftRightIcon },
+    { name: 'Tableros Bandeja', href: '/dashboard/jorge/perfiles/tableros', icon: ChartBarIcon },
     { name: 'Aremko-CLI Sistema', href: '/dashboard/jorge/sistema', icon: BookOpenIcon },
     { name: 'Configuración', href: '/dashboard/jorge/settings', icon: CogIcon },
   ],
   deborah: [
     { name: 'Dashboard', href: '/dashboard/deborah', icon: HomeIcon },
+    { name: 'Bandeja WhatsApp', href: '/dashboard/jorge/perfiles/bandeja', icon: ChatBubbleLeftRightIcon },
     { name: 'Ventas', href: '/dashboard/deborah/sales', icon: ChartBarIcon },
     { name: 'Campañas', href: '/dashboard/deborah/campaigns', icon: MegaphoneIcon },
   ],
   angelica: [
     { name: 'Dashboard', href: '/dashboard/angelica', icon: HomeIcon },
+    { name: 'Bandeja WhatsApp', href: '/dashboard/jorge/perfiles/bandeja', icon: ChatBubbleLeftRightIcon },
     { name: 'Contenido', href: '/dashboard/angelica/content', icon: DocumentTextIcon },
     { name: 'Campañas', href: '/dashboard/angelica/campaigns', icon: MegaphoneIcon },
     { name: 'Analytics', href: '/dashboard/angelica/analytics', icon: ChartBarIcon },
   ],
   ernesto: [
     { name: 'Dashboard', href: '/dashboard/ernesto', icon: HomeIcon },
+    { name: 'Bandeja WhatsApp', href: '/dashboard/jorge/perfiles/bandeja', icon: ChatBubbleLeftRightIcon },
     { name: 'Operaciones', href: '/dashboard/ernesto/operations', icon: CogIcon },
     { name: 'Reservas', href: '/dashboard/ernesto/bookings', icon: DocumentTextIcon },
   ],

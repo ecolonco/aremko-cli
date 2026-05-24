@@ -52,6 +52,17 @@ export default auth((req) => {
     return NextResponse.redirect(new URL('/login', nextUrl.origin));
   }
 
+  // Excepción: la Bandeja WhatsApp de Operación Vuelta a Casa es compartida —
+  // cualquier operador autenticado (Deborah, Angélica, Ernesto, Jorge) puede
+  // trabajarla. El backend registra el username de quien actúa, así medimos
+  // desempeño por persona.
+  if (
+    isLoggedIn &&
+    nextUrl.pathname.startsWith('/dashboard/jorge/perfiles/bandeja')
+  ) {
+    return NextResponse.next();
+  }
+
   // Verificar permisos de acceso a dashboards específicos
   if (isProtectedRoute && isLoggedIn) {
     const user = req.auth?.user;

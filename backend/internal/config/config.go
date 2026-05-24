@@ -23,6 +23,9 @@ type Config struct {
 	// Booking System (Django)
 	BookingSystemURL string
 
+	// Auth para endpoints write de Operación Vuelta a Casa (header X-API-KEY)
+	AutomationAPIKey string
+
 	// Database
 	DatabaseURL string
 
@@ -54,6 +57,7 @@ func LoadConfig() (*Config, error) {
 		OpenRouterAPIKey:   getEnvOrDefault("OPENROUTER_API_KEY", ""),
 		OpenRouterBaseURL:  getEnvOrDefault("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1"),
 		BookingSystemURL:   getEnvOrDefault("BOOKING_SYSTEM_URL", "http://localhost:8002"),
+		AutomationAPIKey:   getEnvOrDefault("AUTOMATION_API_KEY", ""),
 		DatabaseURL:        getEnvOrDefault("DATABASE_URL", "postgres://localhost/aremko?sslmode=disable"),
 		Port:               getEnvOrDefault("PORT", "8080"),
 		Environment:        getEnvOrDefault("ENVIRONMENT", "development"),
