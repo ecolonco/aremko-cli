@@ -255,7 +255,8 @@ export default function BandejaPage() {
         <Card className="border-emerald-200">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-emerald-900">
-              <Sparkles className="h-5 w-5" /> ¡Listo, Deborah!
+              <Sparkles className="h-5 w-5" /> ¡Listo,{' '}
+              {operadorNombre?.split(' ')[0] || operador}!
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4 text-sm text-slate-700">
