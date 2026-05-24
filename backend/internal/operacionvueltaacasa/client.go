@@ -204,6 +204,23 @@ type RegistrarRespuestaRequest struct {
 	Operador       string `json:"operador"`
 }
 
+// BloquearClienteRequest es el body de POST /bloquear-cliente/.
+// Ambos campos son opcionales según el backend.
+type BloquearClienteRequest struct {
+	Operador string `json:"operador,omitempty"`
+	Razon    string `json:"razon,omitempty"`
+}
+
+// BloquearClienteResponse incluye 2 flags para distinguir efectos reales
+// de idempotencia / contactos ya enviados.
+type BloquearClienteResponse struct {
+	Success              bool `json:"success"`
+	ClienteID            int  `json:"cliente_id"`
+	ClienteBloqueado     bool `json:"cliente_bloqueado"`      // false si ya estaba bloqueado
+	ContactoID           int  `json:"contacto_id"`
+	ContactoActualizado  bool `json:"contacto_actualizado"`   // false si ya estaba enviado
+}
+
 // ============================================================================
 // Helper interno: build request con auth
 // ============================================================================
@@ -415,6 +432,27 @@ func (c *Client) GetMovimientos(desde, hasta string) (*MovimientosResponse, erro
 	}
 	if status != http.StatusOK {
 		return nil, fmt.Errorf("movimientos returned %d: %s", status, string(body))
+	}
+	return &result, nil
+}
+
+// BloquearCliente marca permanentemente al cliente como opt_out_whatsapp=true
+// y, si el contacto está pendiente, lo marca como no_aplica.
+// Idempotente: bloquear 2 veces devuelve cliente_bloqueado=false la 2ª vez.
+// Si el contacto ya fue enviado, bloquea al cliente pero respeta el estado del contacto.
+func (c *Client) BloquearCliente(contactoID int, body BloquearClienteRequest) (*BloquearClienteResponse, error) {
+	path := fmt.Sprintf("/bandeja-whatsapp/%d/bloquear-cliente/", contactoID)
+	req, err := c.buildRequest("POST", path, body)
+	if err != nil {
+		return nil, err
+	}
+	var result BloquearClienteResponse
+	status, rawBody, err := c.doJSON(req, &result)
+	if err != nil {
+		return nil, err
+	}
+	if status != http.StatusOK {
+		return nil, fmt.Errorf("bloquear-cliente returned %d: %s", status, string(rawBody))
 	}
 	return &result, nil
 }

@@ -262,6 +262,45 @@ func OVCRegistrarRespuesta(cfg *config.Config) http.HandlerFunc {
 }
 
 // ============================================================================
+// 5.bis POST /{contactoID}/bloquear-cliente/  (Etapa 5.5.2 — bloqueo permanente)
+// ============================================================================
+
+func OVCBloquearCliente(cfg *config.Config) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		client, err := newOVCClient(cfg)
+		if err != nil {
+			respondJSON(w, http.StatusServiceUnavailable, map[string]interface{}{
+				"success": false, "error": err.Error(),
+			})
+			return
+		}
+		contactoID, err := extractContactoID(r)
+		if err != nil {
+			respondJSON(w, http.StatusBadRequest, map[string]interface{}{
+				"success": false, "error": err.Error(),
+			})
+			return
+		}
+		var body ovc.BloquearClienteRequest
+		_ = decodeJSONBody(r, &body)
+		// operador y razon son opcionales según el backend Django.
+		if strings.TrimSpace(body.Operador) == "" {
+			body.Operador = "anonimo"
+		}
+		result, err := client.BloquearCliente(contactoID, body)
+		if err != nil {
+			respondJSON(w, http.StatusBadGateway, map[string]interface{}{
+				"success": false, "error": err.Error(),
+			})
+			return
+		}
+		respondJSON(w, http.StatusOK, map[string]interface{}{
+			"success": true, "data": result,
+		})
+	}
+}
+
+// ============================================================================
 // 6. GET /explicacion/{contactoID}/
 // ============================================================================
 

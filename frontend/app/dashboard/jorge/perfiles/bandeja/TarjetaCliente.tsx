@@ -14,6 +14,7 @@ import {
   Undo2,
   Sparkles,
   Loader2,
+  Ban,
 } from 'lucide-react';
 import type { Contacto } from './types';
 import { fetchExplicacion } from './api';
@@ -25,6 +26,7 @@ interface TarjetaClienteProps {
   onEnviado: (contacto: Contacto, mensajeEditado?: string) => void;
   onOmitir: (contacto: Contacto) => void;
   onNoAplica: (contacto: Contacto) => void;
+  onBloquear: (contacto: Contacto) => void;
 }
 
 const valorColor: Record<string, string> = {
@@ -53,6 +55,7 @@ export function TarjetaCliente({
   onEnviado,
   onOmitir,
   onNoAplica,
+  onBloquear,
 }: TarjetaClienteProps) {
   const { cliente, perfil_resumen: perfil, mensaje_renderizado } = contacto;
   const badge = valorColor[perfil.estado_valor] ?? 'bg-slate-100 text-slate-800';
@@ -180,6 +183,10 @@ export function TarjetaCliente({
           e.preventDefault();
           onNoAplica(contacto);
           break;
+        case 'b':
+          e.preventDefault();
+          onBloquear(contacto);
+          break;
         case 'e':
           e.preventDefault();
           handleToggleEdicion();
@@ -201,6 +208,7 @@ export function TarjetaCliente({
     handleEnviadoLocal,
     onOmitir,
     onNoAplica,
+    onBloquear,
     handleToggleEdicion,
     handleCopiar,
   ]);
@@ -365,43 +373,60 @@ export function TarjetaCliente({
         )}
 
         {/* Acciones principales */}
-        <div className="flex flex-wrap items-center justify-end gap-2 border-t pt-4">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-t pt-4">
+          {/* Bloqueo permanente — a la izquierda, separado y rojo para evitar mis-click */}
           <Button
-            variant="outline"
+            variant="ghost"
             size="sm"
-            onClick={() => onNoAplica(contacto)}
+            onClick={() => onBloquear(contacto)}
             disabled={disabled}
-            title="No aplica (N)"
+            title="No volver a contactar — bloqueo permanente (B)"
+            className="text-red-700 hover:bg-red-50 hover:text-red-800"
           >
-            <XCircle className="mr-2 h-4 w-4" />
-            No aplica · <kbd className="ml-1 text-[10px] opacity-60">N</kbd>
+            <Ban className="mr-2 h-4 w-4" />
+            No volver a contactar ·{' '}
+            <kbd className="ml-1 text-[10px] opacity-60">B</kbd>
           </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => onOmitir(contacto)}
-            disabled={disabled}
-            title="Saltar (S)"
-          >
-            <SkipForward className="mr-2 h-4 w-4" />
-            Saltar · <kbd className="ml-1 text-[10px] opacity-60">S</kbd>
-          </Button>
-          <Button
-            size="sm"
-            onClick={handleEnviadoLocal}
-            disabled={disabled}
-            title="Ya le escribí (Enter)"
-          >
-            <CheckCircle2 className="mr-2 h-4 w-4" />
-            Ya le escribí a {nombreCorto} ·{' '}
-            <kbd className="ml-1 text-[10px] opacity-60">Enter</kbd>
-          </Button>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onNoAplica(contacto)}
+              disabled={disabled}
+              title="No aplica — 90 días sin contactar (N)"
+            >
+              <XCircle className="mr-2 h-4 w-4" />
+              No aplica · <kbd className="ml-1 text-[10px] opacity-60">N</kbd>
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onOmitir(contacto)}
+              disabled={disabled}
+              title="Saltar (S)"
+            >
+              <SkipForward className="mr-2 h-4 w-4" />
+              Saltar · <kbd className="ml-1 text-[10px] opacity-60">S</kbd>
+            </Button>
+            <Button
+              size="sm"
+              onClick={handleEnviadoLocal}
+              disabled={disabled}
+              title="Ya le escribí (Enter)"
+            >
+              <CheckCircle2 className="mr-2 h-4 w-4" />
+              Ya le escribí a {nombreCorto} ·{' '}
+              <kbd className="ml-1 text-[10px] opacity-60">Enter</kbd>
+            </Button>
+          </div>
         </div>
 
         {/* Atajos de teclado, recordatorio sutil */}
         <p className="text-center text-[11px] text-slate-400">
           Atajos: <kbd>Enter</kbd> enviado · <kbd>S</kbd> saltar ·{' '}
-          <kbd>N</kbd> no aplica · <kbd>E</kbd> editar · <kbd>C</kbd> copiar
+          <kbd>N</kbd> no aplica · <kbd>B</kbd> bloquear · <kbd>E</kbd> editar
+          · <kbd>C</kbd> copiar
         </p>
       </CardContent>
 

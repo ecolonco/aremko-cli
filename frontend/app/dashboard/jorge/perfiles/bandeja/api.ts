@@ -109,6 +109,28 @@ export const registrarRespuesta = (
   );
 
 // ====================================================================
+// 5.bis POST bloquear-cliente (Etapa 5.5.2 — bloqueo permanente)
+// ====================================================================
+
+export interface BloquearClienteResponse {
+  success: boolean;
+  cliente_id: number;
+  cliente_bloqueado: boolean; // false si ya estaba bloqueado (idempotente)
+  contacto_id: number;
+  contacto_actualizado: boolean; // false si contacto ya enviado
+}
+
+export const bloquearCliente = (
+  contactoID: number,
+  operador: string,
+  razon?: string
+) =>
+  postJSON<BloquearClienteResponse>(
+    `${OVC}/bandeja-whatsapp/${contactoID}/bloquear-cliente`,
+    { operador, razon }
+  );
+
+// ====================================================================
 // 6. GET explicacion (stub por ahora)
 // ====================================================================
 export interface ExplicacionResponse {

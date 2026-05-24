@@ -118,6 +118,7 @@ func (s *Server) setupRoutes() {
 			r.Post("/bandeja-whatsapp/{contactoID}/marcar-omitido", handlers.OVCMarcarOmitido(s.config))
 			r.Post("/bandeja-whatsapp/{contactoID}/marcar-no-aplica", handlers.OVCMarcarNoAplica(s.config))
 			r.Post("/bandeja-whatsapp/{contactoID}/registrar-respuesta", handlers.OVCRegistrarRespuesta(s.config))
+			r.Post("/bandeja-whatsapp/{contactoID}/bloquear-cliente", handlers.OVCBloquearCliente(s.config))
 			r.Get("/bandeja-whatsapp/explicacion/{contactoID}", handlers.OVCExplicacion(s.config))
 			r.Get("/bandeja-whatsapp/resumen-dia", handlers.OVCResumenDia(s.config))
 			r.Get("/movimientos", handlers.OVCMovimientos(s.config))

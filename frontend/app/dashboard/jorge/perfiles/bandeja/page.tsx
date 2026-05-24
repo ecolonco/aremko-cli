@@ -18,6 +18,7 @@ import {
   marcarOmitido,
   marcarNoAplica,
   registrarRespuesta,
+  bloquearCliente,
 } from './api';
 import type {
   Contacto,
@@ -127,6 +128,33 @@ export default function BandejaPage() {
       irATransicion(`No aplica: ${contacto.cliente.nombre.split(' ')[0]}`);
     } catch (e: unknown) {
       alert(`Error: ${e instanceof Error ? e.message : String(e)}`);
+    } finally {
+      setActuando(false);
+    }
+  };
+
+  const handleBloquear = async (contacto: Contacto) => {
+    const razon = window.prompt(
+      `BLOQUEO PERMANENTE de ${contacto.cliente.nombre}.\n\nNo recibirá más WhatsApp nunca, salvo intervención manual en admin Django.\n\n¿Por qué bloqueas? (cliente proxy, número malo, fallecimiento, etc.)`,
+      ''
+    );
+    if (razon === null) return; // canceló
+    if (actuando) return;
+    setActuando(true);
+    try {
+      const res = await bloquearCliente(
+        contacto.id,
+        operador,
+        razon || undefined
+      );
+      const nombreCorto = contacto.cliente.nombre.split(' ')[0];
+      if (res.data?.cliente_bloqueado === false) {
+        irATransicion(`${nombreCorto} ya estaba bloqueado`);
+      } else {
+        irATransicion(`Bloqueado: ${nombreCorto}`);
+      }
+    } catch (e: unknown) {
+      alert(`Error al bloquear: ${e instanceof Error ? e.message : String(e)}`);
     } finally {
       setActuando(false);
     }
@@ -377,6 +405,7 @@ export default function BandejaPage() {
           onEnviado={handleEnviado}
           onOmitir={handleOmitir}
           onNoAplica={handleNoAplica}
+          onBloquear={handleBloquear}
         />
       )}
     </div>
