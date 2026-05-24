@@ -124,6 +124,7 @@ export type EstadoContacto =
 // Incluye estado actual + metadatos de quién y cuándo.
 export interface ContactoHistorial extends Omit<Contacto, 'mensaje_enviado_editado'> {
   estado: EstadoContacto;
+  fecha_sugerido?: string;
   fecha_envio?: string;
   operador?: string;
   mensaje_enviado_editado?: string;
@@ -144,5 +145,6 @@ export interface DelDiaResponse {
     pendientes: number;
     descartados: number;
   };
+  limit_aplicado: number;
   contactos: ContactoHistorial[];
 }

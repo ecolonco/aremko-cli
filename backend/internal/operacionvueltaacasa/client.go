@@ -446,6 +446,7 @@ type ContactoHistorial struct {
 	MensajeRenderizado    string         `json:"mensaje_renderizado"`
 	MensajeEnviadoEditado string         `json:"mensaje_enviado_editado,omitempty"`
 	Prioridad             int            `json:"prioridad"`
+	FechaSugerido         string         `json:"fecha_sugerido,omitempty"`
 	Estado                string         `json:"estado"`
 	FechaEnvio            string         `json:"fecha_envio,omitempty"`
 	Operador              string         `json:"operador,omitempty"`
@@ -466,11 +467,12 @@ type DelDiaStats struct {
 
 // DelDiaResponse es el shape del endpoint /bandeja-whatsapp/del-dia/.
 type DelDiaResponse struct {
-	Fecha           string              `json:"fecha"`
-	OperadorFiltro  string              `json:"operador_filtro,omitempty"`
-	Total           int                 `json:"total"`
-	Stats           DelDiaStats         `json:"stats"`
-	Contactos       []ContactoHistorial `json:"contactos"`
+	Fecha          string              `json:"fecha"`
+	OperadorFiltro string              `json:"operador_filtro,omitempty"`
+	Total          int                 `json:"total"`
+	Stats          DelDiaStats         `json:"stats"`
+	LimitAplicado  int                 `json:"limit_aplicado"`
+	Contactos      []ContactoHistorial `json:"contactos"`
 }
 
 // DelDiaOptions son los parámetros para GetDelDia.

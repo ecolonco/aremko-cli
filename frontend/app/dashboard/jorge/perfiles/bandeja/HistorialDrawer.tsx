@@ -330,6 +330,17 @@ export function HistorialDrawer({
     if (open) cargar();
   }, [open, cargar]);
 
+  // Polling cada 30s mientras el drawer esté abierto y NO haya una fila
+  // expandida (señal de que el operador puede estar leyendo/editando algo).
+  useEffect(() => {
+    if (!open) return;
+    if (expandedID !== null) return; // pausar polling si está editando
+    const interval = setInterval(() => {
+      cargar();
+    }, 30_000);
+    return () => clearInterval(interval);
+  }, [open, expandedID, cargar]);
+
   const contactosFiltrados = useMemo(() => {
     if (!data) return [];
     if (filtroEstado === 'todos') return data.contactos;
@@ -449,20 +460,29 @@ export function HistorialDrawer({
               No hay contactos que coincidan con los filtros.
             </p>
           ) : (
-            <div>
-              {contactosFiltrados.map((c) => (
-                <FilaContacto
-                  key={c.id}
-                  contacto={c}
-                  expanded={expandedID === c.id}
-                  onToggle={() =>
-                    setExpandedID(expandedID === c.id ? null : c.id)
-                  }
-                  operadorActivo={operadorActivo}
-                  onAccion={handleAccionExitosa}
-                />
-              ))}
-            </div>
+            <>
+              {/* Aviso si el endpoint truncó por limit */}
+              {data && data.total > data.contactos.length && (
+                <p className="border-b border-amber-200 bg-amber-50 px-4 py-2 text-[11px] text-amber-800">
+                  Mostrando {data.contactos.length} de {data.total} contactos del día
+                  (límite {data.limit_aplicado}). Usá los filtros para acotar.
+                </p>
+              )}
+              <div>
+                {contactosFiltrados.map((c) => (
+                  <FilaContacto
+                    key={c.id}
+                    contacto={c}
+                    expanded={expandedID === c.id}
+                    onToggle={() =>
+                      setExpandedID(expandedID === c.id ? null : c.id)
+                    }
+                    operadorActivo={operadorActivo}
+                    onAccion={handleAccionExitosa}
+                  />
+                ))}
+              </div>
+            </>
           )}
         </div>
       </aside>
