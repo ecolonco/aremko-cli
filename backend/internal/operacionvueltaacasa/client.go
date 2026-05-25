@@ -537,6 +537,44 @@ func (c *Client) BloquearCliente(contactoID int, body BloquearClienteRequest) (*
 	return &result, nil
 }
 
+// ActualizarUbicacionRequest es el body del endpoint /clientes/{id}/actualizar-ubicacion/.
+type ActualizarUbicacionRequest struct {
+	Ciudad   string `json:"ciudad"`
+	Operador string `json:"operador,omitempty"`
+}
+
+// ActualizarUbicacionResponse es el shape del response. match_score es null
+// en v1 (Django sin rapidfuzz); reservado para futuro fuzzy matching.
+type ActualizarUbicacionResponse struct {
+	Success          bool     `json:"success"`
+	ClienteID        int      `json:"cliente_id"`
+	CiudadInput      string   `json:"ciudad_input"`
+	RegionGeografica string   `json:"region_geografica"`
+	CiudadCanonica   *string  `json:"ciudad_canonica"`
+	MatchMethod      string   `json:"match_method"` // canonico | alias | extranjero_texto | no_match
+	MatchScore       *float64 `json:"match_score"`
+}
+
+// ActualizarUbicacion permite al operador setear/corregir la ciudad de un
+// cliente desde la bandeja. El backend Django normaliza el texto (canónico /
+// alias / extranjero_texto / no_match) y persiste con ciudad_normalizada_manual=True.
+func (c *Client) ActualizarUbicacion(clienteID int, body ActualizarUbicacionRequest) (*ActualizarUbicacionResponse, error) {
+	path := fmt.Sprintf("/clientes/%d/actualizar-ubicacion/", clienteID)
+	req, err := c.buildRequest("POST", path, body)
+	if err != nil {
+		return nil, err
+	}
+	var result ActualizarUbicacionResponse
+	status, rawBody, err := c.doJSON(req, &result)
+	if err != nil {
+		return nil, err
+	}
+	if status != http.StatusOK {
+		return nil, fmt.Errorf("actualizar-ubicacion returned %d: %s", status, string(rawBody))
+	}
+	return &result, nil
+}
+
 // GetScriptsEstadisticas devuelve la performance de cada script en el período.
 // Solo devuelve scripts que tuvieron al menos un uso.
 func (c *Client) GetScriptsEstadisticas(desde, hasta string) (*ScriptsEstadisticasResponse, error) {

@@ -29,6 +29,7 @@ import type {
   TipoRespuesta,
 } from './types';
 import { RegionBadge } from './RegionBadge';
+import { EditorUbicacion } from './EditorUbicacion';
 
 interface HistorialDrawerProps {
   open: boolean;
@@ -75,6 +76,11 @@ interface FilaProps {
 function FilaContacto({ contacto, expanded, onToggle, operadorActivo, onAccion }: FilaProps) {
   const [trabajando, setTrabajando] = useState(false);
   const [tipoRespuestaSel, setTipoRespuestaSel] = useState<TipoRespuesta | ''>('');
+  // Override local de ciudad para feedback inmediato al editar
+  const [regionOverride, setRegionOverride] = useState<typeof contacto.cliente.region_geografica | null>(null);
+  const [ciudadOverride, setCiudadOverride] = useState<string | null>(null);
+  const regionDisplay = regionOverride ?? contacto.cliente.region_geografica;
+  const ciudadDisplay = ciudadOverride !== null ? ciudadOverride : contacto.cliente.ciudad_canonica;
 
   const badge = estadoBadge[contacto.estado];
   const Icon = badge.icon;
@@ -154,8 +160,8 @@ function FilaContacto({ contacto, expanded, onToggle, operadorActivo, onAccion }
               {contacto.cliente.nombre}
             </p>
             <RegionBadge
-              region={contacto.cliente.region_geografica}
-              ciudad={contacto.cliente.ciudad_canonica}
+              region={regionDisplay}
+              ciudad={ciudadDisplay}
               size="xs"
               showCiudad={false}
             />
@@ -208,9 +214,20 @@ function FilaContacto({ contacto, expanded, onToggle, operadorActivo, onAccion }
           <div className="grid grid-cols-2 gap-2 text-xs text-slate-600">
             <div className="col-span-2 flex items-center gap-2">
               <RegionBadge
-                region={contacto.cliente.region_geografica}
-                ciudad={contacto.cliente.ciudad_canonica}
+                region={regionDisplay}
+                ciudad={ciudadDisplay}
                 size="xs"
+              />
+              <EditorUbicacion
+                clienteID={contacto.cliente.id}
+                regionActual={regionDisplay}
+                ciudadActual={ciudadDisplay}
+                operador={operadorActivo}
+                onActualizada={(region, ciudad) => {
+                  setRegionOverride(region);
+                  setCiudadOverride(ciudad);
+                }}
+                modo="expandible"
               />
             </div>
             {contacto.operador && (

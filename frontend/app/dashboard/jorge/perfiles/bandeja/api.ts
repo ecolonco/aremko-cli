@@ -7,6 +7,7 @@ import type {
   ResumenDia,
   TipoRespuesta,
   DelDiaResponse,
+  RegionGeografica,
 } from './types';
 
 const apiBase = () =>
@@ -229,3 +230,28 @@ export const fetchScriptsEstadisticas = (desde: string, hasta: string) => {
     `${OVC}/scripts-estadisticas?${q}`
   );
 };
+
+// ====================================================================
+// 10. POST clientes/{id}/actualizar-ubicacion (Geo.4)
+// ====================================================================
+export type MatchMethod = 'canonico' | 'alias' | 'extranjero_texto' | 'no_match';
+
+export interface ActualizarUbicacionResponse {
+  success: boolean;
+  cliente_id: number;
+  ciudad_input: string;
+  region_geografica: RegionGeografica;
+  ciudad_canonica: string | null;
+  match_method: MatchMethod;
+  match_score: number | null;
+}
+
+export const actualizarUbicacion = (
+  clienteID: number,
+  ciudad: string,
+  operador: string
+) =>
+  postJSON<ActualizarUbicacionResponse>(
+    `${OVC}/clientes/${clienteID}/actualizar-ubicacion`,
+    { ciudad, operador }
+  );

@@ -16,14 +16,16 @@ import {
   Loader2,
   Ban,
 } from 'lucide-react';
-import type { Contacto } from './types';
+import type { Contacto, RegionGeografica } from './types';
 import { fetchExplicacion } from './api';
 import { useDraftStore } from './useDraftStore';
 import { RegionBadge } from './RegionBadge';
+import { EditorUbicacion } from './EditorUbicacion';
 
 interface TarjetaClienteProps {
   contacto: Contacto;
   disabled?: boolean;
+  operador: string;
   onEnviado: (contacto: Contacto, mensajeEditado?: string) => void;
   onOmitir: (contacto: Contacto) => void;
   onNoAplica: (contacto: Contacto) => void;
@@ -53,6 +55,7 @@ const isTypingTarget = (target: EventTarget | null): boolean => {
 export function TarjetaCliente({
   contacto,
   disabled,
+  operador,
   onEnviado,
   onOmitir,
   onNoAplica,
@@ -88,11 +91,23 @@ export function TarjetaCliente({
   // Toast simple de copia (se borra solo)
   const [toast, setToast] = useState<string | null>(null);
 
+  // Override local de la ubicación cuando el operador edita en vivo —
+  // permite que el badge se actualice inmediatamente sin esperar nuevo fetch.
+  const [regionOverride, setRegionOverride] = useState<RegionGeografica | null>(
+    null
+  );
+  const [ciudadOverride, setCiudadOverride] = useState<string | null>(null);
+  const regionDisplay = regionOverride ?? cliente.region_geografica;
+  const ciudadDisplay =
+    ciudadOverride !== null ? ciudadOverride : cliente.ciudad_canonica;
+
   // Al cambiar de contacto, resetear UI estado (la edición persistida ya viene
   // del hook useDraftStore que lee localStorage del nuevo contacto.id).
   useEffect(() => {
     setEditando(false);
     setExplicacion(null);
+    setRegionOverride(null);
+    setCiudadOverride(null);
   }, [contacto.id]);
 
   // Cargar explicación con lazy fetch al montar (no bloquea el render principal)
@@ -231,8 +246,8 @@ export function TarjetaCliente({
                 {cliente.telefono} <ExternalLink className="h-3 w-3" />
               </a>
               <RegionBadge
-                region={cliente.region_geografica}
-                ciudad={cliente.ciudad_canonica}
+                region={regionDisplay}
+                ciudad={ciudadDisplay}
               />
             </div>
           </div>
@@ -241,6 +256,19 @@ export function TarjetaCliente({
           >
             {perfil.estado_valor}
           </span>
+        </div>
+        {/* Editor de ciudad inline (prominente si sin_clasificar, link si ya está clasificado) */}
+        <div className="mt-3">
+          <EditorUbicacion
+            clienteID={cliente.id}
+            regionActual={regionDisplay}
+            ciudadActual={ciudadDisplay}
+            operador={operador}
+            onActualizada={(region, ciudad) => {
+              setRegionOverride(region);
+              setCiudadOverride(ciudad);
+            }}
+          />
         </div>
       </CardHeader>
 

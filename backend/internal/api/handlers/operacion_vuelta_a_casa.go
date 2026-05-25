@@ -346,6 +346,54 @@ func OVCBloquearCliente(cfg *config.Config) http.HandlerFunc {
 }
 
 // ============================================================================
+// Geo.4 POST /clientes/{clienteID}/actualizar-ubicacion/
+// ============================================================================
+
+func OVCActualizarUbicacion(cfg *config.Config) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		client, err := newOVCClient(cfg)
+		if err != nil {
+			respondJSON(w, http.StatusServiceUnavailable, map[string]interface{}{
+				"success": false, "error": err.Error(),
+			})
+			return
+		}
+		raw := chi.URLParam(r, "clienteID")
+		clienteID, err := strconv.Atoi(raw)
+		if err != nil || clienteID <= 0 {
+			respondJSON(w, http.StatusBadRequest, map[string]interface{}{
+				"success": false, "error": "clienteID inválido",
+			})
+			return
+		}
+		var body ovc.ActualizarUbicacionRequest
+		if err := decodeJSONBody(r, &body); err != nil {
+			respondJSON(w, http.StatusBadRequest, map[string]interface{}{
+				"success": false, "error": fmt.Sprintf("body inválido: %v", err),
+			})
+			return
+		}
+		if len(strings.TrimSpace(body.Ciudad)) < 2 {
+			respondJSON(w, http.StatusBadRequest, map[string]interface{}{
+				"success": false,
+				"error":   "ciudad debe tener al menos 2 caracteres",
+			})
+			return
+		}
+		result, err := client.ActualizarUbicacion(clienteID, body)
+		if err != nil {
+			respondJSON(w, http.StatusBadGateway, map[string]interface{}{
+				"success": false, "error": err.Error(),
+			})
+			return
+		}
+		respondJSON(w, http.StatusOK, map[string]interface{}{
+			"success": true, "data": result,
+		})
+	}
+}
+
+// ============================================================================
 // 6. GET /explicacion/{contactoID}/
 // ============================================================================
 

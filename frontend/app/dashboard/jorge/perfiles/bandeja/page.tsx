@@ -428,6 +428,7 @@ export default function BandejaPage() {
         <TarjetaCliente
           contacto={siguiente.contacto}
           disabled={actuando}
+          operador={operador}
           onEnviado={handleEnviado}
           onOmitir={handleOmitir}
           onNoAplica={handleNoAplica}
