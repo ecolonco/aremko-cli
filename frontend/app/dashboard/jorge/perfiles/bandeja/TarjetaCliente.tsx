@@ -61,23 +61,34 @@ export function TarjetaCliente({
   onNoAplica,
   onBloquear,
 }: TarjetaClienteProps) {
-  const { cliente, perfil_resumen: perfil, mensaje_renderizado } = contacto;
+  const { cliente, perfil_resumen: perfil, mensaje_renderizado, mensaje_variado } = contacto;
   const badge = valorColor[perfil.estado_valor] ?? 'bg-slate-100 text-slate-800';
   const nombreCorto = cliente.nombre.split(' ')[0];
+
+  // Si el backend devolvió una variación IA (mensaje_variado), la usamos como
+  // mensaje base. Si no, usamos el renderizado original de la plantilla.
+  // Fallback automático si setting OVC_USAR_VARIACIONES_IA=False o LLM falla.
+  const hayVariacionIA = Boolean(mensaje_variado && mensaje_variado.trim());
+  const mensajeBase = hayVariacionIA ? (mensaje_variado as string) : mensaje_renderizado;
+
+  // Permitir al operador ver el mensaje original (de la plantilla) si quiere
+  // comparar contra la variación IA.
+  const [mostrandoOriginal, setMostrandoOriginal] = useState(false);
+  const mensajeMostrado = mostrandoOriginal ? mensaje_renderizado : mensajeBase;
 
   // Edición del mensaje — persistido en localStorage por contacto_id
   // (si Deborah cierra el navegador en mitad de una edición, retoma).
   const [editando, setEditando] = useState(false);
   const [textoEditado, setTextoEditado, clearDraftEditado] = useDraftStore(
     contacto.id,
-    mensaje_renderizado
+    mensajeBase
   );
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
   // Si al cargar el contacto ya hay un borrador persistido distinto del original,
   // abrir el editor automáticamente — señal de que la sesión anterior estaba editando.
   useEffect(() => {
-    if (textoEditado !== mensaje_renderizado) {
+    if (textoEditado !== mensajeBase) {
       setEditando(true);
     }
     // intencional: solo al cambiar de contacto
@@ -149,8 +160,12 @@ export function TarjetaCliente({
     window.setTimeout(() => setToast(null), 2000);
   }, []);
 
-  const textoActual = editando ? textoEditado : mensaje_renderizado;
-  const textoFueEditado = textoEditado !== mensaje_renderizado;
+  // textoActual = lo que el operador ve y va a copiar/enviar.
+  // Si edita, su edición. Si no, lo que decida ver (variación o original).
+  const textoActual = editando ? textoEditado : mensajeMostrado;
+  // textoFueEditado: el draft local difiere de la versión base que el sistema
+  // recomienda (sea variación IA o mensaje original).
+  const textoFueEditado = textoEditado !== mensajeBase;
 
   const handleCopiar = useCallback(async () => {
     try {
@@ -189,10 +204,10 @@ export function TarjetaCliente({
   }, []);
 
   const handleDescartarEdicion = useCallback(() => {
-    setTextoEditado(mensaje_renderizado);
+    setTextoEditado(mensajeBase);
     clearDraftEditado();
     setEditando(false);
-  }, [mensaje_renderizado, setTextoEditado, clearDraftEditado]);
+  }, [mensajeBase, setTextoEditado, clearDraftEditado]);
 
   // Atajos de teclado: Enter (enviado), S (saltar), N (no aplica), E (editar).
   // Solo si el foco NO está en input/textarea (para no chocar con la edición).
@@ -345,9 +360,21 @@ export function TarjetaCliente({
         {/* Mensaje sugerido */}
         <section>
           <div className="mb-2 flex items-center justify-between">
-            <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-              Mensaje sugerido (script {contacto.script_id} · salva{' '}
-              {contacto.salva}){textoFueEditado && ' · editado'}
+            <h3 className="flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+              <span>
+                Mensaje sugerido (script {contacto.script_id} · salva{' '}
+                {contacto.salva}){textoFueEditado && ' · editado'}
+              </span>
+              {hayVariacionIA && (
+                <button
+                  type="button"
+                  onClick={() => setMostrandoOriginal((v) => !v)}
+                  className="inline-flex items-center gap-1 rounded-full bg-violet-100 px-2 py-0.5 text-[10px] font-medium normal-case tracking-normal text-violet-800 hover:bg-violet-200"
+                  title="Variación generada por IA — clic para alternar con el original"
+                >
+                  ✨ {mostrandoOriginal ? 'Mostrando original' : 'Variación IA'}
+                </button>
+              )}
             </h3>
             <div className="flex gap-1">
               {!editando ? (
@@ -403,7 +430,7 @@ export function TarjetaCliente({
                   : 'border-slate-200 bg-slate-50'
               }`}
             >
-              {textoFueEditado ? textoEditado : mensaje_renderizado}
+              {textoFueEditado ? textoEditado : mensajeMostrado}
             </pre>
           )}
 

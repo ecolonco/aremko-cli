@@ -35,6 +35,14 @@ export interface Contacto {
   script_id: string;
   salva: number;
   mensaje_renderizado: string;
+  /**
+   * Variación generada por IA on-demand (Gemini Flash Lite via OpenRouter).
+   * Mismo sentido y placeholders que `mensaje_renderizado`, distinto fraseo.
+   * Null cuando: setting OVC_USAR_VARIACIONES_IA=False, LLM falla, timeout,
+   * o tipo de contacto no aplica (celebración / respuesta pendiente).
+   * Cuando existe, el frontend lo prefiere sobre mensaje_renderizado.
+   */
+  mensaje_variado?: string | null;
   prioridad: number;
   mensaje_enviado_editado?: string;
   fecha_envio?: string;
