@@ -63,6 +63,10 @@ type Contacto struct {
 	ScriptID            string         `json:"script_id"`
 	Salva               int            `json:"salva"`
 	MensajeRenderizado  string         `json:"mensaje_renderizado"`
+	// MensajeVariado es la variación generada por IA (Gemini Flash Lite)
+	// cuando OVC_USAR_VARIACIONES_IA=True en Django. Si null/vacío, el
+	// frontend cae al MensajeRenderizado como fallback automático.
+	MensajeVariado      string         `json:"mensaje_variado,omitempty"`
 	Prioridad           int            `json:"prioridad"`
 	MensajeEnviadoOrig  string         `json:"mensaje_enviado_editado,omitempty"`
 	FechaEnvio          string         `json:"fecha_envio,omitempty"`
