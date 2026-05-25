@@ -390,8 +390,16 @@ export function TarjetaCliente({
               </Button>
             </div>
           ) : (
-            <pre className="whitespace-pre-wrap rounded-lg border border-slate-200 bg-slate-50 p-4 font-sans text-sm leading-relaxed text-slate-800">
-              {mensaje_renderizado}
+            // En modo no-edición: si hay draft editado, mostrar ESE (no el
+            // original). Si no hay edición, mostrar el renderizado del backend.
+            <pre
+              className={`whitespace-pre-wrap rounded-lg border p-4 font-sans text-sm leading-relaxed text-slate-800 ${
+                textoFueEditado
+                  ? 'border-amber-200 bg-amber-50/40'
+                  : 'border-slate-200 bg-slate-50'
+              }`}
+            >
+              {textoFueEditado ? textoEditado : mensaje_renderizado}
             </pre>
           )}
 
