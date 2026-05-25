@@ -101,10 +101,11 @@ export function TarjetaCelebracion({
   const handleAbrirWhatsApp = useCallback(() => {
     const tel = cliente.telefono_limpio || cliente.telefono.replace(/\D/g, '');
     // web.whatsapp.com/send → directo al chat sin pantalla intermedia.
+    // Target 'aremko_whatsapp' reusa la misma pestaña entre clics.
     const url = `https://web.whatsapp.com/send?phone=${tel}&text=${encodeURIComponent(
       mensaje_renderizado
     )}`;
-    window.open(url, '_blank', 'noopener,noreferrer');
+    window.open(url, 'aremko_whatsapp', 'noopener,noreferrer');
   }, [cliente, mensaje_renderizado]);
 
   return (

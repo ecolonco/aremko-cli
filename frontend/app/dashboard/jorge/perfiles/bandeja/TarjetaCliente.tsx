@@ -166,8 +166,12 @@ export function TarjetaCliente({
     // Usamos web.whatsapp.com/send (no wa.me) para saltar la pantalla
     // intermedia de elección Desktop/Web. Va directo al chat dentro del
     // mismo navegador donde ya hay sesión iniciada.
+    // Target 'aremko_whatsapp' (no '_blank') hace que la PRIMERA apertura
+    // cree una pestaña con ese nombre, y todas las siguientes la REUSEN.
+    // Así no se acumulan 50 pestañas, ni WhatsApp Web reclama por sesión
+    // duplicada.
     const url = `https://web.whatsapp.com/send?phone=${tel}&text=${encodeURIComponent(textoActual)}`;
-    window.open(url, '_blank', 'noopener,noreferrer');
+    window.open(url, 'aremko_whatsapp', 'noopener,noreferrer');
   }, [cliente, textoActual]);
 
   const handleEnviadoLocal = useCallback(() => {
