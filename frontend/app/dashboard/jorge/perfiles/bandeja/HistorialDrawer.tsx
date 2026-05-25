@@ -165,6 +165,14 @@ function FilaContacto({ contacto, expanded, onToggle, operadorActivo, onAccion }
               size="xs"
               showCiudad={false}
             />
+            {contacto.perfil_resumen.cohorte?.includes('Pareja Romántica') && (
+              <span
+                className="inline-flex items-center rounded-full bg-pink-100 px-1.5 py-0.5 text-[10px] font-medium text-pink-800"
+                title="Pareja Romántica"
+              >
+                💕
+              </span>
+            )}
           </div>
           <p className="truncate text-xs text-slate-500">
             {contacto.perfil_resumen.cohorte} · script {contacto.script_id}

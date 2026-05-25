@@ -101,6 +101,10 @@ export function TarjetaCliente({
   const ciudadDisplay =
     ciudadOverride !== null ? ciudadOverride : cliente.ciudad_canonica;
 
+  // Detección de cohorte Pareja Romántica (servicios románticos en historial).
+  // Clientes muy valiosos: 80% Dormido/En Riesgo, ticket $270-540K por celebración.
+  const esParejaRomantica = perfil.cohorte?.includes('Pareja Romántica') ?? false;
+
   // Al cambiar de contacto, resetear UI estado (la edición persistida ya viene
   // del hook useDraftStore que lee localStorage del nuevo contacto.id).
   useEffect(() => {
@@ -251,11 +255,21 @@ export function TarjetaCliente({
               />
             </div>
           </div>
-          <span
-            className={`flex-shrink-0 rounded-full px-3 py-1 text-xs font-medium ${badge}`}
-          >
-            {perfil.estado_valor}
-          </span>
+          <div className="flex flex-shrink-0 flex-col items-end gap-1">
+            <span
+              className={`rounded-full px-3 py-1 text-xs font-medium ${badge}`}
+            >
+              {perfil.estado_valor}
+            </span>
+            {esParejaRomantica && (
+              <span
+                className="inline-flex items-center gap-1 rounded-full bg-pink-100 px-2 py-0.5 text-xs font-medium text-pink-800"
+                title="Cliente con historial de servicios románticos (Ambientación romántica, San Valentín, etc.) — alto valor por celebración"
+              >
+                💕 Pareja Romántica
+              </span>
+            )}
+          </div>
         </div>
         {/* Editor de ciudad inline (prominente si sin_clasificar, link si ya está clasificado) */}
         <div className="mt-3">
@@ -298,6 +312,17 @@ export function TarjetaCliente({
               </li>
             )}
           </ul>
+          {esParejaRomantica && (
+            <p className="mt-2 rounded-md border border-pink-200 bg-pink-50/60 p-2 text-xs text-pink-900">
+              💡 <strong>Cliente romántico:</strong> tiene historial de
+              servicios para celebración (aniversario, luna de miel, etc.).
+              Considera personalizar el mensaje con tecla{' '}
+              <kbd className="rounded bg-white px-1 py-0.5 text-[10px] font-medium">
+                E
+              </kbd>{' '}
+              para mencionar ocasión especial o fecha importante.
+            </p>
+          )}
           {perfil.servicios_favoritos && perfil.servicios_favoritos.length > 0 && (
             <p className="mt-2 text-xs text-slate-500">
               <strong>Favoritos:</strong>{' '}
