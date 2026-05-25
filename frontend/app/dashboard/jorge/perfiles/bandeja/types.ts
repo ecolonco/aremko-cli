@@ -1,11 +1,19 @@
 // Types compartidos entre las pantallas del Asistente Deborah.
 // Espejo de las structs Go en internal/operacionvueltaacasa/client.go
 
+export type RegionGeografica =
+  | 'sur'
+  | 'nacional'
+  | 'extranjero'
+  | 'sin_clasificar';
+
 export interface ClienteSummary {
   id: number;
   nombre: string;
   telefono: string;
   telefono_limpio: string;
+  region_geografica?: RegionGeografica;
+  ciudad_canonica?: string | null;
 }
 
 export interface PerfilResumen {

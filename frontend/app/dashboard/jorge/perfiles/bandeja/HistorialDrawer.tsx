@@ -28,6 +28,7 @@ import type {
   EstadoContacto,
   TipoRespuesta,
 } from './types';
+import { RegionBadge } from './RegionBadge';
 
 interface HistorialDrawerProps {
   open: boolean;
@@ -148,9 +149,17 @@ function FilaContacto({ contacto, expanded, onToggle, operadorActivo, onAccion }
         className="flex w-full items-center justify-between gap-2 px-4 py-3 text-left hover:bg-slate-50"
       >
         <div className="flex-1 min-w-0">
-          <p className="truncate text-sm font-medium text-slate-800">
-            {contacto.cliente.nombre}
-          </p>
+          <div className="flex items-center gap-1.5">
+            <p className="truncate text-sm font-medium text-slate-800">
+              {contacto.cliente.nombre}
+            </p>
+            <RegionBadge
+              region={contacto.cliente.region_geografica}
+              ciudad={contacto.cliente.ciudad_canonica}
+              size="xs"
+              showCiudad={false}
+            />
+          </div>
           <p className="truncate text-xs text-slate-500">
             {contacto.perfil_resumen.cohorte} · script {contacto.script_id}
           </p>
@@ -197,6 +206,13 @@ function FilaContacto({ contacto, expanded, onToggle, operadorActivo, onAccion }
 
           {/* Metadatos */}
           <div className="grid grid-cols-2 gap-2 text-xs text-slate-600">
+            <div className="col-span-2 flex items-center gap-2">
+              <RegionBadge
+                region={contacto.cliente.region_geografica}
+                ciudad={contacto.cliente.ciudad_canonica}
+                size="xs"
+              />
+            </div>
             {contacto.operador && (
               <p>
                 <strong>Por:</strong> {contacto.operador}

@@ -34,10 +34,12 @@ func NewClient(baseURL, apiKey string) *Client {
 
 // ClienteSummary es el bloque "cliente" dentro de un contacto.
 type ClienteSummary struct {
-	ID             int    `json:"id"`
-	Nombre         string `json:"nombre"`
-	Telefono       string `json:"telefono"`
-	TelefonoLimpio string `json:"telefono_limpio"`
+	ID               int    `json:"id"`
+	Nombre           string `json:"nombre"`
+	Telefono         string `json:"telefono"`
+	TelefonoLimpio   string `json:"telefono_limpio"`
+	RegionGeografica string `json:"region_geografica,omitempty"`
+	CiudadCanonica   string `json:"ciudad_canonica,omitempty"`
 }
 
 // PerfilResumen es el bloque "perfil_resumen" mostrado en la tarjeta del operador.

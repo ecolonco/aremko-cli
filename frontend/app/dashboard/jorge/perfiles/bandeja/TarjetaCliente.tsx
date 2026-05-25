@@ -19,6 +19,7 @@ import {
 import type { Contacto } from './types';
 import { fetchExplicacion } from './api';
 import { useDraftStore } from './useDraftStore';
+import { RegionBadge } from './RegionBadge';
 
 interface TarjetaClienteProps {
   contacto: Contacto;
@@ -217,20 +218,26 @@ export function TarjetaCliente({
     <Card className="relative overflow-hidden">
       <CardHeader className="border-b bg-slate-50 pb-4">
         <div className="flex items-start justify-between gap-4">
-          <div>
+          <div className="min-w-0 flex-1">
             <CardTitle className="text-xl">{cliente.nombre}</CardTitle>
-            <a
-              href={`https://wa.me/${cliente.telefono_limpio}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="mt-1 inline-flex items-center gap-1 text-sm text-emerald-700 hover:underline"
-              title="Abrir chat en WhatsApp"
-            >
-              {cliente.telefono} <ExternalLink className="h-3 w-3" />
-            </a>
+            <div className="mt-1 flex flex-wrap items-center gap-2">
+              <a
+                href={`https://wa.me/${cliente.telefono_limpio}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-sm text-emerald-700 hover:underline"
+                title="Abrir chat en WhatsApp"
+              >
+                {cliente.telefono} <ExternalLink className="h-3 w-3" />
+              </a>
+              <RegionBadge
+                region={cliente.region_geografica}
+                ciudad={cliente.ciudad_canonica}
+              />
+            </div>
           </div>
           <span
-            className={`rounded-full px-3 py-1 text-xs font-medium ${badge}`}
+            className={`flex-shrink-0 rounded-full px-3 py-1 text-xs font-medium ${badge}`}
           >
             {perfil.estado_valor}
           </span>
