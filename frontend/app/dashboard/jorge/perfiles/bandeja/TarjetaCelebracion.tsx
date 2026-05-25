@@ -100,7 +100,8 @@ export function TarjetaCelebracion({
 
   const handleAbrirWhatsApp = useCallback(() => {
     const tel = cliente.telefono_limpio || cliente.telefono.replace(/\D/g, '');
-    const url = `https://wa.me/${tel}?text=${encodeURIComponent(
+    // web.whatsapp.com/send → directo al chat sin pantalla intermedia.
+    const url = `https://web.whatsapp.com/send?phone=${tel}&text=${encodeURIComponent(
       mensaje_renderizado
     )}`;
     window.open(url, '_blank', 'noopener,noreferrer');
@@ -130,7 +131,7 @@ export function TarjetaCelebracion({
           <div>
             <CardTitle className="text-xl">{cliente.nombre}</CardTitle>
             <a
-              href={`https://wa.me/${cliente.telefono_limpio}`}
+              href={`https://web.whatsapp.com/send?phone=${cliente.telefono_limpio}`}
               target="_blank"
               rel="noopener noreferrer"
               className="mt-1 inline-flex items-center gap-1 text-sm text-emerald-700 hover:underline"

@@ -145,7 +145,7 @@ export function TarjetaRegistrarRespuesta({
             </p>
             <CardTitle className="text-xl">{cliente.nombre}</CardTitle>
             <a
-              href={`https://wa.me/${cliente.telefono_limpio}`}
+              href={`https://web.whatsapp.com/send?phone=${cliente.telefono_limpio}`}
               target="_blank"
               rel="noopener noreferrer"
               className="mt-1 inline-flex items-center gap-1 text-sm text-emerald-700 hover:underline"

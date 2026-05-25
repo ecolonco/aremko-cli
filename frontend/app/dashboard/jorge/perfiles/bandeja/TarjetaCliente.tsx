@@ -163,7 +163,10 @@ export function TarjetaCliente({
 
   const handleAbrirWhatsApp = useCallback(() => {
     const tel = cliente.telefono_limpio || cliente.telefono.replace(/\D/g, '');
-    const url = `https://wa.me/${tel}?text=${encodeURIComponent(textoActual)}`;
+    // Usamos web.whatsapp.com/send (no wa.me) para saltar la pantalla
+    // intermedia de elección Desktop/Web. Va directo al chat dentro del
+    // mismo navegador donde ya hay sesión iniciada.
+    const url = `https://web.whatsapp.com/send?phone=${tel}&text=${encodeURIComponent(textoActual)}`;
     window.open(url, '_blank', 'noopener,noreferrer');
   }, [cliente, textoActual]);
 
@@ -241,11 +244,11 @@ export function TarjetaCliente({
             <CardTitle className="text-xl">{cliente.nombre}</CardTitle>
             <div className="mt-1 flex flex-wrap items-center gap-2">
               <a
-                href={`https://wa.me/${cliente.telefono_limpio}`}
+                href={`https://web.whatsapp.com/send?phone=${cliente.telefono_limpio}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-1 text-sm text-emerald-700 hover:underline"
-                title="Abrir chat en WhatsApp"
+                title="Abrir chat en WhatsApp Web"
               >
                 {cliente.telefono} <ExternalLink className="h-3 w-3" />
               </a>
