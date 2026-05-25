@@ -171,7 +171,11 @@ export function TarjetaCliente({
     // Así no se acumulan 50 pestañas, ni WhatsApp Web reclama por sesión
     // duplicada.
     const url = `https://web.whatsapp.com/send?phone=${tel}&text=${encodeURIComponent(textoActual)}`;
-    window.open(url, 'aremko_whatsapp', 'noopener,noreferrer');
+    // Sin 'noopener,noreferrer' a propósito: esos flags rompen el reuse de
+    // named targets en Firefox (desconectan la referencia cross-origin).
+    // Quitándolos, Firefox sí encuentra la pestaña 'aremko_whatsapp'
+    // existente y la reusa con el nuevo chat.
+    window.open(url, 'aremko_whatsapp');
   }, [cliente, textoActual]);
 
   const handleEnviadoLocal = useCallback(() => {

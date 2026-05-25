@@ -105,7 +105,8 @@ export function TarjetaCelebracion({
     const url = `https://web.whatsapp.com/send?phone=${tel}&text=${encodeURIComponent(
       mensaje_renderizado
     )}`;
-    window.open(url, 'aremko_whatsapp', 'noopener,noreferrer');
+    // Sin noopener para que Firefox pueda reusar la pestaña named.
+    window.open(url, 'aremko_whatsapp');
   }, [cliente, mensaje_renderizado]);
 
   return (
