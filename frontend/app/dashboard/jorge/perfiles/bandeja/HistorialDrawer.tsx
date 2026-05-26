@@ -15,6 +15,7 @@ import {
   ChevronUp,
   Filter,
   Clock,
+  Archive,
 } from 'lucide-react';
 import {
   fetchDelDia,
@@ -49,6 +50,7 @@ const estadoBadge: Record<EstadoContacto, { label: string; cls: string; icon: ty
   no_aplica: { label: 'No aplica', cls: 'bg-slate-200 text-slate-700', icon: XCircle },
   pendiente: { label: 'Pendiente', cls: 'bg-blue-100 text-blue-800', icon: Clock },
   descartado: { label: 'Descartado', cls: 'bg-red-100 text-red-800', icon: AlertCircle },
+  expirado_acumulacion: { label: 'Caducado', cls: 'bg-slate-100 text-slate-500', icon: Archive },
 };
 
 const formatHora = (iso?: string): string => {
@@ -451,6 +453,7 @@ export function HistorialDrawer({
               <option value="omitido">Solo saltados</option>
               <option value="no_aplica">Solo no aplica</option>
               <option value="pendiente">Solo pendientes</option>
+              <option value="expirado_acumulacion">Solo caducados</option>
             </select>
             <select
               value={filtroOperador}

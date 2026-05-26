@@ -134,7 +134,8 @@ export type EstadoContacto =
   | 'enviado'
   | 'omitido'
   | 'no_aplica'
-  | 'descartado';
+  | 'descartado'
+  | 'expirado_acumulacion';
 
 // Versión extendida del Contacto que devuelve el endpoint /del-dia/.
 // Incluye estado actual + metadatos de quién y cuándo.
