@@ -165,3 +165,42 @@ export interface DelDiaResponse {
   limit_aplicado: number;
   contactos: ContactoHistorial[];
 }
+
+// ============================================================================
+// Métricas atribución por operador (MVP last-touch, ventana 60d)
+// ============================================================================
+
+export interface FamiliaStats {
+  familia: string;
+  reservas: number;
+  monto: number;
+}
+
+export interface OperadorMetricas {
+  username: string;
+  mensajes_enviados: number;
+  respuestas: number;
+  tasa_respuesta: number;
+  reservas_atribuidas: number;
+  tasa_conversion: number;
+  monto_atribuido: number;
+  ticket_promedio_atribuido: number;
+  familias_top: FamiliaStats[];
+}
+
+export interface MetricasOperadoresTotales {
+  mensajes_enviados: number;
+  respuestas: number;
+  tasa_respuesta: number;
+  reservas_atribuidas: number;
+  tasa_conversion: number;
+  monto_atribuido: number;
+  ticket_promedio_atribuido: number;
+}
+
+export interface MetricasOperadoresResponse {
+  periodo: { desde: string; hasta: string };
+  ventana_atribucion_dias: number;
+  totales: MetricasOperadoresTotales;
+  operadores: OperadorMetricas[];
+}

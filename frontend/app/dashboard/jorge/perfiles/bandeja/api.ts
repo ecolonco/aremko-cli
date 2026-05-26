@@ -8,6 +8,7 @@ import type {
   TipoRespuesta,
   DelDiaResponse,
   RegionGeografica,
+  MetricasOperadoresResponse,
 } from './types';
 
 const apiBase = () =>
@@ -255,3 +256,29 @@ export const actualizarUbicacion = (
     `${OVC}/clientes/${clienteID}/actualizar-ubicacion`,
     { ciudad, operador }
   );
+
+// ====================================================================
+// 11. GET metricas-operadores (atribución last-touch, ventana 60d)
+// ====================================================================
+export interface MetricasOperadoresOptions {
+  desde?: string;                  // YYYY-MM-DD, default: hace 30d
+  hasta?: string;                  // YYYY-MM-DD, default: hoy
+  ventana_atribucion_dias?: number; // default 60, rango 1-365
+  operadores_esperados?: string;   // coma-separado, fuerza aparición con ceros
+}
+
+export const fetchMetricasOperadores = (opts: MetricasOperadoresOptions = {}) => {
+  const q = new URLSearchParams();
+  if (opts.desde) q.set('desde', opts.desde);
+  if (opts.hasta) q.set('hasta', opts.hasta);
+  if (opts.ventana_atribucion_dias) {
+    q.set('ventana_atribucion_dias', String(opts.ventana_atribucion_dias));
+  }
+  if (opts.operadores_esperados) {
+    q.set('operadores_esperados', opts.operadores_esperados);
+  }
+  const query = q.toString();
+  return getJSON<MetricasOperadoresResponse>(
+    `${OVC}/metricas-operadores${query ? `?${query}` : ''}`
+  );
+};

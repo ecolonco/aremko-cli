@@ -510,6 +510,46 @@ func OVCMovimientos(cfg *config.Config) http.HandlerFunc {
 // 9. GET /scripts-estadisticas/?desde=...&hasta=...
 // ============================================================================
 
+func OVCMetricasOperadores(cfg *config.Config) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		client, err := newOVCClient(cfg)
+		if err != nil {
+			respondJSON(w, http.StatusServiceUnavailable, map[string]interface{}{
+				"success": false, "error": err.Error(),
+			})
+			return
+		}
+		desde := r.URL.Query().Get("desde")
+		hasta := r.URL.Query().Get("hasta")
+		ventanaStr := r.URL.Query().Get("ventana_atribucion_dias")
+		operadoresEsperados := r.URL.Query().Get("operadores_esperados")
+
+		ventana := 0
+		if ventanaStr != "" {
+			parsed, err := strconv.Atoi(ventanaStr)
+			if err != nil || parsed < 1 || parsed > 365 {
+				respondJSON(w, http.StatusBadRequest, map[string]interface{}{
+					"success": false,
+					"error":   "ventana_atribucion_dias debe ser entero entre 1 y 365",
+				})
+				return
+			}
+			ventana = parsed
+		}
+
+		result, err := client.GetMetricasOperadores(desde, hasta, ventana, operadoresEsperados)
+		if err != nil {
+			respondJSON(w, http.StatusBadGateway, map[string]interface{}{
+				"success": false, "error": err.Error(),
+			})
+			return
+		}
+		respondJSON(w, http.StatusOK, map[string]interface{}{
+			"success": true, "data": result,
+		})
+	}
+}
+
 func OVCScriptsEstadisticas(cfg *config.Config) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		client, err := newOVCClient(cfg)

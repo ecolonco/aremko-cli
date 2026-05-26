@@ -181,6 +181,45 @@ type ScriptsEstadisticasResponse struct {
 	Scripts []ScriptStats `json:"scripts"`
 }
 
+// FamiliaStats es la performance de una familia de servicios vendida por un operador.
+type FamiliaStats struct {
+	Familia  string `json:"familia"`
+	Reservas int    `json:"reservas"`
+	Monto    int    `json:"monto"`
+}
+
+// OperadorMetricas es la performance de un operador en el período + ventana de atribución.
+type OperadorMetricas struct {
+	Username                string         `json:"username"`
+	MensajesEnviados        int            `json:"mensajes_enviados"`
+	Respuestas              int            `json:"respuestas"`
+	TasaRespuesta           float64        `json:"tasa_respuesta"`
+	ReservasAtribuidas      int            `json:"reservas_atribuidas"`
+	TasaConversion          float64        `json:"tasa_conversion"`
+	MontoAtribuido          int            `json:"monto_atribuido"`
+	TicketPromedioAtribuido int            `json:"ticket_promedio_atribuido"`
+	FamiliasTop             []FamiliaStats `json:"familias_top"`
+}
+
+// MetricasOperadoresTotales son los acumulados del período (suma de todos los operadores).
+type MetricasOperadoresTotales struct {
+	MensajesEnviados        int     `json:"mensajes_enviados"`
+	Respuestas              int     `json:"respuestas"`
+	TasaRespuesta           float64 `json:"tasa_respuesta"`
+	ReservasAtribuidas      int     `json:"reservas_atribuidas"`
+	TasaConversion          float64 `json:"tasa_conversion"`
+	MontoAtribuido          int     `json:"monto_atribuido"`
+	TicketPromedioAtribuido int     `json:"ticket_promedio_atribuido"`
+}
+
+// MetricasOperadoresResponse es el shape de /metricas-operadores/.
+type MetricasOperadoresResponse struct {
+	Periodo                 map[string]string         `json:"periodo"`
+	VentanaAtribucionDias   int                       `json:"ventana_atribucion_dias"`
+	Totales                 MetricasOperadoresTotales `json:"totales"`
+	Operadores              []OperadorMetricas        `json:"operadores"`
+}
+
 // ============================================================================
 // Bodies de request
 // ============================================================================
@@ -575,6 +614,42 @@ func (c *Client) ActualizarUbicacion(clienteID int, body ActualizarUbicacionRequ
 	}
 	if status != http.StatusOK {
 		return nil, fmt.Errorf("actualizar-ubicacion returned %d: %s", status, string(rawBody))
+	}
+	return &result, nil
+}
+
+// GetMetricasOperadores devuelve métricas de desempeño por operador con atribución last-touch.
+// ventanaAtribucionDias define cuántos días después del envío se cuentan conversiones (default 60).
+// operadoresEsperados (opcional, coma-separado) fuerza la aparición de operadores con 0 envíos.
+func (c *Client) GetMetricasOperadores(desde, hasta string, ventanaAtribucionDias int, operadoresEsperados string) (*MetricasOperadoresResponse, error) {
+	q := url.Values{}
+	if desde != "" {
+		q.Set("desde", desde)
+	}
+	if hasta != "" {
+		q.Set("hasta", hasta)
+	}
+	if ventanaAtribucionDias > 0 {
+		q.Set("ventana_atribucion_dias", fmt.Sprintf("%d", ventanaAtribucionDias))
+	}
+	if operadoresEsperados != "" {
+		q.Set("operadores_esperados", operadoresEsperados)
+	}
+	path := "/metricas-operadores/"
+	if encoded := q.Encode(); encoded != "" {
+		path = path + "?" + encoded
+	}
+	req, err := c.buildRequest("GET", path, nil)
+	if err != nil {
+		return nil, err
+	}
+	var result MetricasOperadoresResponse
+	status, body, err := c.doJSON(req, &result)
+	if err != nil {
+		return nil, err
+	}
+	if status != http.StatusOK {
+		return nil, fmt.Errorf("metricas-operadores returned %d: %s", status, string(body))
 	}
 	return &result, nil
 }

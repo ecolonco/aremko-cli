@@ -13,6 +13,7 @@ import {
   XMarkIcon,
   BookOpenIcon,
   ChatBubbleLeftRightIcon,
+  TrophyIcon,
 } from '@heroicons/react/24/outline';
 import { UserRole } from '@/lib/types/user';
 import { signOut } from 'next-auth/react';
@@ -32,6 +33,7 @@ const navigation = {
     { name: 'Perfiles', href: '/dashboard/jorge/perfiles', icon: UsersIcon },
     { name: 'Bandeja WhatsApp', href: '/dashboard/jorge/perfiles/bandeja', icon: ChatBubbleLeftRightIcon },
     { name: 'Tableros Bandeja', href: '/dashboard/jorge/perfiles/tableros', icon: ChartBarIcon },
+    { name: 'Métricas Operadores', href: '/dashboard/jorge/perfiles/metricas-operadores', icon: TrophyIcon },
     { name: 'Aremko-CLI Sistema', href: '/dashboard/jorge/sistema', icon: BookOpenIcon },
     { name: 'Configuración', href: '/dashboard/jorge/settings', icon: CogIcon },
   ],

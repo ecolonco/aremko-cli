@@ -124,6 +124,7 @@ func (s *Server) setupRoutes() {
 			r.Get("/bandeja-whatsapp/resumen-dia", handlers.OVCResumenDia(s.config))
 			r.Get("/movimientos", handlers.OVCMovimientos(s.config))
 			r.Get("/scripts-estadisticas", handlers.OVCScriptsEstadisticas(s.config))
+			r.Get("/metricas-operadores", handlers.OVCMetricasOperadores(s.config))
 			r.Post("/clientes/{clienteID}/actualizar-ubicacion", handlers.OVCActualizarUbicacion(s.config))
 		})
 
