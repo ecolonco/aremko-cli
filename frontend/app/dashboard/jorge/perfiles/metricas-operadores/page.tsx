@@ -13,7 +13,6 @@ import {
   Loader2,
   AlertCircle,
   MessageSquare,
-  Reply,
   Trophy,
   DollarSign,
   Calendar,
@@ -36,8 +35,11 @@ const hace30Dias = (): string => {
   return toISO(d);
 };
 
-const formatCLP = (n: number): string =>
-  '$' + (n || 0).toLocaleString('es-CL');
+const formatCLP = (n: number): string => {
+  const v = n || 0;
+  if (v < 0) return '-$' + Math.abs(v).toLocaleString('es-CL');
+  return '$' + v.toLocaleString('es-CL');
+};
 
 const formatPct = (n: number): string =>
   ((n || 0) * 100).toFixed(1) + '%';
@@ -52,7 +54,7 @@ const OPERADORES_ESPERADOS = 'deborah,jorge,angelica';
 function TotalesCards({ data }: { data: MetricasOperadoresResponse }) {
   const { totales } = data;
   return (
-    <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
       <Card>
         <CardContent className="p-4">
           <p className="text-xs uppercase tracking-wide text-slate-500">
@@ -61,20 +63,6 @@ function TotalesCards({ data }: { data: MetricasOperadoresResponse }) {
           <p className="mt-1 flex items-center gap-2 text-2xl font-semibold text-slate-800">
             <MessageSquare className="h-5 w-5 text-slate-500" />
             {totales.mensajes_enviados.toLocaleString('es-CL')}
-          </p>
-        </CardContent>
-      </Card>
-      <Card>
-        <CardContent className="p-4">
-          <p className="text-xs uppercase tracking-wide text-slate-500">
-            Respuestas
-          </p>
-          <p className="mt-1 flex items-center gap-2 text-2xl font-semibold text-blue-600">
-            <Reply className="h-5 w-5" />
-            {totales.respuestas.toLocaleString('es-CL')}
-            <span className="text-sm font-normal text-slate-500">
-              ({formatPct(totales.tasa_respuesta)})
-            </span>
           </p>
         </CardContent>
       </Card>
@@ -169,7 +157,7 @@ function FilaOperador({
         </div>
 
         {/* Stats secundarias */}
-        <div className="mt-3 grid grid-cols-3 gap-2 text-xs">
+        <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
           <div>
             <p className="text-slate-500">Enviados</p>
             <p className="font-medium text-slate-800">
@@ -177,18 +165,12 @@ function FilaOperador({
             </p>
           </div>
           <div>
-            <p className="text-slate-500">Tasa respuesta</p>
-            <p className="font-medium text-blue-600">
-              {formatPct(op.tasa_respuesta)}{' '}
-              <span className="font-normal text-slate-400">
-                ({op.respuestas})
-              </span>
-            </p>
-          </div>
-          <div>
             <p className="text-slate-500">Conversión</p>
             <p className="font-medium text-emerald-600">
-              {formatPct(op.tasa_conversion)}
+              {formatPct(op.tasa_conversion)}{' '}
+              <span className="font-normal text-slate-400">
+                ({op.reservas_atribuidas})
+              </span>
             </p>
           </div>
         </div>
@@ -200,17 +182,21 @@ function FilaOperador({
               <Award className="h-3 w-3" /> Familias top vendidas
             </p>
             <div className="flex flex-wrap gap-1.5">
-              {op.familias_top.map((f) => (
-                <span
-                  key={f.familia}
-                  className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] text-emerald-700"
-                >
-                  <strong>{f.familia}</strong>
-                  <span className="text-emerald-600">
-                    · {f.reservas} · {formatCLP(f.monto)}
+              {op.familias_top.map((f) => {
+                const negativo = f.monto < 0;
+                const chipCls = negativo
+                  ? 'inline-flex items-center gap-1 rounded-full bg-rose-50 px-2 py-0.5 text-[11px] text-rose-700'
+                  : 'inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] text-emerald-700';
+                const valorCls = negativo ? 'text-rose-600' : 'text-emerald-600';
+                return (
+                  <span key={f.familia} className={chipCls}>
+                    <strong>{f.familia}</strong>
+                    <span className={valorCls}>
+                      · {f.reservas} · {formatCLP(f.monto)}
+                    </span>
                   </span>
-                </span>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}
