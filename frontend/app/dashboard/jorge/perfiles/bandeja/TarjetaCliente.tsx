@@ -160,12 +160,15 @@ export function TarjetaCliente({
     window.setTimeout(() => setToast(null), 2000);
   }, []);
 
-  // textoActual = lo que el operador ve y va a copiar/enviar.
-  // Si edita, su edición. Si no, lo que decida ver (variación o original).
-  const textoActual = editando ? textoEditado : mensajeMostrado;
   // textoFueEditado: el draft local difiere de la versión base que el sistema
   // recomienda (sea variación IA o mensaje original).
   const textoFueEditado = textoEditado !== mensajeBase;
+  // textoActual = lo que el operador copia/envía a WhatsApp.
+  // Si hay edición (persistida o en vivo), prevalece la edición. Si no, lo
+  // que el operador decida ver (variación IA o mensaje original).
+  // Importante: la edición persiste aunque el operador cierre el editor —
+  // hasta que el draft vuelva a igualar al mensajeBase o se marque enviado.
+  const textoActual = textoFueEditado ? textoEditado : mensajeMostrado;
 
   const handleCopiar = useCallback(async () => {
     try {
