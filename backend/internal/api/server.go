@@ -126,6 +126,7 @@ func (s *Server) setupRoutes() {
 			r.Get("/scripts-estadisticas", handlers.OVCScriptsEstadisticas(s.config))
 			r.Get("/metricas-operadores", handlers.OVCMetricasOperadores(s.config))
 			r.Post("/clientes/{clienteID}/actualizar-ubicacion", handlers.OVCActualizarUbicacion(s.config))
+			r.Post("/clientes/{clienteID}/marcar-staff", handlers.OVCMarcarStaff(s.config))
 		})
 
 		// Stats endpoints (próximamente)

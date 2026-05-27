@@ -580,6 +580,43 @@ func (c *Client) BloquearCliente(contactoID int, body BloquearClienteRequest) (*
 	return &result, nil
 }
 
+// MarcarStaffRequest es el body de POST /clientes/{id}/marcar-staff/.
+type MarcarStaffRequest struct {
+	Razon    string `json:"razon"`
+	Operador string `json:"operador,omitempty"`
+}
+
+// MarcarStaffResponse es el shape del response del endpoint marcar-staff.
+type MarcarStaffResponse struct {
+	Success              bool   `json:"success"`
+	ClienteID            int    `json:"cliente_id"`
+	NombreCliente        string `json:"nombre_cliente"`
+	Razon                string `json:"razon"`
+	ContactosDescartados int    `json:"contactos_descartados"`
+	AlreadyMarked        bool   `json:"already_marked"`
+}
+
+// MarcarStaff marca un cliente como staff/proxy del equipo Aremko. Bloquea
+// permanentemente al cliente del cron de bandeja y descarta todos sus
+// ContactoWhatsApp pendientes (no solo el del día — limpia legacy).
+// Idempotente: si ya estaba marcado, devuelve already_marked=true.
+func (c *Client) MarcarStaff(clienteID int, body MarcarStaffRequest) (*MarcarStaffResponse, error) {
+	path := fmt.Sprintf("/clientes/%d/marcar-staff/", clienteID)
+	req, err := c.buildRequest("POST", path, body)
+	if err != nil {
+		return nil, err
+	}
+	var result MarcarStaffResponse
+	status, rawBody, err := c.doJSON(req, &result)
+	if err != nil {
+		return nil, err
+	}
+	if status != http.StatusOK {
+		return nil, fmt.Errorf("marcar-staff returned %d: %s", status, string(rawBody))
+	}
+	return &result, nil
+}
+
 // ActualizarUbicacionRequest es el body del endpoint /clientes/{id}/actualizar-ubicacion/.
 type ActualizarUbicacionRequest struct {
 	Ciudad   string `json:"ciudad"`

@@ -19,6 +19,7 @@ import {
   marcarNoAplica,
   registrarRespuesta,
   bloquearCliente,
+  marcarStaff,
 } from './api';
 import type {
   Contacto,
@@ -131,6 +132,33 @@ export default function BandejaPage() {
       irATransicion(`No aplica: ${contacto.cliente.nombre.split(' ')[0]}`);
     } catch (e: unknown) {
       alert(`Error: ${e instanceof Error ? e.message : String(e)}`);
+    } finally {
+      setActuando(false);
+    }
+  };
+
+  const handleMarcarStaff = async (contacto: Contacto) => {
+    const razon = window.prompt(
+      `Marcar a ${contacto.cliente.nombre} como STAFF/PROXY del equipo Aremko.\n\nNo aparecerá más en bandejas (decisión administrativa, no comercial).\nTodos sus contactos pendientes serán descartados.\n\n¿Quién es? (ej: dueño, operadora, recepción, familiar staff)`,
+      ''
+    );
+    if (razon === null) return; // canceló
+    if (actuando) return;
+    setActuando(true);
+    try {
+      const res = await marcarStaff(
+        contacto.cliente.id,
+        razon || 'sin especificar',
+        operador
+      );
+      const nombreCorto = contacto.cliente.nombre.split(' ')[0];
+      if (res.data?.already_marked) {
+        irATransicion(`${nombreCorto} ya estaba marcado como staff`);
+      } else {
+        irATransicion(`Staff: ${nombreCorto} (${res.data?.contactos_descartados ?? 0} descartados)`);
+      }
+    } catch (e: unknown) {
+      alert(`Error al marcar staff: ${e instanceof Error ? e.message : String(e)}`);
     } finally {
       setActuando(false);
     }
@@ -433,6 +461,7 @@ export default function BandejaPage() {
           onOmitir={handleOmitir}
           onNoAplica={handleNoAplica}
           onBloquear={handleBloquear}
+          onMarcarStaff={handleMarcarStaff}
         />
       )}
 

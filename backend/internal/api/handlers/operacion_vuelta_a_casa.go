@@ -349,6 +349,43 @@ func OVCBloquearCliente(cfg *config.Config) http.HandlerFunc {
 // Geo.4 POST /clientes/{clienteID}/actualizar-ubicacion/
 // ============================================================================
 
+func OVCMarcarStaff(cfg *config.Config) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		client, err := newOVCClient(cfg)
+		if err != nil {
+			respondJSON(w, http.StatusServiceUnavailable, map[string]interface{}{
+				"success": false, "error": err.Error(),
+			})
+			return
+		}
+		clienteIDStr := chi.URLParam(r, "clienteID")
+		clienteID, err := strconv.Atoi(clienteIDStr)
+		if err != nil {
+			respondJSON(w, http.StatusBadRequest, map[string]interface{}{
+				"success": false, "error": "clienteID inválido",
+			})
+			return
+		}
+		var body ovc.MarcarStaffRequest
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			respondJSON(w, http.StatusBadRequest, map[string]interface{}{
+				"success": false, "error": "body JSON inválido",
+			})
+			return
+		}
+		result, err := client.MarcarStaff(clienteID, body)
+		if err != nil {
+			respondJSON(w, http.StatusBadGateway, map[string]interface{}{
+				"success": false, "error": err.Error(),
+			})
+			return
+		}
+		respondJSON(w, http.StatusOK, map[string]interface{}{
+			"success": true, "data": result,
+		})
+	}
+}
+
 func OVCActualizarUbicacion(cfg *config.Config) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		client, err := newOVCClient(cfg)

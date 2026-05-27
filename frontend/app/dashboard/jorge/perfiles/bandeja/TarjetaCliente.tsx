@@ -15,6 +15,7 @@ import {
   Sparkles,
   Loader2,
   Ban,
+  UserCog,
 } from 'lucide-react';
 import type { Contacto, RegionGeografica } from './types';
 import { fetchExplicacion } from './api';
@@ -30,6 +31,7 @@ interface TarjetaClienteProps {
   onOmitir: (contacto: Contacto) => void;
   onNoAplica: (contacto: Contacto) => void;
   onBloquear: (contacto: Contacto) => void;
+  onMarcarStaff: (contacto: Contacto) => void;
 }
 
 const valorColor: Record<string, string> = {
@@ -60,6 +62,7 @@ export function TarjetaCliente({
   onOmitir,
   onNoAplica,
   onBloquear,
+  onMarcarStaff,
 }: TarjetaClienteProps) {
   const { cliente, perfil_resumen: perfil, mensaje_renderizado, mensaje_variado } = contacto;
   const badge = valorColor[perfil.estado_valor] ?? 'bg-slate-100 text-slate-800';
@@ -483,19 +486,32 @@ export function TarjetaCliente({
 
         {/* Acciones principales */}
         <div className="flex flex-wrap items-center justify-between gap-2 border-t pt-4">
-          {/* Bloqueo permanente — a la izquierda, separado y rojo para evitar mis-click */}
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => onBloquear(contacto)}
-            disabled={disabled}
-            title="No volver a contactar — bloqueo permanente (B)"
-            className="text-red-700 hover:bg-red-50 hover:text-red-800"
-          >
-            <Ban className="mr-2 h-4 w-4" />
-            No volver a contactar ·{' '}
-            <kbd className="ml-1 text-[10px] opacity-60">B</kbd>
-          </Button>
+          {/* Bloqueo permanente y staff/proxy — a la izquierda, separados */}
+          <div className="flex flex-wrap items-center gap-1">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => onBloquear(contacto)}
+              disabled={disabled}
+              title="No volver a contactar — bloqueo permanente (B)"
+              className="text-red-700 hover:bg-red-50 hover:text-red-800"
+            >
+              <Ban className="mr-2 h-4 w-4" />
+              No volver a contactar ·{' '}
+              <kbd className="ml-1 text-[10px] opacity-60">B</kbd>
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => onMarcarStaff(contacto)}
+              disabled={disabled}
+              title="Es staff/proxy — cliente del equipo Aremko, excluir de bandejas futuras"
+              className="text-violet-700 hover:bg-violet-50 hover:text-violet-800"
+            >
+              <UserCog className="mr-2 h-4 w-4" />
+              Es staff/proxy
+            </Button>
+          </div>
 
           <div className="flex flex-wrap items-center gap-2">
             <Button

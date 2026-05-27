@@ -258,6 +258,29 @@ export const actualizarUbicacion = (
   );
 
 // ====================================================================
+// 10.bis POST clientes/{id}/marcar-staff (cliente proxy/staff Aremko)
+// ====================================================================
+
+export interface MarcarStaffResponse {
+  success: boolean;
+  cliente_id: number;
+  nombre_cliente: string;
+  razon: string;
+  contactos_descartados: number;
+  already_marked: boolean;
+}
+
+export const marcarStaff = (
+  clienteID: number,
+  razon: string,
+  operador: string
+) =>
+  postJSON<MarcarStaffResponse>(
+    `${OVC}/clientes/${clienteID}/marcar-staff`,
+    { razon, operador }
+  );
+
+// ====================================================================
 // 11. GET metricas-operadores (atribución last-touch, ventana 60d)
 // ====================================================================
 export interface MetricasOperadoresOptions {
