@@ -573,12 +573,58 @@ Genera un análisis EJECUTIVO PROFUNDO siguiendo EXACTAMENTE la estructura del s
 
 // GenerateMetaAdsAnalysis genera un análisis completo de los datos de Meta Ads (Facebook/Instagram)
 func (c *OpenRouterClient) GenerateMetaAdsAnalysis(ctx context.Context, metaAdsData map[string]interface{}) (*LLMResult, error) {
-	roleIntro := `Eres el analista ejecutivo de Aremko Spa Boutique especializado en publicidad pagada en Meta Ads (Facebook + Instagram). Tu trabajo es transformar las métricas de campañas en decisiones concretas sobre distribución de presupuesto, escalamiento de campañas ganadoras, pausa de perdedoras y prevención de fatiga creativa. Referencias para spa/turismo en Chile: CTR 1-2%, CPC $300-800 CLP, CPM $5.000-15.000 CLP.`
+	roleIntro := `Eres el analista ejecutivo de Aremko Spa Boutique especializado en publicidad pagada en Meta Ads (Facebook + Instagram). Tu trabajo es transformar las métricas de campañas en decisiones concretas sobre distribución de presupuesto, escalamiento de campañas ganadoras, pausa de perdedoras y prevención de fatiga creativa.
 
-	domainStructure := `## 🔍 Análisis Profundo por Campaña
+Atiende DOS tipos de campañas distintos y NO los mezcles:
+
+1. **Campañas históricas (objetivo Engagement/Messages):** métricas primarias = CTR, CPC, CPM, alcance. Referencias spa/turismo en Chile: CTR 1-2%, CPC $300-800 CLP, CPM $5.000-15.000 CLP.
+
+2. **Campaña Refugio (objetivo OUTCOME_LEADS, soft launch 28-may a 7-jun):** métrica primaria = CPL (costo por Lead) y volumen de Leads. CTR sirve como proxy de interés pero NO decide ganadores. Si el payload trae el bloque "refugio", trátala APARTE con su propia sección. Umbrales del operativo: CTR verde >2%, CPL verde <$10K CLP, frequency verde <2.`
+
+	domainStructure := `## 🌿 Campaña Refugio (Soft Launch) — SOLO SI EL PAYLOAD TRAE EL BLOQUE refugio
+
+Si meta_ads.refugio existe en el payload, ESTA SECCIÓN VA PRIMERO, antes de las históricas. Si no existe, omitir esta sección y comenzar por "Análisis Profundo por Campaña".
+
+### Estado vs presupuesto y plan
+- **Día del experimento:** calcula días desde period.start vs hoy. Recordar que el plan operativo dice: día 1-3 esperar (Meta aprende), día 4 identificar ganadora, día 7 consolidar.
+- **% presupuesto usado** (summary.budget_pct_used) vs % del tiempo transcurrido. ¿Va parejo, sobre-ejecutando o sub-ejecutando?
+- **Lectura:** ¿la campaña está en zona de aprendizaje (pocos datos) o ya tomar decisiones?
+
+### Métrica primaria — Leads y CPL
+- summary.leads (NO clics) es el resultado a observar. Si leads=0 y días<4, ES ESPERADO; no es para alarmar. Si leads=0 y días>=4, ya hay que revisar funnel (landing, formulario).
+- summary.cpl vs umbral verde <$10K CLP. Si CPL>$15K = rojo, "replantear creativo o audiencia".
+- Si leads=0, declararlo explícitamente y NO inventar CPL.
+
+### Comparativo por Adset (Parejas Fría vs Retargeting)
+Para cada adset en meta_ads.refugio.adsets:
+- **Eficiencia:** CTR + CPC vs el otro adset
+- **Calidad de audiencia:** frequency (>2 = saturando), CPL si hay leads
+- **Decisión propuesta por adset:** escalar / mantener / replantear — anclar a sus números específicos
+- **Lectura cruzada:** ¿qué audiencia gana en CTR? ¿en CPL? ¿son la misma o distintas?
+
+### A/B test de variantes de copy (Emocional / Racional / Curiosidad)
+Para cada variante en meta_ads.refugio.variants (key A/B/C):
+- ad_count + impresiones + clics + CTR
+- Leads + CPL (cuando los haya)
+- **Ranking** ordenado por leads. CTR es solo desempate visual cuando no hay leads aún.
+- **Sesgo de exposición:** si una variante tiene más ads activos que las otras, su volumen mayor no significa que sea mejor — compara CTR y CPL normalizados.
+- **Decisión:** ¿pausar la perdedora antes del día 4? Solo si CTR<1% Y/O CPL>$15K. Si todas están en verde de CTR, esperar.
+
+### Hitos y próximas decisiones del operativo Refugio
+- Día 1-3: fase de aprendizaje, NO tomar decisiones de pausa salvo CTR<1% o frequency>3.
+- Día 4 (~1-jun-2026): primera lectura accionable con ~20 leads esperados. Identificar variante + audiencia ganadora.
+- Día 7 (~4-jun-2026): consolidar en ganadora, crear lookalike.
+- Día 10 (7-jun-2026): fin de soft launch, análisis completo antes del lanzamiento oficial 15-jun.
+
+### Recomendación accionable Refugio (UNA sola)
+Una única decisión para ESTA semana sobre Refugio, con formato Movida (acción, por qué con números, impacto esperado, cuándo). NO mezclar con las acciones de campañas históricas.
+
+---
+
+## 🔍 Análisis Profundo por Campaña
 
 ### Mejores 3 Campañas por Inversión
-Para cada una de las 3 campañas con mayor inversión del período:
+EXCLUIR la campaña Refugio si ya fue analizada arriba; este bloque cubre las históricas de Engagement/Messages. Para cada una de las 3 campañas con mayor inversión del período (de campaigns o recent_campaigns):
 - **Inversión y volumen:** gasto, impresiones, clics, alcance
 - **Eficiencia:** CTR + CPC + CPM vs referencia spa/turismo
 - **Antigüedad y fatiga:** días activa; si >14d con CTR cayendo, riesgo de fatiga creativa
