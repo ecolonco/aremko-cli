@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { apiClient } from '@/lib/api/client';
-import type { MetaAdsSummary } from '@/lib/types/api';
+import type { MetaAdsSummary, RefugioCampaign } from '@/lib/types/api';
+import RefugioCampaignSection from '@/components/refugio/RefugioCampaignSection';
 
 // Tipo extendido para campañas con métricas
 interface CampaignWithMetrics {
@@ -16,6 +17,8 @@ interface CampaignWithMetrics {
   cpc: number;
   cpm: number;
   status?: string;
+  account_id?: string;
+  account_label?: string;
 }
 
 // Helper para formatear números grandes
@@ -25,23 +28,23 @@ function formatNumber(n: number): string {
   return `${(n / 1000000).toFixed(2)}M`;
 }
 
-// Helper para formatear dinero
+// Formato CLP entero. Las cuentas publicitarias de Aremko reportan en pesos
+// chilenos (no USD como decía el código anterior).
 function formatCurrency(n: number): string {
-  return new Intl.NumberFormat('en-US', {
+  return new Intl.NumberFormat('es-CL', {
     style: 'currency',
-    currency: 'USD',
-    minimumFractionDigits: 0,
+    currency: 'CLP',
     maximumFractionDigits: 0,
   }).format(n);
 }
 
-// Helper para formatear dinero con decimales
+// Versión con un decimal para CPC/CPM en CLP cuando el monto es bajo.
 function formatCurrencyDetailed(n: number): string {
-  return new Intl.NumberFormat('en-US', {
+  return new Intl.NumberFormat('es-CL', {
     style: 'currency',
-    currency: 'USD',
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
+    currency: 'CLP',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 1,
   }).format(n);
 }
 
@@ -50,6 +53,7 @@ export default function MetaAdsPage() {
   const [error, setError] = useState<string | null>(null);
   const [summary, setSummary] = useState<MetaAdsSummary | null>(null);
   const [campaigns, setCampaigns] = useState<CampaignWithMetrics[]>([]);
+  const [refugio, setRefugio] = useState<RefugioCampaign | null>(null);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -60,9 +64,10 @@ export default function MetaAdsPage() {
         setLoading(true);
         setError(null);
 
-        const [summaryResponse, campaignsResponse] = await Promise.all([
+        const [summaryResponse, campaignsResponse, refugioResponse] = await Promise.all([
           apiClient.getMetaAccountSummary(),
           apiClient.getCampaignsWithInsights(),
+          apiClient.getRefugioCampaign(),
         ]);
 
         if (summaryResponse.success) {
@@ -76,6 +81,10 @@ export default function MetaAdsPage() {
             ? campaignsResponse.data
             : (campaignsResponse.data as any).data || [];
           setCampaigns(campaignsData);
+        }
+
+        if (refugioResponse.success && refugioResponse.data) {
+          setRefugio(refugioResponse.data);
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Error desconocido');
@@ -161,6 +170,13 @@ export default function MetaAdsPage() {
                 </div>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* Campaña Refugio - vista dedicada (Leads/CPL como métricas primarias) */}
+        {refugio && (
+          <div className="mb-6">
+            <RefugioCampaignSection data={refugio} />
           </div>
         )}
 
@@ -277,6 +293,9 @@ export default function MetaAdsPage() {
                       <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Campaña
                       </th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Cuenta
+                      </th>
                       <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Gasto
                       </th>
@@ -304,6 +323,13 @@ export default function MetaAdsPage() {
                           <div className="text-sm font-medium text-gray-900 max-w-md truncate">
                             {campaign.name}
                           </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          {campaign.account_label && (
+                            <span className="inline-flex px-2 py-0.5 text-xs font-medium rounded-full bg-purple-100 text-purple-800">
+                              {campaign.account_label}
+                            </span>
+                          )}
                         </td>
                         <td className="px-6 py-4 text-sm text-right font-semibold text-gray-900">
                           {formatCurrency(campaign.spend)}
@@ -348,9 +374,16 @@ export default function MetaAdsPage() {
               <div className="lg:hidden divide-y divide-gray-200">
                 {campaigns.map((campaign) => (
                   <div key={campaign.id} className="p-4 hover:bg-gray-50 transition-colors">
-                    <h3 className="text-sm font-medium text-gray-900 mb-3">
-                      {campaign.name}
-                    </h3>
+                    <div className="flex items-start justify-between gap-2 mb-3">
+                      <h3 className="text-sm font-medium text-gray-900 flex-1">
+                        {campaign.name}
+                      </h3>
+                      {campaign.account_label && (
+                        <span className="inline-flex shrink-0 px-2 py-0.5 text-xs font-medium rounded-full bg-purple-100 text-purple-800">
+                          {campaign.account_label}
+                        </span>
+                      )}
+                    </div>
                     <div className="grid grid-cols-2 gap-3">
                       <div>
                         <p className="text-xs text-gray-500">Gasto</p>

@@ -435,61 +435,154 @@ func GetStatsOverview(cfg *config.Config) http.HandlerFunc {
 
 }
 
-// Helper para obtener datos de Meta Ads
+// Helper para obtener datos de Meta Ads. Itera todas las cuentas configuradas
+// (cfg.MetaAdAccounts), agrega totales globales y deja un desglose por cuenta
+// en accounts[]. Si cfg.MetaRefugioCampaignID está set y se encuentra la
+// campaña, agrega el bloque "refugio" con vista dedicada (Leads/CPL/adsets/variantes).
 func getMetaAdsData(cfg *config.Config, dateStart, dateStop string) (map[string]interface{}, error) {
 	token, err := config.GetMetaToken()
 	if err != nil {
 		return nil, err
 	}
 
-	client := meta.NewClient(token, cfg.MetaAdAccountID)
-	insights, err := client.GetAccountInsights(dateStart, dateStop)
-	if err != nil {
-		return nil, err
+	accounts := accountsFor(cfg)
+	if len(accounts) == 0 {
+		return nil, fmt.Errorf("no hay cuentas Meta configuradas")
 	}
 
-	// Calcular totales
+	// Agregados globales
 	var totalSpend float64
-	var totalImpressions int64
-	var totalClicks int64
-	var totalReach int64
+	var totalImpressions, totalClicks, totalReach, totalLeads int64
 
-	for _, insight := range insights {
-		totalSpend += insight.Spend
-		totalImpressions += insight.Impressions
-		totalClicks += insight.Clicks
-		totalReach += insight.Reach
-	}
+	allCampaigns := make([]map[string]interface{}, 0)
+	allRecent := make([]map[string]interface{}, 0)
+	accountsBreakdown := make([]map[string]interface{}, 0, len(accounts))
 
-	// Calcular métricas
-	avgCTR := 0.0
-	avgCPC := 0.0
-	avgCPM := 0.0
+	historicalStart := time.Now().AddDate(0, 0, -90).Format("2006-01-02")
+	historicalStop := time.Now().AddDate(0, 0, -1).Format("2006-01-02")
 
-	if totalImpressions > 0 {
-		avgCTR = (float64(totalClicks) / float64(totalImpressions)) * 100
-		avgCPM = (totalSpend / float64(totalImpressions)) * 1000
-	}
-	if totalClicks > 0 {
-		avgCPC = totalSpend / float64(totalClicks)
-	}
-
-	// Encontrar mejor y peor campaña
+	// Mejor/peor campaña a nivel global
 	var bestCampaign, worstCampaign *meta.AdInsights
+	bestCampaignAcc := ""
+	worstCampaignAcc := ""
 	bestCTR := 0.0
 	worstCTR := 100.0
 
-	for i := range insights {
-		ctr := insights[i].CalculateCTR()
-		if ctr > bestCTR {
-			bestCTR = ctr
-			bestCampaign = &insights[i]
+	var firstErr error
+
+	for _, acc := range accounts {
+		client := meta.NewClient(token, acc.ID)
+		insights, err := client.GetAccountInsights(dateStart, dateStop)
+		if err != nil {
+			if firstErr == nil {
+				firstErr = err
+			}
+			insights = nil
 		}
-		if ctr < worstCTR && insights[i].Impressions > 1000 {
-			worstCTR = ctr
-			worstCampaign = &insights[i]
+
+		var accSpend float64
+		var accImp, accClicks, accReach, accLeads int64
+
+		for i := range insights {
+			ins := &insights[i]
+			accSpend += ins.Spend
+			accImp += ins.Impressions
+			accClicks += ins.Clicks
+			accReach += ins.Reach
+			accLeads += ins.Leads()
+
+			allCampaigns = append(allCampaigns, map[string]interface{}{
+				"id":            ins.CampaignID,
+				"name":          ins.CampaignName,
+				"spend":         ins.Spend,
+				"impressions":   ins.Impressions,
+				"clicks":        ins.Clicks,
+				"reach":         ins.Reach,
+				"leads":         ins.Leads(),
+				"ctr":           ins.CalculateCTR(),
+				"cpc":           ins.CalculateCPC(),
+				"cpm":           ins.CalculateCPM(),
+				"cpl":           ins.CPL(),
+				"period":        "week",
+				"account_id":    acc.ID,
+				"account_label": acc.Label,
+			})
+
+			ctr := ins.CalculateCTR()
+			if ctr > bestCTR {
+				bestCTR = ctr
+				bestCampaign = ins
+				bestCampaignAcc = acc.Label
+			}
+			if ctr < worstCTR && ins.Impressions > 1000 {
+				worstCTR = ctr
+				worstCampaign = ins
+				worstCampaignAcc = acc.Label
+			}
 		}
+
+		// Histórico 90d por cuenta
+		var recent []map[string]interface{}
+		if historicalInsights, hErr := client.GetAccountInsights(historicalStart, historicalStop); hErr == nil {
+			for i := range historicalInsights {
+				h := &historicalInsights[i]
+				row := map[string]interface{}{
+					"id":            h.CampaignID,
+					"name":          h.CampaignName,
+					"spend":         h.Spend,
+					"impressions":   h.Impressions,
+					"clicks":        h.Clicks,
+					"reach":         h.Reach,
+					"leads":         h.Leads(),
+					"ctr":           h.CalculateCTR(),
+					"cpc":           h.CalculateCPC(),
+					"cpm":           h.CalculateCPM(),
+					"cpl":           h.CPL(),
+					"account_id":    acc.ID,
+					"account_label": acc.Label,
+				}
+				recent = append(recent, row)
+				allRecent = append(allRecent, row)
+			}
+		}
+
+		accountsBreakdown = append(accountsBreakdown, map[string]interface{}{
+			"id":              acc.ID,
+			"label":           acc.Label,
+			"campaigns_count": len(insights),
+			"summary": map[string]interface{}{
+				"spend":       accSpend,
+				"impressions": accImp,
+				"clicks":      accClicks,
+				"reach":       accReach,
+				"leads":       accLeads,
+				"ctr":         pctSafe(accClicks, accImp),
+				"cpc":         divSafe(accSpend, float64(accClicks)),
+				"cpm":         divSafe(accSpend*1000, float64(accImp)),
+			},
+			"recent_campaigns_count": len(recent),
+		})
+
+		totalSpend += accSpend
+		totalImpressions += accImp
+		totalClicks += accClicks
+		totalReach += accReach
+		totalLeads += accLeads
 	}
+
+	// Top 10 globales de los últimos 90 días por gasto
+	sort.Slice(allRecent, func(i, j int) bool {
+		si, _ := allRecent[i]["spend"].(float64)
+		sj, _ := allRecent[j]["spend"].(float64)
+		return si > sj
+	})
+	if len(allRecent) > 10 {
+		allRecent = allRecent[:10]
+	}
+
+	avgCTR := pctSafe(totalClicks, totalImpressions)
+	avgCPC := divSafe(totalSpend, float64(totalClicks))
+	avgCPM := divSafe(totalSpend*1000, float64(totalImpressions))
 
 	recommendations := []string{}
 	if avgCTR < 1.0 {
@@ -497,52 +590,8 @@ func getMetaAdsData(cfg *config.Config, dateStart, dateStop string) (map[string]
 	} else if avgCTR > 3.0 {
 		recommendations = append(recommendations, "CTR excelente (>3%) - Mantén esta estrategia")
 	}
-	if avgCPC > 1.0 {
-		recommendations = append(recommendations, "CPC alto (>$1) - Revisa targeting y optimiza audiencias")
-	}
-
-	// Lista de campañas del rango actual (semana del brief)
-	campaignsList := make([]map[string]interface{}, 0, len(insights))
-	for i := range insights {
-		campaignsList = append(campaignsList, map[string]interface{}{
-			"id":          insights[i].CampaignID,
-			"name":        insights[i].CampaignName,
-			"spend":       insights[i].Spend,
-			"impressions": insights[i].Impressions,
-			"clicks":      insights[i].Clicks,
-			"reach":       insights[i].Reach,
-			"ctr":         insights[i].CalculateCTR(),
-			"cpc":         insights[i].CalculateCPC(),
-			"cpm":         insights[i].CalculateCPM(),
-			"period":      "week",
-		})
-	}
-
-	// Top 10 campañas de los últimos 90 días (incluye campañas no activas esta semana)
-	recentCampaigns := []map[string]interface{}{}
-	historicalStart := time.Now().AddDate(0, 0, -90).Format("2006-01-02")
-	historicalStop := time.Now().AddDate(0, 0, -1).Format("2006-01-02")
-	if historicalInsights, hErr := client.GetAccountInsights(historicalStart, historicalStop); hErr == nil && len(historicalInsights) > 0 {
-		sort.Slice(historicalInsights, func(i, j int) bool {
-			return historicalInsights[i].Spend > historicalInsights[j].Spend
-		})
-		limit := 10
-		if len(historicalInsights) < limit {
-			limit = len(historicalInsights)
-		}
-		for i := 0; i < limit; i++ {
-			recentCampaigns = append(recentCampaigns, map[string]interface{}{
-				"id":          historicalInsights[i].CampaignID,
-				"name":        historicalInsights[i].CampaignName,
-				"spend":       historicalInsights[i].Spend,
-				"impressions": historicalInsights[i].Impressions,
-				"clicks":      historicalInsights[i].Clicks,
-				"reach":       historicalInsights[i].Reach,
-				"ctr":         historicalInsights[i].CalculateCTR(),
-				"cpc":         historicalInsights[i].CalculateCPC(),
-				"cpm":         historicalInsights[i].CalculateCPM(),
-			})
-		}
+	if avgCPC > 1000 { // CLP: $1.000 ya es alto para campañas de engagement
+		recommendations = append(recommendations, "CPC alto (>$1.000 CLP) - Revisa targeting y optimiza audiencias")
 	}
 
 	result := map[string]interface{}{
@@ -551,15 +600,17 @@ func getMetaAdsData(cfg *config.Config, dateStart, dateStop string) (map[string]
 			"impressions": totalImpressions,
 			"clicks":      totalClicks,
 			"reach":       totalReach,
+			"leads":       totalLeads,
 			"ctr":         avgCTR,
 			"cpc":         avgCPC,
 			"cpm":         avgCPM,
 		},
-		"campaigns_count":   len(insights),
-		"campaigns":         campaignsList,
-		"recent_campaigns":  recentCampaigns,
+		"campaigns_count":   len(allCampaigns),
+		"campaigns":         allCampaigns,
+		"recent_campaigns":  allRecent,
 		"recent_range_days": 90,
 		"recommendations":   recommendations,
+		"accounts":          accountsBreakdown,
 		"period": map[string]string{
 			"start": dateStart,
 			"end":   dateStop,
@@ -568,19 +619,110 @@ func getMetaAdsData(cfg *config.Config, dateStart, dateStop string) (map[string]
 
 	if bestCampaign != nil {
 		result["best_campaign"] = map[string]interface{}{
-			"name": bestCampaign.CampaignName,
-			"ctr":  bestCTR,
+			"name":          bestCampaign.CampaignName,
+			"ctr":           bestCTR,
+			"account_label": bestCampaignAcc,
+		}
+	}
+	if worstCampaign != nil {
+		result["worst_campaign"] = map[string]interface{}{
+			"name":          worstCampaign.CampaignName,
+			"ctr":           worstCTR,
+			"account_label": worstCampaignAcc,
 		}
 	}
 
-	if worstCampaign != nil {
-		result["worst_campaign"] = map[string]interface{}{
-			"name": worstCampaign.CampaignName,
-			"ctr":  worstCTR,
+	// Bloque Refugio (vista dedicada). Si la campaña existe en alguna cuenta,
+	// la enriquecemos con adsets + variantes. Si no, dejamos refugio fuera.
+	if cfg.MetaRefugioCampaignID != "" {
+		if refugio := buildRefugioBlock(cfg, token, accounts); refugio != nil {
+			result["refugio"] = refugio
 		}
+	}
+
+	// Si TODAS las cuentas fallaron y no hay datos, propagar el error original.
+	if len(allCampaigns) == 0 && firstErr != nil {
+		return nil, firstErr
 	}
 
 	return result, nil
+}
+
+// buildRefugioBlock arma el bloque de la campaña Refugio buscándola en las
+// cuentas configuradas. Devuelve nil si no se encuentra en ninguna.
+//
+// El rango usado es desde el lanzamiento (28-may-2026) hasta hoy, no la semana
+// del brief — porque la campaña dura 10 días y queremos verla completa cada vez.
+func buildRefugioBlock(cfg *config.Config, token string, accounts []config.MetaAccount) map[string]interface{} {
+	dateStart := "2026-05-28"
+	dateStop := time.Now().Format("2006-01-02")
+
+	if len(accounts) == 0 {
+		return nil
+	}
+	accountID, accountLabel := resolveCampaignAccount(token, cfg.MetaRefugioCampaignID, accounts)
+	client := meta.NewClient(token, accountID)
+	campaignInsight, _ := client.GetCampaignInsights(cfg.MetaRefugioCampaignID, dateStart, dateStop)
+	adsets, _ := client.GetCampaignInsightsByAdset(cfg.MetaRefugioCampaignID, dateStart, dateStop)
+	ads, _ := client.GetCampaignInsightsByAd(cfg.MetaRefugioCampaignID, dateStart, dateStop)
+
+	summary := map[string]interface{}{
+		"spend":            0.0,
+		"impressions":      int64(0),
+		"clicks":           int64(0),
+		"reach":            int64(0),
+		"frequency":        0.0,
+		"ctr":              0.0,
+		"cpc":              0.0,
+		"leads":            int64(0),
+		"cpl":              0.0,
+		"budget_total_clp": cfg.MetaRefugioBudgetCLP,
+		"budget_pct_used":  0.0,
+	}
+	if campaignInsight != nil {
+		summary["spend"] = campaignInsight.Spend
+		summary["impressions"] = campaignInsight.Impressions
+		summary["clicks"] = campaignInsight.Clicks
+		summary["reach"] = campaignInsight.Reach
+		summary["frequency"] = campaignInsight.Frequency
+		summary["ctr"] = campaignInsight.CalculateCTR()
+		summary["cpc"] = campaignInsight.CalculateCPC()
+		summary["leads"] = campaignInsight.Leads()
+		summary["cpl"] = campaignInsight.CPL()
+		if cfg.MetaRefugioBudgetCLP > 0 {
+			summary["budget_pct_used"] = (campaignInsight.Spend / cfg.MetaRefugioBudgetCLP) * 100
+		}
+	}
+
+	adsetRows := make([]map[string]interface{}, 0, len(adsets))
+	for i := range adsets {
+		a := &adsets[i]
+		adsetRows = append(adsetRows, map[string]interface{}{
+			"adset_id":    a.AdsetID,
+			"adset_name":  a.AdsetName,
+			"spend":       a.Spend,
+			"impressions": a.Impressions,
+			"clicks":      a.Clicks,
+			"reach":       a.Reach,
+			"frequency":   a.Frequency,
+			"ctr":         a.CalculateCTR(),
+			"cpc":         a.CalculateCPC(),
+			"leads":       a.Leads(),
+			"cpl":         a.CPL(),
+		})
+	}
+
+	return map[string]interface{}{
+		"campaign_id":   cfg.MetaRefugioCampaignID,
+		"campaign_name": campaignName(campaignInsight),
+		"account_id":    accountID,
+		"account_label": accountLabel,
+		"period":        map[string]string{"start": dateStart, "end": dateStop},
+		"summary":       summary,
+		"adsets":        adsetRows,
+		"variants":      aggregateVariants(ads),
+		"thresholds":    refugioThresholds(),
+	}
 }
 
 // newAIClientWithOperatingContext returns an OpenRouter client preloaded with

@@ -6,6 +6,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import RefugioCampaignSection from '@/components/refugio/RefugioCampaignSection';
+import type { RefugioCampaign } from '@/lib/types/api';
 import {
   TrendingUp,
   TrendingDown,
@@ -1641,6 +1643,11 @@ export default function BriefPage() {
             <CardContent>
               {data.meta_ads ? (
                 <div className="space-y-6">
+                  {/* Campaña Refugio — vista dedicada (Leads/CPL como métricas primarias). */}
+                  {data.meta_ads.refugio && (
+                    <RefugioCampaignSection data={data.meta_ads.refugio as RefugioCampaign} />
+                  )}
+
                   {/* AI Analysis Card */}
                   <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-200">
                     <CardHeader>
@@ -1777,12 +1784,53 @@ export default function BriefPage() {
                     </div>
                   )}
 
+                  {/* Desglose por cuenta publicitaria */}
+                  {data.meta_ads.accounts && data.meta_ads.accounts.length > 1 && (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="text-base">Por cuenta publicitaria</CardTitle>
+                        <CardDescription>De dónde proviene la inversión agregada</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-sm">
+                            <thead>
+                              <tr className="border-b text-xs text-muted-foreground">
+                                <th className="text-left py-2 px-2 font-medium">Cuenta</th>
+                                <th className="text-right py-2 px-2 font-medium">Inversión</th>
+                                <th className="text-right py-2 px-2 font-medium">Impresiones</th>
+                                <th className="text-right py-2 px-2 font-medium">Clics</th>
+                                <th className="text-right py-2 px-2 font-medium">CTR</th>
+                                <th className="text-right py-2 px-2 font-medium">Campañas</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {data.meta_ads.accounts.map((acc: any) => (
+                                <tr key={acc.id} className="border-b">
+                                  <td className="py-2 px-2 font-medium">{acc.label}</td>
+                                  <td className="py-2 px-2 text-right">{formatCurrency(acc.summary.spend)}</td>
+                                  <td className="py-2 px-2 text-right">{formatNumber(acc.summary.impressions)}</td>
+                                  <td className="py-2 px-2 text-right">{formatNumber(acc.summary.clicks)}</td>
+                                  <td className="py-2 px-2 text-right">{acc.summary.ctr.toFixed(2)}%</td>
+                                  <td className="py-2 px-2 text-right">{acc.campaigns_count}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+
                   {/* Mejor y peor campaña */}
                   <div className="grid gap-4 md:grid-cols-2">
                     {data.meta_ads.best_campaign && (
                       <div className="p-4 border rounded-lg bg-green-50 border-green-200">
                         <p className="text-sm font-medium mb-2">🏆 Mejor Campaña</p>
                         <p className="font-medium line-clamp-2">{data.meta_ads.best_campaign.name}</p>
+                        {data.meta_ads.best_campaign.account_label && (
+                          <p className="text-xs text-muted-foreground">{data.meta_ads.best_campaign.account_label}</p>
+                        )}
                         <p className="text-2xl font-bold mt-2 text-green-700">
                           {data.meta_ads.best_campaign.ctr?.toFixed(2)}% CTR
                         </p>
@@ -1792,6 +1840,9 @@ export default function BriefPage() {
                       <div className="p-4 border rounded-lg bg-orange-50 border-orange-200">
                         <p className="text-sm font-medium mb-2">⚠️ Peor Campaña</p>
                         <p className="font-medium line-clamp-2">{data.meta_ads.worst_campaign.name}</p>
+                        {data.meta_ads.worst_campaign.account_label && (
+                          <p className="text-xs text-muted-foreground">{data.meta_ads.worst_campaign.account_label}</p>
+                        )}
                         <p className="text-2xl font-bold mt-2 text-orange-700">
                           {data.meta_ads.worst_campaign.ctr?.toFixed(2)}% CTR
                         </p>

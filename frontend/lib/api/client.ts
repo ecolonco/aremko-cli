@@ -4,6 +4,7 @@ import {
   Campaign,
   StatsOverview,
   WeeklyBrief,
+  RefugioCampaign,
 } from '@/lib/types/api';
 
 // Use Render backend in production, localhost in development
@@ -74,6 +75,14 @@ class APIClient {
 
     const query = params.toString();
     return this.fetch<MetaAdsSummary>(`/api/v1/meta-ads/account-summary${query ? `?${query}` : ''}`);
+  }
+
+  async getRefugioCampaign(dateStart?: string, dateStop?: string) {
+    const params = new URLSearchParams();
+    if (dateStart) params.append('date_start', dateStart);
+    if (dateStop) params.append('date_stop', dateStop);
+    const query = params.toString();
+    return this.fetch<RefugioCampaign>(`/api/v1/meta-ads/refugio${query ? `?${query}` : ''}`);
   }
 
   // Brief endpoints

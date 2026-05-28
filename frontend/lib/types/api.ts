@@ -114,6 +114,69 @@ export interface PaymentMethodStats {
   previous_year_revenue: number;
 }
 
+// Refugio (campaña dedicada)
+
+export interface RefugioSummary {
+  spend: number;
+  impressions: number;
+  clicks: number;
+  reach: number;
+  frequency: number;
+  ctr: number;
+  cpc: number;
+  leads: number;
+  cpl: number;
+  budget_total_clp: number;
+  budget_pct_used: number;
+}
+
+export interface RefugioAdset {
+  adset_id: string;
+  adset_name: string;
+  spend: number;
+  impressions: number;
+  clicks: number;
+  reach: number;
+  frequency: number;
+  ctr: number;
+  cpc: number;
+  leads: number;
+  cpl: number;
+}
+
+export interface RefugioVariant {
+  key: 'A' | 'B' | 'C';
+  label: string;
+  ad_count: number;
+  impressions: number;
+  clicks: number;
+  spend: number;
+  reach: number;
+  ctr: number;
+  cpc: number;
+  leads: number;
+  cpl: number;
+}
+
+export interface RefugioThresholds {
+  ctr: { green_min: number; yellow_min: number };
+  cpl_clp: { green_max: number; yellow_max: number };
+  frequency: { green_max: number; yellow_max: number };
+  landing_view_rate: { green_min: number; yellow_min: number };
+}
+
+export interface RefugioCampaign {
+  campaign_id: string;
+  campaign_name: string;
+  account_id: string;
+  account_label: string;
+  period: { start: string; end: string };
+  summary: RefugioSummary;
+  adsets: RefugioAdset[];
+  variants: RefugioVariant[];
+  thresholds: RefugioThresholds;
+}
+
 // Brief types
 
 export interface WeeklyBrief {

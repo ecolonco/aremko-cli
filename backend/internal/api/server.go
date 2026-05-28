@@ -65,6 +65,7 @@ func (s *Server) setupRoutes() {
 		r.Get("/meta-ads/insights", handlers.GetMetaInsights(s.config))
 		r.Get("/meta-ads/account-summary", handlers.GetMetaAccountSummary(s.config))
 		r.Get("/meta-ads/campaigns-with-insights", handlers.GetCampaignsWithInsights(s.config))
+		r.Get("/meta-ads/refugio", handlers.GetRefugioCampaign(s.config))
 
 		// Google Analytics 4 endpoints
 		r.Get("/ga4/stats", handlers.GetGA4Stats(s.config))

@@ -3,14 +3,26 @@ package config
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/joho/godotenv"
 )
 
+// MetaAccount representa una cuenta publicitaria de Meta con etiqueta humana
+type MetaAccount struct {
+	ID    string // ej. "act_323860814935576"
+	Label string // ej. "Cuenta Principal"
+}
+
 type Config struct {
 	// Meta Ads
 	MetaAccessToken string
-	MetaAdAccountID string
+	MetaAdAccountID string        // legacy singular (mantiene compatibilidad)
+	MetaAdAccounts  []MetaAccount // lista de cuentas a monitorear
+
+	// Campaña Refugio (vista dedicada en brief/dashboard)
+	MetaRefugioCampaignID string
+	MetaRefugioBudgetCLP  float64 // presupuesto total declarado para mostrar % usado
 
 	// Google Analytics 4
 	GA4PropertyID      string
@@ -50,8 +62,11 @@ func LoadConfig() (*Config, error) {
 	_ = godotenv.Load()
 
 	config := &Config{
-		MetaAccessToken:    getEnvOrDefault("META_ACCESS_TOKEN", ""),
-		MetaAdAccountID:    getEnvOrDefault("META_AD_ACCOUNT_ID", ""),
+		MetaAccessToken:       getEnvOrDefault("META_ACCESS_TOKEN", ""),
+		MetaAdAccountID:       getEnvOrDefault("META_AD_ACCOUNT_ID", ""),
+		MetaAdAccounts:        parseMetaAccounts(),
+		MetaRefugioCampaignID: getEnvOrDefault("META_REFUGIO_CAMPAIGN_ID", ""),
+		MetaRefugioBudgetCLP:  parseFloatEnv("META_REFUGIO_BUDGET_CLP", 100000),
 		GA4PropertyID:      getEnvOrDefault("GA4_PROPERTY_ID", ""),
 		GA4CredentialsPath: getEnvOrDefault("GA4_CREDENTIALS_PATH", "ga4-credentials.json"),
 		OpenRouterAPIKey:   getEnvOrDefault("OPENROUTER_API_KEY", ""),
@@ -100,4 +115,61 @@ func getEnvOrDefault(key, defaultValue string) string {
 		return value
 	}
 	return defaultValue
+}
+
+func parseFloatEnv(key string, defaultValue float64) float64 {
+	raw := os.Getenv(key)
+	if raw == "" {
+		return defaultValue
+	}
+	var v float64
+	if _, err := fmt.Sscanf(raw, "%f", &v); err != nil {
+		return defaultValue
+	}
+	return v
+}
+
+// parseMetaAccounts arma la lista de cuentas desde META_AD_ACCOUNT_IDS +
+// META_ACCOUNT_LABELS (CSV). Si solo está el legacy META_AD_ACCOUNT_ID,
+// devuelve una sola cuenta con label "Principal" para no romper deploys.
+func parseMetaAccounts() []MetaAccount {
+	idsRaw := strings.TrimSpace(os.Getenv("META_AD_ACCOUNT_IDS"))
+	labelsRaw := strings.TrimSpace(os.Getenv("META_ACCOUNT_LABELS"))
+
+	if idsRaw == "" {
+		// backwards compat: una sola cuenta desde META_AD_ACCOUNT_ID
+		single := strings.TrimSpace(os.Getenv("META_AD_ACCOUNT_ID"))
+		if single == "" {
+			return nil
+		}
+		return []MetaAccount{{ID: single, Label: "Principal"}}
+	}
+
+	ids := splitCSV(idsRaw)
+	labels := splitCSV(labelsRaw)
+
+	accounts := make([]MetaAccount, 0, len(ids))
+	for i, id := range ids {
+		label := ""
+		if i < len(labels) {
+			label = labels[i]
+		}
+		if label == "" {
+			label = id // fallback al ID si no hay etiqueta
+		}
+		accounts = append(accounts, MetaAccount{ID: id, Label: label})
+	}
+	return accounts
+}
+
+func splitCSV(s string) []string {
+	parts := strings.Split(s, ",")
+	out := make([]string, 0, len(parts))
+	for _, p := range parts {
+		p = strings.TrimSpace(p)
+		if p != "" {
+			out = append(out, p)
+		}
+	}
+	return out
 }
