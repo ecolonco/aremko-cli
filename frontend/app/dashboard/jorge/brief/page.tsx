@@ -2920,6 +2920,114 @@ export default function BriefPage() {
             </CardContent>
           </Card>
 
+          {/* Resumen por Categoría de Productos (agrupa el summary_by_product) */}
+          {productTrends && productTrends.summary_by_product && Object.keys(productTrends.summary_by_product).length > 0 && (() => {
+            const summary = productTrends.summary_by_product;
+            const months: any[] = productTrends.data || [];
+
+            // Agrupa productos por categoría y arma slope a partir del agregado mensual
+            type CatRow = {
+              name: string;
+              productIds: string[];
+              total_revenue: number;
+              total_count: number;
+              slope_pct: number | null;
+            };
+            const groups: Record<string, CatRow> = {};
+            for (const pid of Object.keys(summary)) {
+              const p = summary[pid];
+              const cat = p.category ?? 'Sin categoría';
+              if (!groups[cat]) {
+                groups[cat] = { name: cat, productIds: [], total_revenue: 0, total_count: 0, slope_pct: null };
+              }
+              groups[cat].productIds.push(pid);
+              groups[cat].total_revenue += p.total_revenue || 0;
+              groups[cat].total_count += p.total_count || 0;
+            }
+
+            // Slope agregado por categoría: 2da mitad vs 1ra mitad del rango mensual
+            for (const cat of Object.keys(groups)) {
+              const monthly = months.map((m: any) =>
+                groups[cat].productIds.reduce((s, pid) => s + (m.products?.[pid]?.revenue ?? 0), 0)
+              );
+              if (monthly.length >= 4) {
+                const half = Math.floor(monthly.length / 2);
+                const first = monthly.slice(0, half).reduce((a, b) => a + b, 0);
+                const last = monthly.slice(monthly.length - half).reduce((a, b) => a + b, 0);
+                groups[cat].slope_pct = first !== 0 ? ((last - first) / Math.abs(first)) * 100 : null;
+              }
+            }
+
+            // Total absoluto para porcentaje del mix. Excluimos Descuento del denominador
+            // porque es revenue negativo y distorsiona los %.
+            const positiveTotal = Object.values(groups)
+              .filter((g) => g.name !== 'Descuento' && g.total_revenue > 0)
+              .reduce((s, g) => s + g.total_revenue, 0);
+
+            const rows = Object.values(groups).sort((a, b) => b.total_revenue - a.total_revenue);
+
+            return (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Resumen por Categoría de Productos</CardTitle>
+                  <CardDescription>
+                    Mix por categoría en los últimos {productTrends.months} meses. % calculado sobre revenue positivo (excluye descuentos).
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead className="bg-gray-50">
+                        <tr className="border-b">
+                          <th className="text-left py-2 px-2 font-medium">Categoría</th>
+                          <th className="text-right py-2 px-2 font-medium">Productos</th>
+                          <th className="text-right py-2 px-2 font-medium">Revenue</th>
+                          <th className="text-right py-2 px-2 font-medium">Unidades</th>
+                          <th className="text-right py-2 px-2 font-medium">% del mix</th>
+                          <th className="text-right py-2 px-2 font-medium">Tendencia</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {rows.map((r) => {
+                          const pct = r.name === 'Descuento' || r.total_revenue <= 0 || positiveTotal === 0
+                            ? null
+                            : (r.total_revenue / positiveTotal) * 100;
+                          const slope = r.slope_pct;
+                          const slopeClass =
+                            slope == null ? 'text-gray-400'
+                            : slope > 5 ? 'text-emerald-600'
+                            : slope < -5 ? 'text-red-600'
+                            : 'text-yellow-600';
+                          const revenueClass = r.total_revenue < 0 ? 'text-red-600' : '';
+                          return (
+                            <tr key={r.name} className="border-b hover:bg-gray-50">
+                              <td className="py-2 px-2 font-medium">{r.name}</td>
+                              <td className="py-2 px-2 text-right">{r.productIds.length}</td>
+                              <td className={`py-2 px-2 text-right font-semibold ${revenueClass}`}>
+                                ${r.total_revenue.toLocaleString('es-CL', { maximumFractionDigits: 0 })}
+                              </td>
+                              <td className="py-2 px-2 text-right">{r.total_count.toLocaleString('es-CL')}</td>
+                              <td className="py-2 px-2 text-right text-muted-foreground">
+                                {pct == null ? '—' : `${pct.toFixed(1)}%`}
+                              </td>
+                              <td className={`py-2 px-2 text-right ${slopeClass}`}>
+                                {slope == null ? '—' : `${slope > 0 ? '+' : ''}${slope.toFixed(1)}%`}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-3">
+                    Tendencia = comparación de segunda mitad vs primera mitad del rango mensual seleccionado.
+                    Verde &gt; +5%, rojo &lt; −5%.
+                  </p>
+                </CardContent>
+              </Card>
+            );
+          })()}
+
           {/* Evolución por Producto — Largo Plazo (espejo de familias, a nivel SKU) */}
           <Card>
             <CardHeader>
