@@ -92,6 +92,7 @@ export default function BriefPage() {
   const [productTrends, setProductTrends] = useState<any>(null);
   const [productRange, setProductRange] = useState<number>(24);
   const [productMetric, setProductMetric] = useState<'revenue' | 'count'>('revenue');
+  const [productGrouping, setProductGrouping] = useState<boolean>(true);
   const [loadingProducts, setLoadingProducts] = useState(false);
   const [productsError, setProductsError] = useState<string | null>(null);
 
@@ -603,6 +604,43 @@ export default function BriefPage() {
   const formatPercentage = (value: number) => {
     return `${(value * 100).toFixed(1)}%`;
   };
+
+  // Reglas de agrupación de SKUs en "productos canónicos" para la tabla
+  // Evolución por Producto. Captura los grupos detectados en el catálogo real:
+  // múltiples variantes de café marley, aguas, jugos, etc. SKUs que no matchean
+  // quedan tal cual con su propio renglón.
+  const PRODUCT_GROUP_RULES: { match: RegExp; group: string }[] = [
+    // Bebidas calientes
+    { match: /^caf[eé]\s+marley/i, group: 'Café Marley' },
+    { match: /^marley\s+chocolate/i, group: 'Chocolate Marley' },
+    { match: /^infusi[oó]n/i, group: 'Infusiones' },
+    // Bebidas frías
+    { match: /^agua\b/i, group: 'Aguas' },
+    { match: /^jugo\s+natural/i, group: 'Jugos Naturales' },
+    { match: /^limonada\b(?!\s+natural$)/i, group: 'Limonadas' },
+    // Comida
+    { match: /^pizza/i, group: 'Pizzas' },
+    { match: /^(tabla|productos\s+tablas)/i, group: 'Tablas' },
+    { match: /^cacao/i, group: 'CACAO' },
+    // Bebidas alcohólicas
+    { match: /^\d+\s+botella/i, group: 'Vinos' },
+    { match: /^\d+\s+espumante/i, group: 'Espumantes' },
+    // Merchandising
+    { match: /(travel\s+mug|taz[oó]n|term[oa]\s+marley)/i, group: 'Marley merch' },
+    // Operacionales (no facturan pero distorsionan listas)
+    { match: /^(facilitar|sabanillas|crisines|frutos\s+seco|galletas\s+tabla|artesanias\s+inventario|uma\s+inventario|otros\b|limonada\s+natural$|producto\s+temporal)/i,
+      group: 'Cortesía / Inventario' },
+    // Ajustes contables
+    { match: /^descuento/i, group: 'Descuentos' },
+    { match: /^(aumento\s+de\s+valor|diferencia\s+a\s+favor)/i, group: 'Ajustes' },
+  ];
+
+  const productGroupOf = useCallback((name: string): string => {
+    for (const r of PRODUCT_GROUP_RULES) {
+      if (r.match.test(name)) return r.group;
+    }
+    return name;
+  }, []);
 
   if (loading && !briefData) {
     return (
@@ -3064,6 +3102,22 @@ export default function BriefPage() {
                       Cantidad
                     </button>
                   </div>
+                  <div className="inline-flex rounded-md border border-gray-200 overflow-hidden text-xs">
+                    <button
+                      onClick={() => setProductGrouping(true)}
+                      className={`px-3 py-1.5 ${productGrouping ? 'bg-indigo-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-50'}`}
+                      title="Une variantes del mismo producto (ej: todos los cafés en 'Café Marley')"
+                    >
+                      Agrupado
+                    </button>
+                    <button
+                      onClick={() => setProductGrouping(false)}
+                      className={`px-3 py-1.5 ${!productGrouping ? 'bg-indigo-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-50'}`}
+                      title="Cada SKU en su propia fila"
+                    >
+                      SKU individual
+                    </button>
+                  </div>
                 </div>
               </div>
             </CardHeader>
@@ -3086,30 +3140,133 @@ export default function BriefPage() {
                 </div>
               )}
               {productTrends && productTrends.summary_by_product && Object.keys(productTrends.summary_by_product).length > 0 && !loadingProducts && (() => {
-                const months: any[] = productTrends.data || [];
-                // Orden: backend ya manda por revenue desc. Si llega como dict
-                // sin orden garantizado, ordenamos en cliente para evitar mezcla.
-                const productIds = Object.keys(productTrends.summary_by_product).sort((a, b) => {
-                  const ra = productTrends.summary_by_product[a]?.total_revenue || 0;
-                  const rb = productTrends.summary_by_product[b]?.total_revenue || 0;
-                  return rb - ra;
-                });
+                const rawSummary = productTrends.summary_by_product;
+                const rawMonths: any[] = productTrends.data || [];
                 const fmt = (v: number) =>
                   productMetric === 'revenue'
                     ? `$${(v || 0).toLocaleString('es-CL', { maximumFractionDigits: 0 })}`
                     : String(v || 0);
+
+                // ─── Transformación según modo ───
+                // En modo "Agrupado", colapsamos SKUs en grupos canónicos usando
+                // PRODUCT_GROUP_RULES. La estructura `rows` y `months` queda igual
+                // que en modo SKU para que el renderizado de la tabla sea uniforme.
+                type Row = {
+                  key: string;
+                  name: string;
+                  total_revenue: number;
+                  total_count: number;
+                  slope_pct: number | null;
+                  sku_count: number;
+                  member_pids?: string[];
+                };
+                type MonthCell = { revenue: number; count: number };
+
+                let rows: Row[];
+                let monthsForRender: { month: string; month_label: string; cells: Record<string, MonthCell>; total: MonthCell }[];
+
+                if (productGrouping) {
+                  // pid → groupName
+                  const pidToGroup: Record<string, string> = {};
+                  for (const pid of Object.keys(rawSummary)) {
+                    pidToGroup[pid] = productGroupOf(rawSummary[pid]?.name || pid);
+                  }
+                  // Agregar summary por grupo
+                  const groupAgg: Record<string, Row> = {};
+                  for (const pid of Object.keys(rawSummary)) {
+                    const s = rawSummary[pid];
+                    const gname = pidToGroup[pid];
+                    if (!groupAgg[gname]) {
+                      groupAgg[gname] = {
+                        key: gname,
+                        name: gname,
+                        total_revenue: 0,
+                        total_count: 0,
+                        slope_pct: null,
+                        sku_count: 0,
+                        member_pids: [],
+                      };
+                    }
+                    groupAgg[gname].total_revenue += s.total_revenue || 0;
+                    groupAgg[gname].total_count += s.total_count || 0;
+                    groupAgg[gname].sku_count += 1;
+                    groupAgg[gname].member_pids!.push(pid);
+                  }
+                  // Slope agregado por grupo: 2da mitad vs 1ra mitad del rango mensual
+                  for (const gname of Object.keys(groupAgg)) {
+                    const pids = groupAgg[gname].member_pids!;
+                    const monthly = rawMonths.map((m: any) =>
+                      pids.reduce((s, pid) => s + (m.products?.[pid]?.revenue ?? 0), 0)
+                    );
+                    if (monthly.length >= 4) {
+                      const half = Math.floor(monthly.length / 2);
+                      const first = monthly.slice(0, half).reduce((a, b) => a + b, 0);
+                      const last = monthly.slice(monthly.length - half).reduce((a, b) => a + b, 0);
+                      groupAgg[gname].slope_pct = first !== 0 ? ((last - first) / Math.abs(first)) * 100 : null;
+                    }
+                  }
+                  // Construir months con cells por grupo
+                  monthsForRender = rawMonths.map((m: any) => {
+                    const cells: Record<string, MonthCell> = {};
+                    for (const pid of Object.keys(m.products || {})) {
+                      const gname = pidToGroup[pid];
+                      if (!gname) continue;
+                      if (!cells[gname]) cells[gname] = { revenue: 0, count: 0 };
+                      cells[gname].revenue += m.products[pid].revenue || 0;
+                      cells[gname].count += m.products[pid].count || 0;
+                    }
+                    return {
+                      month: m.month,
+                      month_label: m.month_label,
+                      cells,
+                      total: { revenue: m.total?.revenue || 0, count: m.total?.count || 0 },
+                    };
+                  });
+                  rows = Object.values(groupAgg).sort((a, b) => b.total_revenue - a.total_revenue);
+                } else {
+                  // Modo SKU individual: 1 fila por producto
+                  const pids = Object.keys(rawSummary).sort((a, b) => {
+                    const ra = rawSummary[a]?.total_revenue || 0;
+                    const rb = rawSummary[b]?.total_revenue || 0;
+                    return rb - ra;
+                  });
+                  rows = pids.map((pid) => {
+                    const s = rawSummary[pid];
+                    return {
+                      key: pid,
+                      name: s?.name || pid,
+                      total_revenue: s?.total_revenue || 0,
+                      total_count: s?.total_count || 0,
+                      slope_pct: s?.trend_slope_pct ?? null,
+                      sku_count: 1,
+                    };
+                  });
+                  monthsForRender = rawMonths.map((m: any) => {
+                    const cells: Record<string, MonthCell> = {};
+                    for (const pid of Object.keys(m.products || {})) {
+                      cells[pid] = { revenue: m.products[pid].revenue || 0, count: m.products[pid].count || 0 };
+                    }
+                    return {
+                      month: m.month,
+                      month_label: m.month_label,
+                      cells,
+                      total: { revenue: m.total?.revenue || 0, count: m.total?.count || 0 },
+                    };
+                  });
+                }
+
                 return (
                   <div className="overflow-x-auto">
                     <table className="text-xs w-max">
                       <thead className="bg-gray-50">
                         <tr>
                           <th className="px-2 py-1.5 text-left font-medium sticky left-0 bg-gray-50 min-w-[220px] z-10">
-                            Producto
+                            {productGrouping ? 'Grupo de productos' : 'Producto'}
                           </th>
                           <th className="px-2 py-1.5 text-right font-medium border-l border-gray-200 sticky right-0 bg-gray-50 z-10">
                             Total
                           </th>
-                          {months.map((m: any) => (
+                          {monthsForRender.map((m) => (
                             <th key={m.month} className="px-2 py-1.5 text-right font-medium text-gray-600 capitalize">
                               {m.month_label}
                             </th>
@@ -3117,16 +3274,21 @@ export default function BriefPage() {
                         </tr>
                       </thead>
                       <tbody>
-                        {productIds.map((pid) => {
-                          const s = productTrends.summary_by_product[pid];
-                          const name = s?.name || pid;
-                          const total = productMetric === 'revenue' ? s?.total_revenue : s?.total_count;
-                          const slope = s?.trend_slope_pct;
+                        {rows.map((r) => {
+                          const total = productMetric === 'revenue' ? r.total_revenue : r.total_count;
+                          const slope = r.slope_pct;
                           const slopeColor = slope == null ? 'text-gray-400' : slope > 5 ? 'text-emerald-600' : slope < -5 ? 'text-red-600' : 'text-yellow-600';
                           return (
-                            <tr key={pid} className="border-t hover:bg-gray-50">
+                            <tr key={r.key} className="border-t hover:bg-gray-50">
                               <td className="px-2 py-1.5 sticky left-0 bg-white z-10 max-w-[260px]">
-                                <div className="font-medium truncate" title={name}>{name}</div>
+                                <div className="font-medium truncate" title={r.name}>
+                                  {r.name}
+                                  {productGrouping && r.sku_count > 1 && (
+                                    <span className="ml-1 text-[10px] text-muted-foreground font-normal">
+                                      ({r.sku_count} SKUs)
+                                    </span>
+                                  )}
+                                </div>
                                 {slope != null && (
                                   <div className={`text-[10px] ${slopeColor}`}>
                                     tendencia {slope > 0 ? '+' : ''}{slope.toFixed(1)}%
@@ -3136,8 +3298,8 @@ export default function BriefPage() {
                               <td className="px-2 py-1.5 text-right font-semibold border-l border-gray-200 sticky right-0 bg-white z-10">
                                 {fmt(total)}
                               </td>
-                              {months.map((m: any) => {
-                                const cell = m.products?.[pid];
+                              {monthsForRender.map((m) => {
+                                const cell = m.cells[r.key];
                                 const v = cell?.[productMetric] ?? 0;
                                 return (
                                   <td key={m.month} className={`px-2 py-1.5 text-right ${v === 0 ? 'text-gray-300' : ''}`}>
@@ -3153,11 +3315,11 @@ export default function BriefPage() {
                         <tr className="border-t-2 border-gray-300 font-semibold">
                           <td className="px-2 py-1.5 sticky left-0 bg-gray-50 z-10">TOTAL</td>
                           <td className="px-2 py-1.5 text-right border-l border-gray-200 sticky right-0 bg-gray-50 z-10">
-                            {fmt(months.reduce((acc: number, m: any) => acc + (m.total?.[productMetric] || 0), 0))}
+                            {fmt(monthsForRender.reduce((acc, m) => acc + m.total[productMetric], 0))}
                           </td>
-                          {months.map((m: any) => (
+                          {monthsForRender.map((m) => (
                             <td key={m.month} className="px-2 py-1.5 text-right">
-                              {fmt(m.total?.[productMetric] || 0)}
+                              {fmt(m.total[productMetric])}
                             </td>
                           ))}
                         </tr>
