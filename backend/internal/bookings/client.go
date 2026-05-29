@@ -444,6 +444,74 @@ func (c *Client) GetMonthlyByFamily(months int) (*MonthlyByFamilyResult, error) 
 	return &result, nil
 }
 
+// ProductBreakdown is the count + revenue for one product in one month.
+type ProductBreakdown struct {
+	Name    string  `json:"name"`
+	Count   int     `json:"count"`
+	Revenue float64 `json:"revenue"`
+}
+
+// MonthlyProductData is one row (one month) of the monthly-by-product matrix.
+// Products map is keyed by product_id. Productos sin ventas ese mes están
+// omitidos (no llegan con count=0) para mantener el payload chico.
+type MonthlyProductData struct {
+	Month      string                      `json:"month"`
+	MonthLabel string                      `json:"month_label"`
+	Products   map[string]ProductBreakdown `json:"products"`
+	Total      ProductBreakdown            `json:"total"`
+}
+
+// MonthlyProductSummary describes aggregated stats per product for the period.
+type MonthlyProductSummary struct {
+	Name              string                 `json:"name"`
+	TotalCount        int                    `json:"total_count"`
+	TotalRevenue      float64                `json:"total_revenue"`
+	AvgMonthlyRevenue float64                `json:"avg_monthly_revenue"`
+	BestMonth         map[string]interface{} `json:"best_month"`
+	WorstMonth        map[string]interface{} `json:"worst_month"`
+	TrendSlopePct     *float64               `json:"trend_slope_pct"`
+}
+
+// MonthlyByProductResult is the response from /bookings/monthly-by-product/.
+// Mirror del endpoint monthly-by-family, pero a nivel SKU individual.
+type MonthlyByProductResult struct {
+	Months           int                              `json:"months"`
+	FirstMonth       string                           `json:"first_month"`
+	LastMonth        string                           `json:"last_month"`
+	Data             []MonthlyProductData             `json:"data"`
+	SummaryByProduct map[string]MonthlyProductSummary `json:"summary_by_product"`
+}
+
+// GetMonthlyByProduct fetches the monthly revenue + count matrix by product for
+// the last N months. Revenue para productos = precio_unitario * cantidad (NO
+// se multiplica por cantidad_personas — esa fórmula aplica solo a servicios).
+func (c *Client) GetMonthlyByProduct(months int) (*MonthlyByProductResult, error) {
+	if months <= 0 {
+		months = 24
+	}
+	endpoint := fmt.Sprintf("%s/ventas/api/aremko-cli/bookings/monthly-by-product/?months=%d", c.BaseURL, months)
+
+	resp, err := c.HTTPClient.Get(endpoint)
+	if err != nil {
+		return nil, fmt.Errorf("error fetching monthly-by-product: %w", err)
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("error reading monthly-by-product body: %w", err)
+	}
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("monthly-by-product returned %d: %s", resp.StatusCode, string(body))
+	}
+
+	var result MonthlyByProductResult
+	if err := json.Unmarshal(body, &result); err != nil {
+		return nil, fmt.Errorf("error parsing monthly-by-product: %w", err)
+	}
+	return &result, nil
+}
+
 // CombinationStats is the count + revenue for one combination in one month.
 type CombinationStats struct {
 	CountReservas int     `json:"count_reservas"`

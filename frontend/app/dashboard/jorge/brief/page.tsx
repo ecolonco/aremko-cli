@@ -88,6 +88,13 @@ export default function BriefPage() {
   const [loadingMonthly, setLoadingMonthly] = useState(false);
   const [monthlyError, setMonthlyError] = useState<string | null>(null);
 
+  // Tendencias mensuales por producto (mismo patrón, espejo a SKU individual)
+  const [productTrends, setProductTrends] = useState<any>(null);
+  const [productRange, setProductRange] = useState<number>(24);
+  const [productMetric, setProductMetric] = useState<'revenue' | 'count'>('revenue');
+  const [loadingProducts, setLoadingProducts] = useState(false);
+  const [productsError, setProductsError] = useState<string | null>(null);
+
   // Combinaciones de familias por reserva (bundling effectiveness)
   const [familyCombos, setFamilyCombos] = useState<any>(null);
   const [combosMetric, setCombosMetric] = useState<'count_reservas' | 'revenue'>('count_reservas');
@@ -390,6 +397,35 @@ export default function BriefPage() {
   useEffect(() => {
     fetchMonthlyTrends(monthlyRange);
   }, [monthlyRange, fetchMonthlyTrends]);
+
+  const fetchProductTrends = useCallback(async (months: number) => {
+    setLoadingProducts(true);
+    setProductsError(null);
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+      const res = await fetch(`${apiUrl}/api/v1/bookings/monthly-by-product?months=${months}`);
+      const text = await res.text();
+      let json: any;
+      try {
+        json = JSON.parse(text);
+      } catch {
+        const preview = text.length > 120 ? text.slice(0, 120) + '…' : text;
+        throw new Error(`HTTP ${res.status} — respuesta no es JSON. Inicio: "${preview}". Reintenta en unos segundos.`);
+      }
+      if (!json.success) throw new Error(json.error || `HTTP ${res.status}`);
+      setProductTrends(json.data);
+    } catch (e: any) {
+      // Endpoint Django puede no existir todavía; lo guardamos como error suave
+      // para que la sección no rompa la página entera.
+      setProductsError(e?.message || 'Error cargando productos');
+    } finally {
+      setLoadingProducts(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchProductTrends(productRange);
+  }, [productRange, fetchProductTrends]);
 
   const fetchFamilyCombos = useCallback(async () => {
     setLoadingCombos(true);
@@ -2881,6 +2917,147 @@ export default function BriefPage() {
                   </div>
                 </>
               )}
+            </CardContent>
+          </Card>
+
+          {/* Evolución por Producto — Largo Plazo (espejo de familias, a nivel SKU) */}
+          <Card>
+            <CardHeader>
+              <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3">
+                <div>
+                  <CardTitle className="text-lg">Evolución por Producto — Largo Plazo</CardTitle>
+                  <CardDescription>
+                    Cantidad e ingresos por SKU y mes. Productos ordenados por ingreso total descendente. Útil para detectar SKUs en caída y estacionalidad por producto.
+                  </CardDescription>
+                </div>
+                <div className="flex flex-wrap items-center gap-2 no-print">
+                  <div className="inline-flex rounded-md border border-gray-200 overflow-hidden text-xs">
+                    {[6, 12, 18, 24].map((m) => (
+                      <button
+                        key={m}
+                        onClick={() => setProductRange(m)}
+                        className={`px-3 py-1.5 ${productRange === m ? 'bg-gray-900 text-white' : 'bg-white text-gray-700 hover:bg-gray-50'}`}
+                      >
+                        {m}m
+                      </button>
+                    ))}
+                  </div>
+                  <div className="inline-flex rounded-md border border-gray-200 overflow-hidden text-xs">
+                    <button
+                      onClick={() => setProductMetric('revenue')}
+                      className={`px-3 py-1.5 ${productMetric === 'revenue' ? 'bg-amber-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-50'}`}
+                    >
+                      Ingresos
+                    </button>
+                    <button
+                      onClick={() => setProductMetric('count')}
+                      className={`px-3 py-1.5 ${productMetric === 'count' ? 'bg-amber-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-50'}`}
+                    >
+                      Cantidad
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {loadingProducts && (
+                <div className="flex items-center gap-2 py-8 justify-center text-gray-500 text-sm">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Cargando productos…
+                </div>
+              )}
+              {productsError && !loadingProducts && !productTrends && (
+                <div className="bg-amber-50 border border-amber-200 rounded-md p-3 text-sm text-amber-800">
+                  Sin datos de productos todavía. El endpoint Django <code className="px-1 bg-amber-100 rounded">monthly-by-product</code> aún no responde — revisar deploy de aremko-django.
+                  <div className="text-xs mt-1 opacity-70">Detalle: {productsError}</div>
+                </div>
+              )}
+              {productTrends && productTrends.summary_by_product && Object.keys(productTrends.summary_by_product).length === 0 && !loadingProducts && (
+                <div className="bg-gray-50 border border-gray-200 rounded-md p-3 text-sm text-gray-700">
+                  No hay productos con ventas en los últimos {productRange} meses.
+                </div>
+              )}
+              {productTrends && productTrends.summary_by_product && Object.keys(productTrends.summary_by_product).length > 0 && !loadingProducts && (() => {
+                const months: any[] = productTrends.data || [];
+                // Orden: backend ya manda por revenue desc. Si llega como dict
+                // sin orden garantizado, ordenamos en cliente para evitar mezcla.
+                const productIds = Object.keys(productTrends.summary_by_product).sort((a, b) => {
+                  const ra = productTrends.summary_by_product[a]?.total_revenue || 0;
+                  const rb = productTrends.summary_by_product[b]?.total_revenue || 0;
+                  return rb - ra;
+                });
+                const fmt = (v: number) =>
+                  productMetric === 'revenue'
+                    ? `$${(v || 0).toLocaleString('es-CL', { maximumFractionDigits: 0 })}`
+                    : String(v || 0);
+                return (
+                  <div className="overflow-x-auto">
+                    <table className="text-xs w-max">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="px-2 py-1.5 text-left font-medium sticky left-0 bg-gray-50 min-w-[220px] z-10">
+                            Producto
+                          </th>
+                          <th className="px-2 py-1.5 text-right font-medium border-l border-gray-200 sticky right-0 bg-gray-50 z-10">
+                            Total
+                          </th>
+                          {months.map((m: any) => (
+                            <th key={m.month} className="px-2 py-1.5 text-right font-medium text-gray-600">
+                              {m.month_label}
+                            </th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {productIds.map((pid) => {
+                          const s = productTrends.summary_by_product[pid];
+                          const name = s?.name || pid;
+                          const total = productMetric === 'revenue' ? s?.total_revenue : s?.total_count;
+                          const slope = s?.trend_slope_pct;
+                          const slopeColor = slope == null ? 'text-gray-400' : slope > 5 ? 'text-emerald-600' : slope < -5 ? 'text-red-600' : 'text-yellow-600';
+                          return (
+                            <tr key={pid} className="border-t hover:bg-gray-50">
+                              <td className="px-2 py-1.5 sticky left-0 bg-white z-10 max-w-[260px]">
+                                <div className="font-medium truncate" title={name}>{name}</div>
+                                {slope != null && (
+                                  <div className={`text-[10px] ${slopeColor}`}>
+                                    tendencia {slope > 0 ? '+' : ''}{slope.toFixed(1)}%
+                                  </div>
+                                )}
+                              </td>
+                              <td className="px-2 py-1.5 text-right font-semibold border-l border-gray-200 sticky right-0 bg-white z-10">
+                                {fmt(total)}
+                              </td>
+                              {months.map((m: any) => {
+                                const cell = m.products?.[pid];
+                                const v = cell?.[productMetric] ?? 0;
+                                return (
+                                  <td key={m.month} className={`px-2 py-1.5 text-right ${v === 0 ? 'text-gray-300' : ''}`}>
+                                    {v === 0 ? '·' : fmt(v)}
+                                  </td>
+                                );
+                              })}
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                      <tfoot className="bg-gray-50">
+                        <tr className="border-t-2 border-gray-300 font-semibold">
+                          <td className="px-2 py-1.5 sticky left-0 bg-gray-50 z-10">TOTAL</td>
+                          <td className="px-2 py-1.5 text-right border-l border-gray-200 sticky right-0 bg-gray-50 z-10">
+                            {fmt(months.reduce((acc: number, m: any) => acc + (m.total?.[productMetric] || 0), 0))}
+                          </td>
+                          {months.map((m: any) => (
+                            <td key={m.month} className="px-2 py-1.5 text-right">
+                              {fmt(m.total?.[productMetric] || 0)}
+                            </td>
+                          ))}
+                        </tr>
+                      </tfoot>
+                    </table>
+                  </div>
+                );
+              })()}
             </CardContent>
           </Card>
 

@@ -1266,6 +1266,12 @@ func AnalyzeSales(cfg *config.Config) http.HandlerFunc {
 		if monthlyTrends, merr := bookingClient.GetMonthlyByFamily(24); merr == nil {
 			salesData["monthly_trends"] = monthlyTrends
 		}
+		// Tendencias mensuales 24 meses por producto/SKU (espejo de familia).
+		// El endpoint Django todavía puede no existir; en ese caso simplemente
+		// no se agrega el dato y el frontend no muestra la sección.
+		if monthlyProducts, perr := bookingClient.GetMonthlyByProduct(24); perr == nil {
+			salesData["monthly_trends_products"] = monthlyProducts
+		}
 		// Combinaciones de familias por reserva (bundling effectiveness, últimos 24 meses)
 		if combos, cerr := bookingClient.GetFamilyCombinations(24); cerr == nil {
 			salesData["family_combinations"] = combos

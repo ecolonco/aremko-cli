@@ -736,6 +736,33 @@ Un sub-bloque por familia principal (Tinas, Masajes, Cabañas). Cada sub-bloque 
 - **Venta cruzada:** ¿qué % de las reservas de esta familia vienen en combinación con otras vs solo? (cruzar con la matriz de combinaciones por reserva)
 - **Lectura ejecutiva:** 2-3 frases con la implicación estratégica.
 
+## 🛍️ Análisis Profundo por Producto — SOLO SI EL PAYLOAD TRAE monthly_trends_products
+
+Si monthly_trends_products existe en el payload, agregar esta sección. Si no, omitir.
+
+Para el contexto: monthly_trends_products es el espejo de monthly_trends pero a nivel SKU individual (no familia). Productos físicos vendidos en el spa (cremas, aceites, souvenirs, etc.). Revenue de producto = precio × cantidad (NO se multiplica por cantidad_personas como en servicios).
+
+### Top 5 productos del período (por revenue total)
+Ordena por summary_by_product[*].total_revenue desc y describe los 5 primeros:
+- Nombre + revenue total + cantidad total + revenue promedio mensual
+- Slope (trend_slope_pct): ¿en crecimiento, estable o cayendo?
+- Mes pico (best_month) y mes valle (worst_month)
+- Lectura: ¿es un producto core, un éxito reciente, o uno que vive de un solo mes excepcional?
+
+### Productos en caída fuerte
+Productos con slope < -10% y revenue total relevante (no SKUs marginales). Mínimo 2 candidatos si los hay. Para cada uno:
+- Nombre + revenue total + slope%
+- Hipótesis del por qué (estacional, competencia, agotado, descontinuado de hecho)
+- Decisión propuesta: reactivar / liquidar / descontinuar formalmente
+
+### Mix productos vs servicios
+- ¿Qué % del revenue total mensual viene de productos (sumar productTrends.data[mes].total.revenue) vs servicios (sumar monthly_trends.data[mes].total.revenue)?
+- ¿La participación de productos está creciendo, estable o cayendo en los últimos 12 meses?
+- Lectura: ¿hay oportunidad de cross-sell agresivo de productos a clientes de servicios?
+
+### Productos con potencial subexplotado
+Productos con revenue chico pero slope positivo (>10%) y ad_count consistente (no solo 1 venta). Estos son los próximos hits si se les empuja: bundles, vitrina, recomendación post-servicio.
+
 ## ⚡ Movida de la Semana
 UNA SOLA recomendación, la de mayor impacto × menor esfuerzo. Formato completo:
 - **Acción:** [verbo + objeto específico]

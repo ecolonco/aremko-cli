@@ -80,3 +80,40 @@ func MonthlyByFamily(cfg *config.Config) http.HandlerFunc {
 		})
 	}
 }
+
+// MonthlyByProduct proxies the Django monthly-by-product endpoint (espejo de
+// monthly-by-family pero a nivel SKU individual). Accepts ?months=N
+// (default 24, max 36).
+func MonthlyByProduct(cfg *config.Config) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if !cfg.EnableBookings {
+			respondJSON(w, http.StatusServiceUnavailable, map[string]interface{}{
+				"success": false,
+				"error":   "Bookings integration is not enabled",
+			})
+			return
+		}
+
+		months := 24
+		if m := r.URL.Query().Get("months"); m != "" {
+			if parsed, err := strconv.Atoi(m); err == nil && parsed > 0 && parsed <= 36 {
+				months = parsed
+			}
+		}
+
+		client := bookings.NewClient(cfg.BookingSystemURL)
+		result, err := client.GetMonthlyByProduct(months)
+		if err != nil {
+			respondJSON(w, http.StatusBadGateway, map[string]interface{}{
+				"success": false,
+				"error":   err.Error(),
+			})
+			return
+		}
+
+		respondJSON(w, http.StatusOK, map[string]interface{}{
+			"success": true,
+			"data":    result,
+		})
+	}
+}
