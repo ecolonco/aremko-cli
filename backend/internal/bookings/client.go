@@ -462,8 +462,11 @@ type MonthlyProductData struct {
 }
 
 // MonthlyProductSummary describes aggregated stats per product for the period.
+// Category puede llegar nil hasta que el endpoint Django agregue el campo
+// (pedido pendiente — ver docs/DJANGO-BRIEF-monthly-by-product.md).
 type MonthlyProductSummary struct {
 	Name              string                 `json:"name"`
+	Category          *string                `json:"category,omitempty"`
 	TotalCount        int                    `json:"total_count"`
 	TotalRevenue      float64                `json:"total_revenue"`
 	AvgMonthlyRevenue float64                `json:"avg_monthly_revenue"`

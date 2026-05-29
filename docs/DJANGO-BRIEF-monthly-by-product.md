@@ -103,3 +103,45 @@ Debería devolver lista no vacía y top 5 con sus revenues.
 ## Side-quest sugerido (no bloqueante)
 
 Si querés enriquecer más adelante (Fase 2): agregar `category` o `family` por producto en el summary para que el frontend pueda agrupar por categoría además de ver SKU individual. Default por ahora: solo SKU.
+
+---
+
+# Adenda — Pedido de extensión `category` (post-entrega v1)
+
+Endpoint v1 vivo y verificado. Pedido confirmado de Jorge: agregar el nombre de la categoría del producto al `summary_by_product` para habilitar filtros y agrupación en el frontend sin un segundo request.
+
+## Cambio solicitado
+
+Agregar el campo `category` a cada entrada de `summary_by_product`:
+
+```json
+"summary_by_product": {
+  "<product_id>": {
+    "name": "Crema corporal lavanda 200ml",
+    "category": "Aromaterapia",   // ← nuevo
+    "total_count": 200,
+    "total_revenue": 5000000,
+    "avg_monthly_revenue": 208333,
+    "best_month":  { "month": "2025-12", "revenue": 480000 },
+    "worst_month": { "month": "2025-02", "revenue": 0 },
+    "trend_slope_pct": -3.2
+  }
+}
+```
+
+## Consideraciones
+
+- Origen: `producto.categoria.nombre` (o como se llame la relación en el modelo actual de `compras`/`ventas`).
+- Si el producto no tiene categoría asignada: devolver `null` o `"Sin categoría"`, el que sea más natural. El frontend agrupará todos los `null` bajo una sección "Sin categoría".
+- Si la categoría está borrada (`categoria_id` huérfano): tratar igual que `null`.
+- NO agregar `category` dentro de `data[i].products[<id>]` — el nombre y categoría del producto son estables a través del tiempo, repetirlo por mes infla el payload sin razón. Solo en `summary_by_product`.
+
+## Impacto en aremko-cli
+
+- Cliente Go: agregar campo opcional `Category *string` en `MonthlyProductSummary`. Si Django no lo manda todavía, el cliente sigue funcionando.
+- Frontend: ningún cambio necesario para mostrar la tabla actual. Habilita la Fase 2 (filtros / agrupación).
+
+## Estado
+
+🟡 Pendiente: agente Django implementa, redeploy Render, smoke-test del campo `category`.
+

@@ -3002,7 +3002,7 @@ export default function BriefPage() {
                             Total
                           </th>
                           {months.map((m: any) => (
-                            <th key={m.month} className="px-2 py-1.5 text-right font-medium text-gray-600">
+                            <th key={m.month} className="px-2 py-1.5 text-right font-medium text-gray-600 capitalize">
                               {m.month_label}
                             </th>
                           ))}
