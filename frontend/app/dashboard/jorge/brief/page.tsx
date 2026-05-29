@@ -96,10 +96,25 @@ export default function BriefPage() {
   const [loadingProducts, setLoadingProducts] = useState(false);
   const [productsError, setProductsError] = useState<string | null>(null);
 
-  // Landing /refugio — métricas dedicadas en pestaña Web
+  // Landing genérica — selector de URL en pestaña Web
+  const [landingPath, setLandingPath] = useState<string>('/refugio/');
+  const [landingPathCustom, setLandingPathCustom] = useState<string>('');
   const [refugioLanding, setRefugioLanding] = useState<any>(null);
   const [loadingRefugioLanding, setLoadingRefugioLanding] = useState(false);
   const [refugioLandingError, setRefugioLandingError] = useState<string | null>(null);
+
+  // Lista de URLs predefinidas + opción "custom" para el selector
+  const LANDING_PRESETS = [
+    { value: '/refugio/', label: '/refugio/ (campaña Meta Ads)' },
+    { value: '/', label: '/ (Home)' },
+    { value: '/alojamientos/', label: '/alojamientos/' },
+    { value: '/tinas/', label: '/tinas/' },
+    { value: '/masajes/', label: '/masajes/' },
+    { value: '/productos/', label: '/productos/' },
+    { value: '/ventas/cart/', label: '/ventas/cart/' },
+    { value: '/ventas/giftcards/', label: '/ventas/giftcards/' },
+    { value: '__custom__', label: 'Otra URL…' },
+  ];
 
   // Combinaciones de familias por reserva (bundling effectiveness)
   const [familyCombos, setFamilyCombos] = useState<any>(null);
@@ -433,27 +448,39 @@ export default function BriefPage() {
     fetchProductTrends(productRange);
   }, [productRange, fetchProductTrends]);
 
-  const fetchRefugioLanding = useCallback(async () => {
+  // Path efectivo a consultar: si está en "custom", usa el input; si no, el preset
+  const effectiveLandingPath = landingPath === '__custom__'
+    ? (landingPathCustom.trim() || '/refugio/')
+    : landingPath;
+
+  const fetchLandingMetrics = useCallback(async (path: string) => {
+    if (!path) return;
     setLoadingRefugioLanding(true);
     setRefugioLandingError(null);
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
-      // Mismo rango que la campaña Meta Ads Refugio (desde el lanzamiento 28-may).
-      const res = await fetch(`${apiUrl}/api/v1/ga4/page-metrics?path=/refugio/&date_start=2026-05-28&date_stop=${new Date().toISOString().slice(0, 10)}`);
+      // Para /refugio mantenemos el rango desde el lanzamiento de la campaña
+      // (28-may). Para cualquier otra URL, usamos 30 días atrás como default.
+      const today = new Date().toISOString().slice(0, 10);
+      const startDate = path === '/refugio/' || path === '/refugio'
+        ? '2026-05-28'
+        : new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString().slice(0, 10);
+      const url = `${apiUrl}/api/v1/ga4/page-metrics?path=${encodeURIComponent(path)}&date_start=${startDate}&date_stop=${today}`;
+      const res = await fetch(url);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const json = await res.json();
       if (!json.success) throw new Error(json.error || 'error');
       setRefugioLanding(json.data);
     } catch (e: any) {
-      setRefugioLandingError(e?.message || 'Error cargando landing /refugio');
+      setRefugioLandingError(e?.message || `Error cargando landing ${path}`);
     } finally {
       setLoadingRefugioLanding(false);
     }
   }, []);
 
   useEffect(() => {
-    fetchRefugioLanding();
-  }, [fetchRefugioLanding]);
+    fetchLandingMetrics(effectiveLandingPath);
+  }, [effectiveLandingPath, fetchLandingMetrics]);
 
   const fetchFamilyCombos = useCallback(async () => {
     setLoadingCombos(true);
@@ -1115,23 +1142,46 @@ export default function BriefPage() {
                 </Card>
               </div>
 
-              {/* Landing dedicada /refugio — espejo Web de la campaña Meta Ads Refugio */}
-              <Card className="border-purple-200 bg-gradient-to-br from-purple-50/40 to-indigo-50/40">
+              {/* Landing por URL — selector genérico (default /refugio/, campaña Meta Ads) */}
+              <Card className={effectiveLandingPath === '/refugio/' || effectiveLandingPath === '/refugio'
+                ? 'border-purple-200 bg-gradient-to-br from-purple-50/40 to-indigo-50/40'
+                : 'border-gray-200'}>
                 <CardHeader>
-                  <div className="flex flex-wrap items-start justify-between gap-2">
-                    <div>
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div className="flex-1 min-w-[280px]">
                       <CardTitle className="text-lg flex items-center gap-2">
-                        🌿 Landing <code className="px-1.5 py-0.5 rounded bg-white/70 text-purple-700 text-sm">/refugio</code>
+                        {(effectiveLandingPath === '/refugio/' || effectiveLandingPath === '/refugio') && '🌿 '}
+                        Landing <code className="px-1.5 py-0.5 rounded bg-white/70 text-purple-700 text-sm">{effectiveLandingPath}</code>
                       </CardTitle>
                       <CardDescription>
-                        Tráfico de la landing del paquete Refugio. Cruzar con la campaña Meta Ads Refugio en pestaña Social.
+                        Tráfico de la URL seleccionada. Tabla evolución 4 semanas + fuentes de tráfico.
                       </CardDescription>
                     </div>
-                    {refugioLanding?.period && (
-                      <p className="text-xs text-muted-foreground">
-                        {refugioLanding.period.start} → {refugioLanding.period.end}
-                      </p>
-                    )}
+                    <div className="flex flex-col gap-2 no-print">
+                      <select
+                        value={landingPath}
+                        onChange={(e) => setLandingPath(e.target.value)}
+                        className="px-3 py-1.5 text-sm border border-gray-300 rounded-md bg-white min-w-[240px]"
+                      >
+                        {LANDING_PRESETS.map((p) => (
+                          <option key={p.value} value={p.value}>{p.label}</option>
+                        ))}
+                      </select>
+                      {landingPath === '__custom__' && (
+                        <input
+                          type="text"
+                          value={landingPathCustom}
+                          onChange={(e) => setLandingPathCustom(e.target.value)}
+                          placeholder="ej: /tinas/precios/"
+                          className="px-3 py-1.5 text-sm border border-gray-300 rounded-md bg-white min-w-[240px]"
+                        />
+                      )}
+                      {refugioLanding?.period && (
+                        <p className="text-xs text-muted-foreground text-right">
+                          {refugioLanding.period.start} → {refugioLanding.period.end}
+                        </p>
+                      )}
+                    </div>
                   </div>
                 </CardHeader>
                 <CardContent>
@@ -1262,7 +1312,8 @@ export default function BriefPage() {
 
                         {(s.sessions || 0) === 0 && (
                           <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-3 py-2">
-                            Aún no hay sesiones registradas para /refugio en GA4. Verificar que el script de tracking esté cargando en esa landing.
+                            Sin sesiones registradas para <code>{effectiveLandingPath}</code> en el rango seleccionado.
+                            Verificar que el path sea correcto (incluyendo trailing slash) y que GA4 esté rastreando esa URL.
                           </p>
                         )}
                       </div>
