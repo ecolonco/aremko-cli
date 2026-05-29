@@ -116,6 +116,20 @@ export default function BriefPage() {
     { value: '__custom__', label: 'Otra URL…' },
   ];
 
+  // Rango de fechas para la card Landing
+  const [landingDatePreset, setLandingDatePreset] = useState<string>('30d');
+  const [landingDateCustomStart, setLandingDateCustomStart] = useState<string>('');
+  const [landingDateCustomEnd, setLandingDateCustomEnd] = useState<string>('');
+
+  const LANDING_DATE_PRESETS = [
+    { value: '7d', label: 'Últimos 7 días' },
+    { value: '14d', label: 'Últimos 14 días' },
+    { value: '30d', label: 'Últimos 30 días' },
+    { value: '90d', label: 'Últimos 90 días' },
+    { value: 'refugio_launch', label: 'Desde lanzamiento Refugio (28-may)' },
+    { value: 'custom', label: 'Rango personalizado…' },
+  ];
+
   // Combinaciones de familias por reserva (bundling effectiveness)
   const [familyCombos, setFamilyCombos] = useState<any>(null);
   const [combosMetric, setCombosMetric] = useState<'count_reservas' | 'revenue'>('count_reservas');
@@ -453,19 +467,34 @@ export default function BriefPage() {
     ? (landingPathCustom.trim() || '/refugio/')
     : landingPath;
 
-  const fetchLandingMetrics = useCallback(async (path: string) => {
+  // Resuelve el rango de fechas según el preset elegido.
+  // Devuelve null si el preset es 'custom' pero no hay fechas completas todavía.
+  const resolveLandingDateRange = useCallback((): { start: string; end: string } | null => {
+    const today = new Date().toISOString().slice(0, 10);
+    const daysAgo = (n: number) =>
+      new Date(Date.now() - n * 24 * 3600 * 1000).toISOString().slice(0, 10);
+    switch (landingDatePreset) {
+      case '7d':  return { start: daysAgo(7),  end: today };
+      case '14d': return { start: daysAgo(14), end: today };
+      case '30d': return { start: daysAgo(30), end: today };
+      case '90d': return { start: daysAgo(90), end: today };
+      case 'refugio_launch': return { start: '2026-05-28', end: today };
+      case 'custom':
+        if (landingDateCustomStart && landingDateCustomEnd) {
+          return { start: landingDateCustomStart, end: landingDateCustomEnd };
+        }
+        return null;
+      default: return { start: daysAgo(30), end: today };
+    }
+  }, [landingDatePreset, landingDateCustomStart, landingDateCustomEnd]);
+
+  const fetchLandingMetrics = useCallback(async (path: string, range: { start: string; end: string }) => {
     if (!path) return;
     setLoadingRefugioLanding(true);
     setRefugioLandingError(null);
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
-      // Para /refugio mantenemos el rango desde el lanzamiento de la campaña
-      // (28-may). Para cualquier otra URL, usamos 30 días atrás como default.
-      const today = new Date().toISOString().slice(0, 10);
-      const startDate = path === '/refugio/' || path === '/refugio'
-        ? '2026-05-28'
-        : new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString().slice(0, 10);
-      const url = `${apiUrl}/api/v1/ga4/page-metrics?path=${encodeURIComponent(path)}&date_start=${startDate}&date_stop=${today}`;
+      const url = `${apiUrl}/api/v1/ga4/page-metrics?path=${encodeURIComponent(path)}&date_start=${range.start}&date_stop=${range.end}`;
       const res = await fetch(url);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const json = await res.json();
@@ -479,8 +508,9 @@ export default function BriefPage() {
   }, []);
 
   useEffect(() => {
-    fetchLandingMetrics(effectiveLandingPath);
-  }, [effectiveLandingPath, fetchLandingMetrics]);
+    const range = resolveLandingDateRange();
+    if (range) fetchLandingMetrics(effectiveLandingPath, range);
+  }, [effectiveLandingPath, resolveLandingDateRange, fetchLandingMetrics]);
 
   const fetchFamilyCombos = useCallback(async () => {
     setLoadingCombos(true);
@@ -1175,6 +1205,32 @@ export default function BriefPage() {
                           placeholder="ej: /tinas/precios/"
                           className="px-3 py-1.5 text-sm border border-gray-300 rounded-md bg-white min-w-[240px]"
                         />
+                      )}
+                      <select
+                        value={landingDatePreset}
+                        onChange={(e) => setLandingDatePreset(e.target.value)}
+                        className="px-3 py-1.5 text-sm border border-gray-300 rounded-md bg-white min-w-[240px]"
+                      >
+                        {LANDING_DATE_PRESETS.map((p) => (
+                          <option key={p.value} value={p.value}>{p.label}</option>
+                        ))}
+                      </select>
+                      {landingDatePreset === 'custom' && (
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="date"
+                            value={landingDateCustomStart}
+                            onChange={(e) => setLandingDateCustomStart(e.target.value)}
+                            className="px-2 py-1.5 text-sm border border-gray-300 rounded-md bg-white"
+                          />
+                          <span className="text-xs text-muted-foreground">→</span>
+                          <input
+                            type="date"
+                            value={landingDateCustomEnd}
+                            onChange={(e) => setLandingDateCustomEnd(e.target.value)}
+                            className="px-2 py-1.5 text-sm border border-gray-300 rounded-md bg-white"
+                          />
+                        </div>
                       )}
                       {refugioLanding?.period && (
                         <p className="text-xs text-muted-foreground text-right">
