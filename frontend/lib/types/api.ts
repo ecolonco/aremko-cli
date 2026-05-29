@@ -165,6 +165,23 @@ export interface RefugioThresholds {
   landing_view_rate: { green_min: number; yellow_min: number };
 }
 
+export interface RefugioPlatformRow {
+  platform: string; // facebook | instagram | audience_network | messenger | threads
+  impressions: number;
+  clicks: number;
+  spend: number;
+  reach: number;
+  frequency: number;
+  ctr: number;
+  cpc: number;
+  leads: number;
+  cpl: number;
+}
+
+export interface RefugioPositionRow extends RefugioPlatformRow {
+  position: string; // feed | facebook_reels | instagram_stories | etc
+}
+
 export interface RefugioCampaign {
   campaign_id: string;
   campaign_name: string;
@@ -174,6 +191,8 @@ export interface RefugioCampaign {
   summary: RefugioSummary;
   adsets: RefugioAdset[];
   variants: RefugioVariant[];
+  platforms?: RefugioPlatformRow[];
+  positions?: RefugioPositionRow[];
   thresholds: RefugioThresholds;
 }
 

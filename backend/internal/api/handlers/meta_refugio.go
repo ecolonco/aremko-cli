@@ -58,6 +58,8 @@ func GetRefugioCampaign(cfg *config.Config) http.HandlerFunc {
 
 		adsets, _ := client.GetCampaignInsightsByAdset(cfg.MetaRefugioCampaignID, dateStart, dateStop)
 		ads, _ := client.GetCampaignInsightsByAd(cfg.MetaRefugioCampaignID, dateStart, dateStop)
+		platforms, _ := client.GetCampaignInsightsByPlatform(cfg.MetaRefugioCampaignID, dateStart, dateStop)
+		positions, _ := client.GetCampaignInsightsByPlatformPosition(cfg.MetaRefugioCampaignID, dateStart, dateStop)
 
 		// Resumen ejecutivo
 		summary := map[string]interface{}{
@@ -122,6 +124,8 @@ func GetRefugioCampaign(cfg *config.Config) http.HandlerFunc {
 				"summary":        summary,
 				"adsets":         adsetRows,
 				"variants":       variants,
+				"platforms":      platformRows(platforms),
+				"positions":      positionRows(positions),
 				"thresholds":     refugioThresholds(),
 			},
 		})
@@ -245,6 +249,51 @@ func aggregateVariants(ads []meta.AdInsights) []map[string]interface{} {
 		return li > lj
 	})
 
+	return out
+}
+
+// platformRows mapea insights con breakdown=publisher_platform a una lista de
+// filas con totales por plataforma. Cada row incluye Leads/CPL ya calculados.
+func platformRows(insights []meta.AdInsights) []map[string]interface{} {
+	out := make([]map[string]interface{}, 0, len(insights))
+	for i := range insights {
+		ins := &insights[i]
+		out = append(out, map[string]interface{}{
+			"platform":    ins.PublisherPlatform,
+			"impressions": ins.Impressions,
+			"clicks":      ins.Clicks,
+			"spend":       ins.Spend,
+			"reach":       ins.Reach,
+			"frequency":   ins.Frequency,
+			"ctr":         ins.CalculateCTR(),
+			"cpc":         ins.CalculateCPC(),
+			"leads":       ins.Leads(),
+			"cpl":         ins.CPL(),
+		})
+	}
+	return out
+}
+
+// positionRows mapea insights con breakdown=publisher_platform,platform_position
+// (FB Feed, IG Feed, IG Stories, IG Reels, etc.).
+func positionRows(insights []meta.AdInsights) []map[string]interface{} {
+	out := make([]map[string]interface{}, 0, len(insights))
+	for i := range insights {
+		ins := &insights[i]
+		out = append(out, map[string]interface{}{
+			"platform":    ins.PublisherPlatform,
+			"position":    ins.PlatformPosition,
+			"impressions": ins.Impressions,
+			"clicks":      ins.Clicks,
+			"spend":       ins.Spend,
+			"reach":       ins.Reach,
+			"frequency":   ins.Frequency,
+			"ctr":         ins.CalculateCTR(),
+			"cpc":         ins.CalculateCPC(),
+			"leads":       ins.Leads(),
+			"cpl":         ins.CPL(),
+		})
+	}
 	return out
 }
 

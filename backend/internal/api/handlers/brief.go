@@ -665,6 +665,8 @@ func buildRefugioBlock(cfg *config.Config, token string, accounts []config.MetaA
 	campaignInsight, _ := client.GetCampaignInsights(cfg.MetaRefugioCampaignID, dateStart, dateStop)
 	adsets, _ := client.GetCampaignInsightsByAdset(cfg.MetaRefugioCampaignID, dateStart, dateStop)
 	ads, _ := client.GetCampaignInsightsByAd(cfg.MetaRefugioCampaignID, dateStart, dateStop)
+	platforms, _ := client.GetCampaignInsightsByPlatform(cfg.MetaRefugioCampaignID, dateStart, dateStop)
+	positions, _ := client.GetCampaignInsightsByPlatformPosition(cfg.MetaRefugioCampaignID, dateStart, dateStop)
 
 	summary := map[string]interface{}{
 		"spend":            0.0,
@@ -721,6 +723,8 @@ func buildRefugioBlock(cfg *config.Config, token string, accounts []config.MetaA
 		"summary":       summary,
 		"adsets":        adsetRows,
 		"variants":      aggregateVariants(ads),
+		"platforms":     platformRows(platforms),
+		"positions":     positionRows(positions),
 		"thresholds":    refugioThresholds(),
 	}
 }

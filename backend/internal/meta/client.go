@@ -44,20 +44,22 @@ type AdAction struct {
 
 // AdInsights representa las métricas de una campaña, adset o ad
 type AdInsights struct {
-	CampaignID   string     `json:"campaign_id,omitempty"`
-	CampaignName string     `json:"campaign_name,omitempty"`
-	AdsetID      string     `json:"adset_id,omitempty"`
-	AdsetName    string     `json:"adset_name,omitempty"`
-	AdID         string     `json:"ad_id,omitempty"`
-	AdName       string     `json:"ad_name,omitempty"`
-	Impressions  int64      `json:"impressions,string"`
-	Clicks       int64      `json:"clicks,string"`
-	Spend        float64    `json:"spend,string"`
-	Reach        int64      `json:"reach,string"`
-	Frequency    float64    `json:"frequency,string"`
-	Actions      []AdAction `json:"actions,omitempty"`
-	DateStart    string     `json:"date_start"`
-	DateStop     string     `json:"date_stop"`
+	CampaignID        string     `json:"campaign_id,omitempty"`
+	CampaignName      string     `json:"campaign_name,omitempty"`
+	AdsetID           string     `json:"adset_id,omitempty"`
+	AdsetName         string     `json:"adset_name,omitempty"`
+	AdID              string     `json:"ad_id,omitempty"`
+	AdName            string     `json:"ad_name,omitempty"`
+	PublisherPlatform string     `json:"publisher_platform,omitempty"`
+	PlatformPosition  string     `json:"platform_position,omitempty"`
+	Impressions       int64      `json:"impressions,string"`
+	Clicks            int64      `json:"clicks,string"`
+	Spend             float64    `json:"spend,string"`
+	Reach             int64      `json:"reach,string"`
+	Frequency         float64    `json:"frequency,string"`
+	Actions           []AdAction `json:"actions,omitempty"`
+	DateStart         string     `json:"date_start"`
+	DateStop          string     `json:"date_stop"`
 }
 
 // Leads suma todas las acciones de tipo lead devueltas por Meta.
@@ -224,6 +226,24 @@ func (c *Client) GetCampaignInsightsByAdset(campaignID, dateStart, dateStop stri
 // GetCampaignInsightsByAd retorna insights de una campaña desglosados por ad individual.
 func (c *Client) GetCampaignInsightsByAd(campaignID, dateStart, dateStop string) ([]AdInsights, error) {
 	url := fmt.Sprintf("%s/%s/insights?level=ad&fields=ad_id,ad_name,adset_id,adset_name,impressions,clicks,spend,reach,frequency,actions&time_range={\"since\":\"%s\",\"until\":\"%s\"}&access_token=%s",
+		graphAPIBaseURL, campaignID, dateStart, dateStop, c.accessToken)
+	return c.fetchInsights(url, dateStart, dateStop)
+}
+
+// GetCampaignInsightsByPlatform retorna insights desglosados por publisher_platform
+// (facebook / instagram / audience_network / messenger). Útil para responder:
+// "¿qué porcentaje del gasto y leads viene de Facebook vs Instagram?"
+func (c *Client) GetCampaignInsightsByPlatform(campaignID, dateStart, dateStop string) ([]AdInsights, error) {
+	url := fmt.Sprintf("%s/%s/insights?fields=impressions,clicks,spend,reach,frequency,actions&breakdowns=publisher_platform&time_range={\"since\":\"%s\",\"until\":\"%s\"}&access_token=%s",
+		graphAPIBaseURL, campaignID, dateStart, dateStop, c.accessToken)
+	return c.fetchInsights(url, dateStart, dateStop)
+}
+
+// GetCampaignInsightsByPlatformPosition retorna insights desglosados por
+// publisher_platform + platform_position (Facebook Feed, Instagram Stories,
+// Instagram Reels, etc.). Útil para optimizar ubicaciones de creativos.
+func (c *Client) GetCampaignInsightsByPlatformPosition(campaignID, dateStart, dateStop string) ([]AdInsights, error) {
+	url := fmt.Sprintf("%s/%s/insights?fields=impressions,clicks,spend,reach,frequency,actions&breakdowns=publisher_platform,platform_position&time_range={\"since\":\"%s\",\"until\":\"%s\"}&access_token=%s",
 		graphAPIBaseURL, campaignID, dateStart, dateStop, c.accessToken)
 	return c.fetchInsights(url, dateStart, dateStop)
 }

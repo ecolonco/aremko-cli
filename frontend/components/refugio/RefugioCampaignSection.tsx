@@ -1,8 +1,29 @@
 'use client';
 
+import { useState } from 'react';
 import type { RefugioCampaign, RefugioThresholds } from '@/lib/types/api';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+
+// Etiquetas humanas + emoji para plataforma + posición de Meta Ads.
+function platformLabel(key: string): string {
+  switch (key) {
+    case 'facebook':         return '📘 Facebook';
+    case 'instagram':        return '📷 Instagram';
+    case 'audience_network': return '🌐 Audience Network';
+    case 'messenger':        return '💬 Messenger';
+    case 'threads':          return '🧵 Threads';
+    default:                 return key || '—';
+  }
+}
+
+function positionLabel(key: string): string {
+  if (!key) return '—';
+  // Snake_case → "Snake case"
+  return key
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+}
 
 const formatCLP = (v: number) =>
   new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(v ?? 0);
@@ -50,7 +71,17 @@ interface Props {
 }
 
 export default function RefugioCampaignSection({ data }: Props) {
-  const { summary, adsets, variants, thresholds, account_label, campaign_name, period } = data;
+  const { summary, adsets, variants, platforms, positions, thresholds, account_label, campaign_name, period } = data;
+  const [platformView, setPlatformView] = useState<'platform' | 'position'>('platform');
+
+  // Filtrar plataformas con tráfico real (>0 impresiones), ordenar por leads desc.
+  const platformRows = (platforms || [])
+    .filter((p) => p.impressions > 0)
+    .sort((a, b) => b.leads - a.leads || b.spend - a.spend);
+
+  const positionRows = (positions || [])
+    .filter((p) => p.impressions > 0)
+    .sort((a, b) => b.leads - a.leads || b.spend - a.spend);
 
   return (
     <Card className="border-purple-200 bg-gradient-to-br from-purple-50/40 to-indigo-50/40">
@@ -179,6 +210,96 @@ export default function RefugioCampaignSection({ data }: Props) {
             </div>
             <p className="text-xs text-muted-foreground mt-2">
               Identificación por nombre del anuncio (Variante A/B/C). La variante ganadora se decide por <strong>leads</strong>, no por CTR.
+            </p>
+          </div>
+        )}
+
+        {/* Sección 4 — Por plataforma / Por posición (FB vs IG, Feed vs Stories vs Reels) */}
+        {(platformRows.length > 0 || positionRows.length > 0) && (
+          <div>
+            <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+              <h3 className="text-sm font-semibold text-gray-700">
+                {platformView === 'platform' ? 'Por plataforma' : 'Por posición / ubicación'}
+              </h3>
+              <div className="inline-flex rounded-md border border-gray-200 overflow-hidden text-xs">
+                <button
+                  onClick={() => setPlatformView('platform')}
+                  className={`px-3 py-1 ${platformView === 'platform' ? 'bg-purple-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-50'}`}
+                >
+                  Plataforma
+                </button>
+                <button
+                  onClick={() => setPlatformView('position')}
+                  className={`px-3 py-1 ${platformView === 'position' ? 'bg-purple-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-50'}`}
+                >
+                  Posición
+                </button>
+              </div>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b text-xs text-muted-foreground">
+                    <th className="text-left py-2 px-2 font-medium">{platformView === 'platform' ? 'Plataforma' : 'Plataforma / Posición'}</th>
+                    <th className="text-right py-2 px-2 font-medium">Gasto</th>
+                    <th className="text-right py-2 px-2 font-medium">Impresiones</th>
+                    <th className="text-right py-2 px-2 font-medium">Clics</th>
+                    <th className="text-right py-2 px-2 font-medium">CTR</th>
+                    <th className="text-right py-2 px-2 font-medium">Leads</th>
+                    <th className="text-right py-2 px-2 font-medium">CPL</th>
+                    <th className="text-right py-2 px-2 font-medium">% gasto</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {platformView === 'platform'
+                    ? platformRows.map((p) => {
+                        const pctSpend = summary.spend > 0 ? (p.spend / summary.spend) * 100 : 0;
+                        return (
+                          <tr key={p.platform} className="border-b hover:bg-purple-50/40">
+                            <td className="py-2 px-2 font-medium">{platformLabel(p.platform)}</td>
+                            <td className="py-2 px-2 text-right">{formatCLP(p.spend)}</td>
+                            <td className="py-2 px-2 text-right">{formatNumber(p.impressions)}</td>
+                            <td className="py-2 px-2 text-right">{formatNumber(p.clicks)}</td>
+                            <td className="py-2 px-2 text-right">
+                              <Badge variant="outline" className={`text-xs ${statusColor(ctrStatus(p.ctr, thresholds))}`}>
+                                {formatPct(p.ctr)}
+                              </Badge>
+                            </td>
+                            <td className="py-2 px-2 text-right font-semibold">{formatNumber(p.leads)}</td>
+                            <td className="py-2 px-2 text-right">{p.leads === 0 ? '—' : formatCLP(p.cpl)}</td>
+                            <td className="py-2 px-2 text-right text-muted-foreground">{pctSpend.toFixed(1)}%</td>
+                          </tr>
+                        );
+                      })
+                    : positionRows.map((p, idx) => {
+                        const pctSpend = summary.spend > 0 ? (p.spend / summary.spend) * 100 : 0;
+                        return (
+                          <tr key={`${p.platform}_${p.position}_${idx}`} className="border-b hover:bg-purple-50/40">
+                            <td className="py-2 px-2 font-medium">
+                              <span>{platformLabel(p.platform)}</span>
+                              <span className="text-muted-foreground"> · {positionLabel(p.position)}</span>
+                            </td>
+                            <td className="py-2 px-2 text-right">{formatCLP(p.spend)}</td>
+                            <td className="py-2 px-2 text-right">{formatNumber(p.impressions)}</td>
+                            <td className="py-2 px-2 text-right">{formatNumber(p.clicks)}</td>
+                            <td className="py-2 px-2 text-right">
+                              <Badge variant="outline" className={`text-xs ${statusColor(ctrStatus(p.ctr, thresholds))}`}>
+                                {formatPct(p.ctr)}
+                              </Badge>
+                            </td>
+                            <td className="py-2 px-2 text-right font-semibold">{formatNumber(p.leads)}</td>
+                            <td className="py-2 px-2 text-right">{p.leads === 0 ? '—' : formatCLP(p.cpl)}</td>
+                            <td className="py-2 px-2 text-right text-muted-foreground">{pctSpend.toFixed(1)}%</td>
+                          </tr>
+                        );
+                      })}
+                </tbody>
+              </table>
+            </div>
+            <p className="text-xs text-muted-foreground mt-2">
+              {platformView === 'platform'
+                ? 'Origen de impresiones, clics y leads por plataforma. Si una plataforma concentra gasto sin generar leads, considerar excluirla del adset.'
+                : 'Detalle por ubicación dentro de cada plataforma (Feed, Stories, Reels, etc.). Útil para optimizar creativos en los placements que sí convierten.'}
             </p>
           </div>
         )}
