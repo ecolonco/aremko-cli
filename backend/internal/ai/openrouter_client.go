@@ -616,6 +616,18 @@ Para cada variante en meta_ads.refugio.variants (key A/B/C):
 - Día 7 (~4-jun-2026): consolidar en ganadora, crear lookalike.
 - Día 10 (7-jun-2026): fin de soft launch, análisis completo antes del lanzamiento oficial 15-jun.
 
+### Origen del tráfico: plataforma y placement (publisher_platform / platform_position)
+Si meta_ads.refugio.platforms existe, analizar EXPLÍCITAMENTE el desglose por plataforma:
+- Para cada platform (facebook / instagram / audience_network / threads): impresiones, gasto, leads, CPL.
+- ¿Qué plataforma concentra MÁS gasto? ¿Coincide con la que genera MÁS leads? Si NO coinciden = ineficiencia clara.
+- Si una plataforma con >25% del gasto del periodo entrega 0 leads tras el día 3, calcular el ahorro estimado (su gasto ÷ leads totales del periodo) y proponer EXCLUIRLA del adset citando el ad set específico.
+- Si Facebook lidera en CPL y Instagram no convierte: explicar por qué (audiencia más madura en FB, creativo no adaptado a IG Stories/Reels, etc.) y proponer cómo redirigir presupuesto.
+
+Si meta_ads.refugio.positions existe, drill-down por placement (Facebook Feed, Instagram Feed, Instagram Stories, Instagram Reels, Facebook Reels, etc.):
+- Ranking de top 3 placements por leads/CPL.
+- Placements con CTR alto pero 0 leads = creativos optimizados para vista pero no para conversión. Distinguir esto de placements con CTR bajo Y 0 leads (que es problema de creativo de fondo).
+- Recomendación de exclusión: si un placement concentra >15% del gasto sin leads tras día 4, candidato a excluir.
+
 ### Recomendación accionable Refugio (UNA sola)
 Una única decisión para ESTA semana sobre Refugio, con formato Movida (acción, por qué con números, impacto esperado, cuándo). NO mezclar con las acciones de campañas históricas.
 
@@ -921,6 +933,7 @@ Cruzar GA4 (sessions, top_pages, traffic_sources, weekly_trends) + Meta Ads (spe
 - ¿El tráfico que llega convierte? Si tenemos N sesiones/semana y X reservas, ¿qué % se convierte?
 - ¿Qué fuente trae al MEJOR cliente (más recurrente, mayor ticket)?
 - ¿La inversión en Meta está justificando el costo dado el ticket promedio de Aremko?
+- Si meta_ads.refugio existe (campaña activa de leads): tratarla aparte porque su métrica primaria es CPL no CTR. Cruzar meta_ads.refugio.platforms (gasto FB vs IG) con web_analytics.traffic_sources para validar que el reparto de sesiones GA4 desde facebook/instagram coincide con el reparto de gasto Meta. Si una plataforma cobra mucho pero entrega pocas sesiones (o sesiones de mala calidad), señalarlo explícitamente como ineficiencia.
 
 ### Ventas + Estacionalidad de Largo Plazo
 Cruzar by_family_mtd + monthly_trends + weekly_breakdown. Preguntas obligatorias:
@@ -967,7 +980,7 @@ Métrica más relevante + tendencia + comparativa histórica + implicación estr
 ER + alcance + top content + implicación estratégica.
 
 ### 🟢/🟡/🔴 Meta Ads
-Eficiencia + mejor campaña + fatiga + implicación estratégica.
+Eficiencia + mejor campaña + fatiga + implicación estratégica. Si meta_ads.refugio existe, dedicar un párrafo aparte: estado de leads/CPL/CTR vs umbrales del operativo, qué plataforma genera leads vs cuál solo gasta (platforms[]), placement ganador (positions[]) y decisión inmediata para esta semana.
 
 ### 🟢/🟡/🔴 Ventas
 Revenue + slope 24m + mix + implicación estratégica.
