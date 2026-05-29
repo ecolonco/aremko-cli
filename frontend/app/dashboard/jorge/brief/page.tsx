@@ -2423,6 +2423,45 @@ export default function BriefPage() {
                           </tr>
                         );
                       })}
+                      {(() => {
+                        const t = data.bookings.by_family.reduce((acc: any, f: any) => ({
+                          current_revenue: acc.current_revenue + (f.current_revenue || 0),
+                          current_count: acc.current_count + (f.current_count || 0),
+                          previous_month_revenue: acc.previous_month_revenue + (f.previous_month_revenue || 0),
+                          previous_year_revenue: acc.previous_year_revenue + (f.previous_year_revenue || 0),
+                        }), { current_revenue: 0, current_count: 0, previous_month_revenue: 0, previous_year_revenue: 0 });
+                        const monthChange = t.previous_month_revenue > 0
+                          ? ((t.current_revenue - t.previous_month_revenue) / t.previous_month_revenue) * 100
+                          : null;
+                        const yearChange = t.previous_year_revenue > 0
+                          ? ((t.current_revenue - t.previous_year_revenue) / t.previous_year_revenue) * 100
+                          : null;
+                        return (
+                          <tr className="bg-muted/50 border-t-2 border-gray-300 font-semibold">
+                            <td className="py-3 px-2">TOTAL</td>
+                            <td className="py-3 px-2 text-right">
+                              <div>{formatCurrency(t.current_revenue)}</div>
+                              <div className="text-xs text-muted-foreground font-normal">{t.current_count} reservas</div>
+                            </td>
+                            <td className="py-3 px-2 text-right">
+                              <div>{formatCurrency(t.previous_month_revenue)}</div>
+                              {monthChange !== null && (
+                                <div className={`text-xs font-normal ${monthChange > 0 ? 'text-green-600' : monthChange < 0 ? 'text-red-600' : 'text-gray-500'}`}>
+                                  {monthChange > 0 ? '▲' : monthChange < 0 ? '▼' : '─'} {Math.abs(monthChange).toFixed(0)}%
+                                </div>
+                              )}
+                            </td>
+                            <td className="py-3 px-2 text-right">
+                              <div>{formatCurrency(t.previous_year_revenue)}</div>
+                              {yearChange !== null && (
+                                <div className={`text-xs font-normal ${yearChange > 0 ? 'text-green-600' : yearChange < 0 ? 'text-red-600' : 'text-gray-500'}`}>
+                                  {yearChange > 0 ? '▲' : yearChange < 0 ? '▼' : '─'} {Math.abs(yearChange).toFixed(0)}%
+                                </div>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })()}
                     </tbody>
                   </table>
                 </div>
@@ -2506,6 +2545,49 @@ export default function BriefPage() {
                             </tr>
                           );
                         })}
+                        {(() => {
+                          const t = mtd.families.reduce((acc: any, f: any) => ({
+                            current_revenue: acc.current_revenue + (f.current_revenue || 0),
+                            current_count: acc.current_count + (f.current_count || 0),
+                            previous_month_revenue: acc.previous_month_revenue + (f.previous_month_revenue || 0),
+                            previous_month_count: acc.previous_month_count + (f.previous_month_count || 0),
+                            previous_year_revenue: acc.previous_year_revenue + (f.previous_year_revenue || 0),
+                            previous_year_count: acc.previous_year_count + (f.previous_year_count || 0),
+                          }), { current_revenue: 0, current_count: 0, previous_month_revenue: 0, previous_month_count: 0, previous_year_revenue: 0, previous_year_count: 0 });
+                          const monthChange = t.previous_month_revenue > 0
+                            ? ((t.current_revenue - t.previous_month_revenue) / t.previous_month_revenue) * 100
+                            : null;
+                          const yearChange = t.previous_year_revenue > 0
+                            ? ((t.current_revenue - t.previous_year_revenue) / t.previous_year_revenue) * 100
+                            : null;
+                          return (
+                            <tr className="bg-muted/50 border-t-2 border-gray-300 font-semibold">
+                              <td className="py-3 px-2">TOTAL</td>
+                              <td className="py-3 px-2 text-right">
+                                <div>{formatCurrency(t.current_revenue)}</div>
+                                <div className="text-xs text-muted-foreground font-normal">{t.current_count} servicios</div>
+                              </td>
+                              <td className="py-3 px-2 text-right">
+                                <div>{formatCurrency(t.previous_month_revenue)}</div>
+                                <div className="text-xs text-muted-foreground font-normal">{t.previous_month_count} servicios</div>
+                                {monthChange !== null && (
+                                  <div className={`text-xs font-normal ${monthChange > 0 ? 'text-green-600' : monthChange < 0 ? 'text-red-600' : 'text-gray-500'}`}>
+                                    {monthChange > 0 ? '▲' : monthChange < 0 ? '▼' : '─'} {Math.abs(monthChange).toFixed(0)}%
+                                  </div>
+                                )}
+                              </td>
+                              <td className="py-3 px-2 text-right">
+                                <div>{formatCurrency(t.previous_year_revenue)}</div>
+                                <div className="text-xs text-muted-foreground font-normal">{t.previous_year_count} servicios</div>
+                                {yearChange !== null && (
+                                  <div className={`text-xs font-normal ${yearChange > 0 ? 'text-green-600' : yearChange < 0 ? 'text-red-600' : 'text-gray-500'}`}>
+                                    {yearChange > 0 ? '▲' : yearChange < 0 ? '▼' : '─'} {Math.abs(yearChange).toFixed(0)}%
+                                  </div>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })()}
                       </tbody>
                     </table>
                   </div>
@@ -2569,6 +2651,45 @@ export default function BriefPage() {
                           </tr>
                         );
                       })}
+                      {(() => {
+                        const t = data.bookings.by_payment_method.reduce((acc: any, p: any) => ({
+                          current_revenue: acc.current_revenue + (p.current_revenue || 0),
+                          current_count: acc.current_count + (p.current_count || 0),
+                          previous_month_revenue: acc.previous_month_revenue + (p.previous_month_revenue || 0),
+                          previous_year_revenue: acc.previous_year_revenue + (p.previous_year_revenue || 0),
+                        }), { current_revenue: 0, current_count: 0, previous_month_revenue: 0, previous_year_revenue: 0 });
+                        const monthChange = t.previous_month_revenue > 0
+                          ? ((t.current_revenue - t.previous_month_revenue) / t.previous_month_revenue) * 100
+                          : null;
+                        const yearChange = t.previous_year_revenue > 0
+                          ? ((t.current_revenue - t.previous_year_revenue) / t.previous_year_revenue) * 100
+                          : null;
+                        return (
+                          <tr className="bg-muted/50 border-t-2 border-gray-300 font-semibold">
+                            <td className="py-3 px-2">TOTAL</td>
+                            <td className="py-3 px-2 text-right">
+                              <div>{formatCurrency(t.current_revenue)}</div>
+                              <div className="text-xs text-muted-foreground font-normal">{t.current_count} reservas</div>
+                            </td>
+                            <td className="py-3 px-2 text-right">
+                              <div>{formatCurrency(t.previous_month_revenue)}</div>
+                              {monthChange !== null && (
+                                <div className={`text-xs font-normal ${monthChange > 0 ? 'text-green-600' : monthChange < 0 ? 'text-red-600' : 'text-gray-500'}`}>
+                                  {monthChange > 0 ? '▲' : monthChange < 0 ? '▼' : '─'} {Math.abs(monthChange).toFixed(0)}%
+                                </div>
+                              )}
+                            </td>
+                            <td className="py-3 px-2 text-right">
+                              <div>{formatCurrency(t.previous_year_revenue)}</div>
+                              {yearChange !== null && (
+                                <div className={`text-xs font-normal ${yearChange > 0 ? 'text-green-600' : yearChange < 0 ? 'text-red-600' : 'text-gray-500'}`}>
+                                  {yearChange > 0 ? '▲' : yearChange < 0 ? '▼' : '─'} {Math.abs(yearChange).toFixed(0)}%
+                                </div>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })()}
                     </tbody>
                   </table>
                 </div>
