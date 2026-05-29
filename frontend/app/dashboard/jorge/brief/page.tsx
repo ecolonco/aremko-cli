@@ -96,6 +96,11 @@ export default function BriefPage() {
   const [loadingProducts, setLoadingProducts] = useState(false);
   const [productsError, setProductsError] = useState<string | null>(null);
 
+  // Landing /refugio — métricas dedicadas en pestaña Web
+  const [refugioLanding, setRefugioLanding] = useState<any>(null);
+  const [loadingRefugioLanding, setLoadingRefugioLanding] = useState(false);
+  const [refugioLandingError, setRefugioLandingError] = useState<string | null>(null);
+
   // Combinaciones de familias por reserva (bundling effectiveness)
   const [familyCombos, setFamilyCombos] = useState<any>(null);
   const [combosMetric, setCombosMetric] = useState<'count_reservas' | 'revenue'>('count_reservas');
@@ -427,6 +432,28 @@ export default function BriefPage() {
   useEffect(() => {
     fetchProductTrends(productRange);
   }, [productRange, fetchProductTrends]);
+
+  const fetchRefugioLanding = useCallback(async () => {
+    setLoadingRefugioLanding(true);
+    setRefugioLandingError(null);
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+      // Mismo rango que la campaña Meta Ads Refugio (desde el lanzamiento 28-may).
+      const res = await fetch(`${apiUrl}/api/v1/ga4/page-metrics?path=/refugio/&date_start=2026-05-28&date_stop=${new Date().toISOString().slice(0, 10)}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const json = await res.json();
+      if (!json.success) throw new Error(json.error || 'error');
+      setRefugioLanding(json.data);
+    } catch (e: any) {
+      setRefugioLandingError(e?.message || 'Error cargando landing /refugio');
+    } finally {
+      setLoadingRefugioLanding(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchRefugioLanding();
+  }, [fetchRefugioLanding]);
 
   const fetchFamilyCombos = useCallback(async () => {
     setLoadingCombos(true);
@@ -1087,6 +1114,162 @@ export default function BriefPage() {
                   </CardContent>
                 </Card>
               </div>
+
+              {/* Landing dedicada /refugio — espejo Web de la campaña Meta Ads Refugio */}
+              <Card className="border-purple-200 bg-gradient-to-br from-purple-50/40 to-indigo-50/40">
+                <CardHeader>
+                  <div className="flex flex-wrap items-start justify-between gap-2">
+                    <div>
+                      <CardTitle className="text-lg flex items-center gap-2">
+                        🌿 Landing <code className="px-1.5 py-0.5 rounded bg-white/70 text-purple-700 text-sm">/refugio</code>
+                      </CardTitle>
+                      <CardDescription>
+                        Tráfico de la landing del paquete Refugio. Cruzar con la campaña Meta Ads Refugio en pestaña Social.
+                      </CardDescription>
+                    </div>
+                    {refugioLanding?.period && (
+                      <p className="text-xs text-muted-foreground">
+                        {refugioLanding.period.start} → {refugioLanding.period.end}
+                      </p>
+                    )}
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  {loadingRefugioLanding && (
+                    <div className="flex items-center gap-2 py-6 justify-center text-gray-500 text-sm">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Cargando métricas de /refugio…
+                    </div>
+                  )}
+                  {refugioLandingError && !loadingRefugioLanding && !refugioLanding && (
+                    <div className="bg-amber-50 border border-amber-200 rounded-md p-3 text-sm text-amber-800">
+                      No se pudo cargar la landing. Detalle: {refugioLandingError}
+                    </div>
+                  )}
+                  {refugioLanding && !loadingRefugioLanding && (() => {
+                    const s = refugioLanding.summary || {};
+                    const weekly: any[] = refugioLanding.weekly || [];
+                    const sources: any[] = refugioLanding.traffic_sources || [];
+                    const fmtDuration = (s: number) => {
+                      if (!s) return '0s';
+                      const mins = Math.floor(s / 60);
+                      const secs = Math.round(s % 60);
+                      return mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
+                    };
+                    return (
+                      <div className="space-y-5">
+                        {/* KPIs principales */}
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                          <div className="rounded-lg border border-purple-200 bg-white p-3 ring-2 ring-purple-100">
+                            <p className="text-xs text-muted-foreground">Sesiones</p>
+                            <p className="mt-1 text-2xl font-bold">{formatNumber(s.sessions || 0)}</p>
+                          </div>
+                          <div className="rounded-lg border border-gray-200 bg-white p-3">
+                            <p className="text-xs text-muted-foreground">Usuarios únicos</p>
+                            <p className="mt-1 text-2xl font-bold">{formatNumber(s.active_users || 0)}</p>
+                            <p className="mt-0.5 text-xs text-muted-foreground">{formatNumber(s.new_users || 0)} nuevos</p>
+                          </div>
+                          <div className="rounded-lg border border-gray-200 bg-white p-3">
+                            <p className="text-xs text-muted-foreground">Vistas de página</p>
+                            <p className="mt-1 text-2xl font-bold">{formatNumber(s.page_views || 0)}</p>
+                          </div>
+                          <div className="rounded-lg border border-gray-200 bg-white p-3">
+                            <p className="text-xs text-muted-foreground">Duración promedio</p>
+                            <p className="mt-1 text-2xl font-bold">{fmtDuration(s.avg_session_duration || 0)}</p>
+                            <p className="mt-0.5 text-xs text-muted-foreground">
+                              {((s.engagement_rate || 0) * 100).toFixed(0)}% engagement
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Evolución semanal */}
+                        {weekly.length > 0 && (
+                          <div>
+                            <h3 className="text-sm font-semibold mb-2 text-gray-700">Evolución por semana</h3>
+                            <div className="overflow-x-auto">
+                              <table className="w-full text-sm">
+                                <thead className="bg-white/50">
+                                  <tr className="border-b text-xs text-muted-foreground">
+                                    <th className="text-left py-2 px-2 font-medium">Semana</th>
+                                    <th className="text-right py-2 px-2 font-medium">Sesiones</th>
+                                    <th className="text-right py-2 px-2 font-medium">Usuarios</th>
+                                    <th className="text-right py-2 px-2 font-medium">Vistas</th>
+                                    <th className="text-right py-2 px-2 font-medium">Duración prom.</th>
+                                    <th className="text-right py-2 px-2 font-medium">Bounce</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {weekly.map((w, i) => {
+                                    const m = w.metrics || {};
+                                    const isCurrent = i === weekly.length - 1;
+                                    return (
+                                      <tr key={w.week_label} className={`border-b ${isCurrent ? 'bg-purple-100/40 font-semibold' : ''}`}>
+                                        <td className="py-2 px-2">
+                                          {w.start_date} → {w.end_date}
+                                          {isCurrent && <span className="ml-2 text-xs text-purple-700">(actual)</span>}
+                                        </td>
+                                        <td className="py-2 px-2 text-right">{formatNumber(m.sessions || 0)}</td>
+                                        <td className="py-2 px-2 text-right">{formatNumber(m.active_users || 0)}</td>
+                                        <td className="py-2 px-2 text-right">{formatNumber(m.page_views || 0)}</td>
+                                        <td className="py-2 px-2 text-right">{fmtDuration(m.avg_session_duration || 0)}</td>
+                                        <td className="py-2 px-2 text-right">{((m.bounce_rate || 0) * 100).toFixed(0)}%</td>
+                                      </tr>
+                                    );
+                                  })}
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Fuentes de tráfico de la landing */}
+                        {sources.length > 0 && (
+                          <div>
+                            <h3 className="text-sm font-semibold mb-2 text-gray-700">¿De dónde viene el tráfico?</h3>
+                            <div className="overflow-x-auto">
+                              <table className="w-full text-sm">
+                                <thead className="bg-white/50">
+                                  <tr className="border-b text-xs text-muted-foreground">
+                                    <th className="text-left py-2 px-2 font-medium">Source</th>
+                                    <th className="text-left py-2 px-2 font-medium">Medium</th>
+                                    <th className="text-right py-2 px-2 font-medium">Sesiones</th>
+                                    <th className="text-right py-2 px-2 font-medium">Usuarios</th>
+                                    <th className="text-right py-2 px-2 font-medium">% del tráfico</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {sources.map((src, i) => {
+                                    const pct = s.sessions > 0 ? (src.sessions / s.sessions) * 100 : 0;
+                                    const isMeta = /facebook|instagram|fb|ig|meta/i.test(`${src.source} ${src.medium}`);
+                                    return (
+                                      <tr key={i} className="border-b">
+                                        <td className="py-2 px-2 font-medium">
+                                          {src.source}
+                                          {isMeta && <span className="ml-1 inline-flex px-1.5 py-0.5 text-[10px] rounded-full bg-blue-100 text-blue-800">Meta</span>}
+                                        </td>
+                                        <td className="py-2 px-2 text-muted-foreground">{src.medium}</td>
+                                        <td className="py-2 px-2 text-right">{formatNumber(src.sessions)}</td>
+                                        <td className="py-2 px-2 text-right">{formatNumber(src.users)}</td>
+                                        <td className="py-2 px-2 text-right">{pct.toFixed(1)}%</td>
+                                      </tr>
+                                    );
+                                  })}
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+                        )}
+
+                        {(s.sessions || 0) === 0 && (
+                          <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-3 py-2">
+                            Aún no hay sesiones registradas para /refugio en GA4. Verificar que el script de tracking esté cargando en esa landing.
+                          </p>
+                        )}
+                      </div>
+                    );
+                  })()}
+                </CardContent>
+              </Card>
 
               {/* Páginas Más Visitadas - Evolución Semanal */}
               {data.web_analytics.top_pages_weekly && (

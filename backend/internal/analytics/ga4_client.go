@@ -346,3 +346,193 @@ func (c *GA4Client) GetTrafficSourcesWeekly(ctx context.Context) (map[string][]m
 
 	return weeklySources, nil
 }
+
+// PageMetrics describe el detalle de tráfico de una URL específica.
+type PageMetrics struct {
+	Path               string  `json:"path"`
+	Title              string  `json:"title"`
+	Sessions           int64   `json:"sessions"`
+	ActiveUsers        int64   `json:"active_users"`
+	NewUsers           int64   `json:"new_users"`
+	PageViews          int64   `json:"page_views"`
+	BounceRate         float64 `json:"bounce_rate"`
+	AvgSessionDuration float64 `json:"avg_session_duration"`
+	EngagementRate     float64 `json:"engagement_rate"`
+}
+
+// pagePathFilter arma el FilterExpression que limita la query a una URL exacta.
+// GA4 normalmente reporta los paths con trailing slash; toleramos ambas formas
+// usando un OR entre exacta y con/sin slash.
+func pagePathFilter(pagePath string) *analyticsdata.FilterExpression {
+	variants := []string{pagePath}
+	if pagePath != "/" {
+		if pagePath[len(pagePath)-1] == '/' {
+			variants = append(variants, pagePath[:len(pagePath)-1])
+		} else {
+			variants = append(variants, pagePath+"/")
+		}
+	}
+	exprs := make([]*analyticsdata.FilterExpression, 0, len(variants))
+	for _, v := range variants {
+		exprs = append(exprs, &analyticsdata.FilterExpression{
+			Filter: &analyticsdata.Filter{
+				FieldName: "pagePath",
+				StringFilter: &analyticsdata.StringFilter{
+					MatchType: "EXACT",
+					Value:     v,
+				},
+			},
+		})
+	}
+	if len(exprs) == 1 {
+		return exprs[0]
+	}
+	return &analyticsdata.FilterExpression{
+		OrGroup: &analyticsdata.FilterExpressionList{Expressions: exprs},
+	}
+}
+
+// GetPageMetrics devuelve métricas detalladas de una página específica
+// (sessions, users, views, bounce, avg duration, engagement) en un rango.
+func (c *GA4Client) GetPageMetrics(ctx context.Context, pagePath, startDate, endDate string) (*PageMetrics, error) {
+	if startDate == "" {
+		startDate = time.Now().AddDate(0, 0, -30).Format("2006-01-02")
+	}
+	if endDate == "" {
+		endDate = time.Now().Format("2006-01-02")
+	}
+
+	req := &analyticsdata.RunReportRequest{
+		DateRanges: []*analyticsdata.DateRange{
+			{StartDate: startDate, EndDate: endDate},
+		},
+		Dimensions: []*analyticsdata.Dimension{
+			{Name: "pageTitle"},
+		},
+		Metrics: []*analyticsdata.Metric{
+			{Name: "sessions"},
+			{Name: "activeUsers"},
+			{Name: "newUsers"},
+			{Name: "screenPageViews"},
+			{Name: "bounceRate"},
+			{Name: "averageSessionDuration"},
+			{Name: "engagementRate"},
+		},
+		DimensionFilter: pagePathFilter(pagePath),
+		Limit:           1,
+	}
+
+	resp, err := c.service.Properties.RunReport(c.propertyID, req).Context(ctx).Do()
+	if err != nil {
+		return nil, fmt.Errorf("error fetching page metrics for %s: %w", pagePath, err)
+	}
+
+	pm := &PageMetrics{Path: pagePath}
+	if len(resp.Rows) == 0 {
+		return pm, nil // sin tráfico todavía → ceros
+	}
+	row := resp.Rows[0]
+	if len(row.DimensionValues) >= 1 {
+		pm.Title = row.DimensionValues[0].Value
+	}
+	if len(row.MetricValues) >= 7 {
+		fmt.Sscanf(row.MetricValues[0].Value, "%d", &pm.Sessions)
+		fmt.Sscanf(row.MetricValues[1].Value, "%d", &pm.ActiveUsers)
+		fmt.Sscanf(row.MetricValues[2].Value, "%d", &pm.NewUsers)
+		fmt.Sscanf(row.MetricValues[3].Value, "%d", &pm.PageViews)
+		fmt.Sscanf(row.MetricValues[4].Value, "%f", &pm.BounceRate)
+		fmt.Sscanf(row.MetricValues[5].Value, "%f", &pm.AvgSessionDuration)
+		fmt.Sscanf(row.MetricValues[6].Value, "%f", &pm.EngagementRate)
+	}
+	return pm, nil
+}
+
+// PageMetricsWeek representa la métrica de una página en una semana específica.
+type PageMetricsWeek struct {
+	WeekLabel string       `json:"week_label"` // week_1..week_4
+	StartDate string       `json:"start_date"`
+	EndDate   string       `json:"end_date"`
+	Metrics   *PageMetrics `json:"metrics"`
+}
+
+// GetPageMetricsByWeek devuelve métricas de la página por cada una de las
+// últimas N semanas (default 4). Espejo de GetTopPagesWeekly pero filtrado.
+func (c *GA4Client) GetPageMetricsByWeek(ctx context.Context, pagePath string, weeks int) ([]PageMetricsWeek, error) {
+	if weeks <= 0 {
+		weeks = 4
+	}
+	now := time.Now()
+	out := make([]PageMetricsWeek, 0, weeks)
+	for i := weeks - 1; i >= 0; i-- {
+		weekEnd := now.AddDate(0, 0, -1-(i*7))
+		weekStart := weekEnd.AddDate(0, 0, -6)
+		startDate := weekStart.Format("2006-01-02")
+		endDate := weekEnd.Format("2006-01-02")
+
+		pm, err := c.GetPageMetrics(ctx, pagePath, startDate, endDate)
+		if err != nil {
+			// fallar suave: una semana sin datos no debe tumbar la respuesta
+			pm = &PageMetrics{Path: pagePath}
+		}
+		out = append(out, PageMetricsWeek{
+			WeekLabel: fmt.Sprintf("week_%d", weeks-i),
+			StartDate: startDate,
+			EndDate:   endDate,
+			Metrics:   pm,
+		})
+	}
+	return out, nil
+}
+
+// GetTrafficSourcesForPage devuelve las fuentes de tráfico (source/medium)
+// que llevaron a una página específica. Útil para saber si /refugio recibe
+// principalmente tráfico orgánico, directo, Meta Ads, etc.
+func (c *GA4Client) GetTrafficSourcesForPage(ctx context.Context, pagePath, startDate, endDate string) ([]map[string]interface{}, error) {
+	if startDate == "" {
+		startDate = time.Now().AddDate(0, 0, -30).Format("2006-01-02")
+	}
+	if endDate == "" {
+		endDate = time.Now().Format("2006-01-02")
+	}
+
+	req := &analyticsdata.RunReportRequest{
+		DateRanges: []*analyticsdata.DateRange{
+			{StartDate: startDate, EndDate: endDate},
+		},
+		Dimensions: []*analyticsdata.Dimension{
+			{Name: "sessionSource"},
+			{Name: "sessionMedium"},
+		},
+		Metrics: []*analyticsdata.Metric{
+			{Name: "sessions"},
+			{Name: "activeUsers"},
+		},
+		DimensionFilter: pagePathFilter(pagePath),
+		OrderBys: []*analyticsdata.OrderBy{
+			{Metric: &analyticsdata.MetricOrderBy{MetricName: "sessions"}, Desc: true},
+		},
+		Limit: 10,
+	}
+
+	resp, err := c.service.Properties.RunReport(c.propertyID, req).Context(ctx).Do()
+	if err != nil {
+		return nil, fmt.Errorf("error fetching traffic sources for %s: %w", pagePath, err)
+	}
+
+	sources := make([]map[string]interface{}, 0, len(resp.Rows))
+	for _, row := range resp.Rows {
+		if len(row.DimensionValues) < 2 || len(row.MetricValues) < 2 {
+			continue
+		}
+		var sessions, users int64
+		fmt.Sscanf(row.MetricValues[0].Value, "%d", &sessions)
+		fmt.Sscanf(row.MetricValues[1].Value, "%d", &users)
+		sources = append(sources, map[string]interface{}{
+			"source":   row.DimensionValues[0].Value,
+			"medium":   row.DimensionValues[1].Value,
+			"sessions": sessions,
+			"users":    users,
+		})
+	}
+	return sources, nil
+}

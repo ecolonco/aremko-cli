@@ -71,6 +71,7 @@ func (s *Server) setupRoutes() {
 		r.Get("/ga4/stats", handlers.GetGA4Stats(s.config))
 		r.Get("/ga4/top-pages", handlers.GetGA4TopPages(s.config))
 		r.Get("/ga4/traffic-sources", handlers.GetGA4TrafficSources(s.config))
+		r.Get("/ga4/page-metrics", handlers.GetGA4PageMetrics(s.config))
 
 		// Brief endpoints
 		r.Get("/brief/weekly", handlers.GetWeeklyBrief(s.config))
