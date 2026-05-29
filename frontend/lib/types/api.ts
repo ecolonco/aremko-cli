@@ -196,6 +196,63 @@ export interface RefugioCampaign {
   thresholds: RefugioThresholds;
 }
 
+// Google Ads — Refugio
+export interface GoogleAdsSummary {
+  spend: number;
+  impressions: number;
+  clicks: number;
+  conversions: number;
+  conversions_value: number;
+  ctr: number;
+  avg_cpc: number;
+  cpl: number;
+  conversion_rate: number;
+  search_impression_share: number;
+  budget_total_clp: number;
+  budget_pct_used: number;
+}
+
+export interface GoogleAdsSearchTerm {
+  term: string;
+  match_type: string;
+  status: string;
+  impressions: number;
+  clicks: number;
+  cost_clp: number;
+  conversions: number;
+  ctr: number;
+  avg_cpc: number;
+  cpl: number;
+}
+
+export interface GoogleAdsKeywordQS {
+  keyword_text: string;
+  match_type: string;
+  ad_group_name: string;
+  quality_score: number;
+  expected_ctr: string;
+  ad_relevance: string;
+  landing_page_experience: string;
+}
+
+export interface GoogleAdsThresholds {
+  ctr_search: { green_min: number; yellow_min: number };
+  cpl_clp: { green_max: number; yellow_max: number };
+  search_impression_share: { green_min: number; yellow_min: number };
+  quality_score: { green_min: number; yellow_min: number };
+  budget_remaining_pct: { green_min: number; yellow_min: number };
+}
+
+export interface GoogleAdsRefugio {
+  campaign_id: string;
+  campaign_name: string;
+  period: { start: string; end: string };
+  summary: GoogleAdsSummary;
+  search_terms: GoogleAdsSearchTerm[];
+  quality_scores: GoogleAdsKeywordQS[];
+  thresholds: GoogleAdsThresholds;
+}
+
 // Brief types
 
 export interface WeeklyBrief {

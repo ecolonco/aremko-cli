@@ -7,7 +7,9 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import RefugioCampaignSection from '@/components/refugio/RefugioCampaignSection';
-import type { RefugioCampaign } from '@/lib/types/api';
+import CrossChannelComparison from '@/components/refugio/CrossChannelComparison';
+import GoogleAdsRefugioCard from '@/components/google-ads/GoogleAdsRefugioCard';
+import type { RefugioCampaign, GoogleAdsRefugio } from '@/lib/types/api';
 import {
   TrendingUp,
   TrendingDown,
@@ -41,6 +43,7 @@ interface BriefData {
     web_analytics?: any;
     bookings?: any;
     meta_ads?: any;
+    google_ads?: any;
     reviews?: any;
     competitors?: any;
     instagram_organic?: any;
@@ -2007,9 +2010,22 @@ export default function BriefPage() {
             <CardContent>
               {data.meta_ads ? (
                 <div className="space-y-6">
+                  {/* Comparativa cross-channel Meta vs Google (la pregunta del millón) */}
+                  {(data.meta_ads.refugio || data.google_ads?.refugio) && (
+                    <CrossChannelComparison
+                      meta={(data.meta_ads.refugio as RefugioCampaign) || null}
+                      google={(data.google_ads?.refugio as GoogleAdsRefugio) || null}
+                    />
+                  )}
+
                   {/* Campaña Refugio — vista dedicada (Leads/CPL como métricas primarias). */}
                   {data.meta_ads.refugio && (
                     <RefugioCampaignSection data={data.meta_ads.refugio as RefugioCampaign} />
+                  )}
+
+                  {/* Google Ads Refugio — espejo de Meta */}
+                  {data.google_ads?.refugio && (
+                    <GoogleAdsRefugioCard data={data.google_ads.refugio as GoogleAdsRefugio} />
                   )}
 
                   {/* AI Analysis Card */}

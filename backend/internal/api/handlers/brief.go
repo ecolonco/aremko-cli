@@ -13,6 +13,7 @@ import (
 	"github.com/aremko/aremko-cli/internal/bookings"
 	"github.com/aremko/aremko-cli/internal/competitors"
 	"github.com/aremko/aremko-cli/internal/config"
+	"github.com/aremko/aremko-cli/internal/googleads"
 	"github.com/aremko/aremko-cli/internal/meta"
 	"github.com/aremko/aremko-cli/internal/reviews"
 	"github.com/aremko/aremko-cli/internal/social"
@@ -143,6 +144,18 @@ func GetWeeklyBrief(cfg *config.Config) http.HandlerFunc {
 				brief["meta_ads"] = metaData
 			} else {
 				brief["meta_ads"] = map[string]interface{}{
+					"error": err.Error(),
+				}
+			}
+		}
+
+		// Google Ads section (paralelo a Meta, cuando esté configurado)
+		if cfg.EnableGoogleAds {
+			gaData, err := getGoogleAdsData(cfg, dateStart, dateStop)
+			if err == nil {
+				brief["google_ads"] = gaData
+			} else {
+				brief["google_ads"] = map[string]interface{}{
 					"error": err.Error(),
 				}
 			}
@@ -645,6 +658,77 @@ func getMetaAdsData(cfg *config.Config, dateStart, dateStop string) (map[string]
 		return nil, firstErr
 	}
 
+	return result, nil
+}
+
+// getGoogleAdsData arma el bloque google_ads para el brief/overview. Trae
+// summary de cuenta + bloque dedicado refugio (si hay GOOGLE_ADS_REFUGIO_CAMPAIGN_ID).
+// Espejo de getMetaAdsData. Falla suave si Google Ads API responde mal —
+// devolvemos solo lo que pudimos rescatar.
+func getGoogleAdsData(cfg *config.Config, dateStart, dateStop string) (map[string]interface{}, error) {
+	client, err := googleads.NewClient(googleads.Config{
+		DeveloperToken:  cfg.GoogleAdsDeveloperToken,
+		ClientID:        cfg.GoogleAdsClientID,
+		ClientSecret:    cfg.GoogleAdsClientSecret,
+		RefreshToken:    cfg.GoogleAdsRefreshToken,
+		CustomerID:      cfg.GoogleAdsCustomerID,
+		LoginCustomerID: cfg.GoogleAdsLoginCustomerID,
+	})
+	if err != nil {
+		return nil, err
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	campaigns, err := client.GetCampaignSummary(ctx, dateStart, dateStop)
+	if err != nil {
+		return nil, err
+	}
+
+	var totalSpend, totalConv, totalConvValue float64
+	var totalImp, totalClicks int64
+	for _, c := range campaigns {
+		totalSpend += c.CostCLP
+		totalConv += c.Conversions
+		totalConvValue += c.ConversionsValue
+		totalImp += c.Impressions
+		totalClicks += c.Clicks
+	}
+
+	result := map[string]interface{}{
+		"summary": map[string]interface{}{
+			"spend":             totalSpend,
+			"impressions":       totalImp,
+			"clicks":            totalClicks,
+			"conversions":       totalConv,
+			"conversions_value": totalConvValue,
+			"ctr":               pctSafe(totalClicks, totalImp),
+			"avg_cpc":           divSafe(totalSpend, float64(totalClicks)),
+			"cpl":               divSafe(totalSpend, totalConv),
+		},
+		"campaigns":       campaigns,
+		"campaigns_count": len(campaigns),
+		"period":          map[string]string{"start": dateStart, "end": dateStop},
+	}
+
+	// Bloque Refugio dedicado (vista comparable a meta_ads.refugio)
+	if cfg.GoogleAdsRefugioCampaignID != "" {
+		refugioStart := "2026-05-29"
+		refugioStop := time.Now().Format("2006-01-02")
+		summary, _ := client.GetCampaignInsights(ctx, cfg.GoogleAdsRefugioCampaignID, refugioStart, refugioStop)
+		searchTerms, _ := client.GetSearchTerms(ctx, cfg.GoogleAdsRefugioCampaignID, refugioStart, refugioStop, 20)
+		qsKeywords, _ := client.GetKeywordQualityScores(ctx, cfg.GoogleAdsRefugioCampaignID)
+
+		result["refugio"] = map[string]interface{}{
+			"campaign_id":    cfg.GoogleAdsRefugioCampaignID,
+			"campaign_name":  campaignNameGA(summary),
+			"period":         map[string]string{"start": refugioStart, "end": refugioStop},
+			"summary":        googleAdsRefugioSummary(summary, cfg.GoogleAdsBudgetCLP),
+			"search_terms":   searchTerms,
+			"quality_scores": qsKeywords,
+			"thresholds":     googleAdsRefugioThresholds(),
+		}
+	}
 	return result, nil
 }
 
@@ -1513,6 +1597,18 @@ func AnalyzeOverview(cfg *config.Config) http.HandlerFunc {
 				defer func() { recover() }()
 				if metaData, err := getMetaAdsData(cfg, dateStart, dateStop); err == nil {
 					setSection("meta_ads", metaData)
+				}
+			}()
+		}
+
+		// Google Ads (paralelo a Meta, cuando está configurado)
+		if cfg.EnableGoogleAds {
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				defer func() { recover() }()
+				if gaData, err := getGoogleAdsData(cfg, dateStart, dateStop); err == nil {
+					setSection("google_ads", gaData)
 				}
 			}()
 		}

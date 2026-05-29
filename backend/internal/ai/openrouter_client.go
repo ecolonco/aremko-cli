@@ -616,6 +616,16 @@ Para cada variante en meta_ads.refugio.variants (key A/B/C):
 - Día 7 (~4-jun-2026): consolidar en ganadora, crear lookalike.
 - Día 10 (7-jun-2026): fin de soft launch, análisis completo antes del lanzamiento oficial 15-jun.
 
+### Comparativa cross-channel Meta vs Google Ads (SOLO si google_ads.refugio existe en el payload)
+Si el payload trae también google_ads.refugio (campaña Refugio Search en Google Ads, paralela a la de Meta), analizar cuál canal está ganando para Refugio:
+- Inversión cada uno + % del gasto total combinado.
+- Leads por canal + % del total de leads.
+- CPL por canal — métrica decisora. Quien tiene CPL más bajo es el canal eficiente.
+- Por qué la diferencia: Meta = push (audiencia fría buscando inspiración), Google Search = pull (intent activo buscando "spa puerto varas parejas"). Espera natural: Meta gana CTR/escala, Google gana conversion rate.
+- Recomendación de rebalanceo: si un canal entrega >70% de leads con <50% del gasto, redirigir 20-30% del presupuesto del canal débil al fuerte. NO pausar el débil completamente sin antes haber probado escalar el fuerte para confirmar elasticidad.
+- Search terms (google_ads.refugio.search_terms) revelan intent real — listar 3 búsquedas con CPL más bajo. Sugerir agregar negative keywords si hay búsquedas con CTR alto y 0 conversions.
+- Quality Score: si hay keywords con QS<5, atribuir el costo extra (CPC 25-50% más caro) y recomendar mejora de landing relevance.
+
 ### Origen del tráfico: plataforma y placement (publisher_platform / platform_position)
 Si meta_ads.refugio.platforms existe, analizar EXPLÍCITAMENTE el desglose por plataforma:
 - Para cada platform (facebook / instagram / audience_network / threads): impresiones, gasto, leads, CPL.
@@ -981,6 +991,12 @@ ER + alcance + top content + implicación estratégica.
 
 ### 🟢/🟡/🔴 Meta Ads
 Eficiencia + mejor campaña + fatiga + implicación estratégica. Si meta_ads.refugio existe, dedicar un párrafo aparte: estado de leads/CPL/CTR vs umbrales del operativo, qué plataforma genera leads vs cuál solo gasta (platforms[]), placement ganador (positions[]) y decisión inmediata para esta semana.
+
+### 🟢/🟡/🔴 Google Ads (SOLO si google_ads existe en el payload)
+Estado de Google Ads. Si google_ads.refugio existe (campaña Search paralela a Meta Refugio), dedicarle un párrafo cubriendo: gasto vs presupuesto prepagado, conversiones, CPL, search_impression_share. Mencionar top 3 search_terms con mejor CPL y top 3 candidatas a negative keyword (CTR alto, 0 conversions). Si hay keywords con quality_score < 5, listarlas y proponer fix de landing relevance.
+
+### ⚔️ Cross-channel (SOLO si Meta y Google están ambos activos en Refugio)
+Un párrafo dedicado a la comparativa Meta vs Google: quién gana CPL, cómo se reparte el gasto vs cómo se reparten los leads, y recomendación de rebalanceo de presupuesto si hay asimetría >10pp. Es la decisión clave de la semana del lanzamiento Refugio.
 
 ### 🟢/🟡/🔴 Ventas
 Revenue + slope 24m + mix + implicación estratégica.

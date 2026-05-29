@@ -67,6 +67,12 @@ func (s *Server) setupRoutes() {
 		r.Get("/meta-ads/campaigns-with-insights", handlers.GetCampaignsWithInsights(s.config))
 		r.Get("/meta-ads/refugio", handlers.GetRefugioCampaign(s.config))
 
+		// Google Ads endpoints
+		r.Get("/google-ads/summary", handlers.GetGoogleAdsSummary(s.config))
+		r.Get("/google-ads/refugio", handlers.GetGoogleAdsRefugio(s.config))
+		r.Get("/google-ads/search-terms", handlers.GetGoogleAdsSearchTerms(s.config))
+		r.Get("/google-ads/quality-scores", handlers.GetGoogleAdsQualityScores(s.config))
+
 		// Google Analytics 4 endpoints
 		r.Get("/ga4/stats", handlers.GetGA4Stats(s.config))
 		r.Get("/ga4/top-pages", handlers.GetGA4TopPages(s.config))

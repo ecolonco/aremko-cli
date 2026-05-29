@@ -24,6 +24,16 @@ type Config struct {
 	MetaRefugioCampaignID string
 	MetaRefugioBudgetCLP  float64 // presupuesto total declarado para mostrar % usado
 
+	// Google Ads (cuenta nueva 539-975-0827, OAuth2 + refresh token)
+	GoogleAdsDeveloperToken    string
+	GoogleAdsClientID          string
+	GoogleAdsClientSecret      string
+	GoogleAdsRefreshToken      string
+	GoogleAdsCustomerID        string // sin guiones, ej 5399055633
+	GoogleAdsLoginCustomerID   string // ID del MCC si la cuenta está administrada
+	GoogleAdsRefugioCampaignID string // ID de la campaña Refugio Search
+	GoogleAdsBudgetCLP         float64
+
 	// Google Analytics 4
 	GA4PropertyID      string
 	GA4CredentialsPath string
@@ -67,6 +77,14 @@ func LoadConfig() (*Config, error) {
 		MetaAdAccounts:        parseMetaAccounts(),
 		MetaRefugioCampaignID: getEnvOrDefault("META_REFUGIO_CAMPAIGN_ID", ""),
 		MetaRefugioBudgetCLP:  parseFloatEnv("META_REFUGIO_BUDGET_CLP", 100000),
+		GoogleAdsDeveloperToken:    getEnvOrDefault("GOOGLE_ADS_DEVELOPER_TOKEN", ""),
+		GoogleAdsClientID:          getEnvOrDefault("GOOGLE_ADS_CLIENT_ID", ""),
+		GoogleAdsClientSecret:      getEnvOrDefault("GOOGLE_ADS_CLIENT_SECRET", ""),
+		GoogleAdsRefreshToken:      getEnvOrDefault("GOOGLE_ADS_REFRESH_TOKEN", ""),
+		GoogleAdsCustomerID:        getEnvOrDefault("GOOGLE_ADS_CUSTOMER_ID", ""),
+		GoogleAdsLoginCustomerID:   getEnvOrDefault("GOOGLE_ADS_LOGIN_CUSTOMER_ID", ""),
+		GoogleAdsRefugioCampaignID: getEnvOrDefault("GOOGLE_ADS_REFUGIO_CAMPAIGN_ID", ""),
+		GoogleAdsBudgetCLP:         parseFloatEnv("GOOGLE_ADS_BUDGET_CLP", 100000),
 		GA4PropertyID:      getEnvOrDefault("GA4_PROPERTY_ID", ""),
 		GA4CredentialsPath: getEnvOrDefault("GA4_CREDENTIALS_PATH", "ga4-credentials.json"),
 		OpenRouterAPIKey:   getEnvOrDefault("OPENROUTER_API_KEY", ""),
@@ -77,7 +95,7 @@ func LoadConfig() (*Config, error) {
 		Port:               getEnvOrDefault("PORT", "8080"),
 		Environment:        getEnvOrDefault("ENVIRONMENT", "development"),
 		EnableMetaAds:      getEnvOrDefault("ENABLE_META_ADS", "true") == "true",
-		EnableGoogleAds:    getEnvOrDefault("ENABLE_GOOGLE_ADS", "false") == "true",
+		EnableGoogleAds:    googleAdsAutoEnabled(),
 		EnableLinkedIn:     getEnvOrDefault("ENABLE_LINKEDIN", "false") == "true",
 		EnableBookings:     getEnvOrDefault("ENABLE_BOOKINGS", "true") == "true",
 		EnableGA4:          getEnvOrDefault("ENABLE_GA4", "true") == "true",
@@ -115,6 +133,28 @@ func getEnvOrDefault(key, defaultValue string) string {
 		return value
 	}
 	return defaultValue
+}
+
+// googleAdsAutoEnabled activa Google Ads cuando todas las credenciales mínimas
+// están presentes. ENABLE_GOOGLE_ADS explícito siempre gana (true/false). Así,
+// agregar las env vars en Render lo prende sin un flag extra.
+func googleAdsAutoEnabled() bool {
+	if v := os.Getenv("ENABLE_GOOGLE_ADS"); v != "" {
+		return v == "true"
+	}
+	required := []string{
+		"GOOGLE_ADS_DEVELOPER_TOKEN",
+		"GOOGLE_ADS_CLIENT_ID",
+		"GOOGLE_ADS_CLIENT_SECRET",
+		"GOOGLE_ADS_REFRESH_TOKEN",
+		"GOOGLE_ADS_CUSTOMER_ID",
+	}
+	for _, k := range required {
+		if os.Getenv(k) == "" {
+			return false
+		}
+	}
+	return true
 }
 
 func parseFloatEnv(key string, defaultValue float64) float64 {
