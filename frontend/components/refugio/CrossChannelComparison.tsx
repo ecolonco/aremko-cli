@@ -51,6 +51,13 @@ export default function CrossChannelComparison({ meta, google }: Props) {
   const metaCPC = m?.cpc ?? 0;
   const googleCPC = g?.avg_cpc ?? 0;
 
+  // Presupuestos declarados (cada canal tiene su propio budget; comparamos % ejecutado
+  // contra cada budget, no contra el gasto combinado — eso daba lecturas engañosas).
+  const metaBudget = m?.budget_total_clp ?? 0;
+  const googleBudget = g?.budget_total_clp ?? 0;
+  const metaPctExec = metaBudget > 0 ? (metaSpend / metaBudget) * 100 : null;
+  const googlePctExec = googleBudget > 0 ? (googleSpend / googleBudget) * 100 : null;
+
   // Ganadores por métrica
   const wCTR = winnerBy(metaCTR, googleCTR, 'higher');
   const wCPC = winnerBy(metaCPC, googleCPC, 'lower');
@@ -79,11 +86,17 @@ export default function CrossChannelComparison({ meta, google }: Props) {
               </tr>
             </thead>
             <tbody>
-              <Row label="Inversión" meta={formatCLP(metaSpend)} google={formatCLP(googleSpend)} winner={null} />
               <Row
-                label="% del gasto total"
-                meta={totalSpend > 0 ? formatPct((metaSpend / totalSpend) * 100, 1) : '—'}
-                google={totalSpend > 0 ? formatPct((googleSpend / totalSpend) * 100, 1) : '—'}
+                label="Presupuesto declarado"
+                meta={metaBudget > 0 ? formatCLP(metaBudget) : '—'}
+                google={googleBudget > 0 ? formatCLP(googleBudget) : '—'}
+                winner={null}
+              />
+              <Row label="Inversión ejecutada" meta={formatCLP(metaSpend)} google={formatCLP(googleSpend)} winner={null} />
+              <Row
+                label="% presupuesto ejecutado"
+                meta={metaPctExec !== null ? formatPct(metaPctExec, 1) : '—'}
+                google={googlePctExec !== null ? formatPct(googlePctExec, 1) : '—'}
                 winner={null}
               />
               <Row label="Impresiones" meta={formatNumber(m?.impressions ?? 0)} google={formatNumber(g?.impressions ?? 0)} winner={null} />
@@ -125,7 +138,7 @@ export default function CrossChannelComparison({ meta, google }: Props) {
         )}
         {meta && google && totalLeads > 0 && (
           <p className="text-xs text-indigo-700 bg-indigo-50 border border-indigo-200 rounded px-3 py-2 mt-3">
-            <strong>Insight rápido:</strong> Meta concentra el {totalSpend > 0 ? ((metaSpend / totalSpend) * 100).toFixed(0) : 0}% del gasto y aporta {totalLeads > 0 ? ((metaLeads / totalLeads) * 100).toFixed(0) : 0}% de los leads. Google aporta {totalLeads > 0 ? ((googleLeads / totalLeads) * 100).toFixed(0) : 0}% con {totalSpend > 0 ? ((googleSpend / totalSpend) * 100).toFixed(0) : 0}% del gasto. Si la asimetría es fuerte (&gt;10pp de diferencia), considerar rebalancear presupuesto.
+            <strong>Insight rápido:</strong> Meta ha ejecutado {metaPctExec !== null ? metaPctExec.toFixed(1) : '—'}% de su presupuesto y aporta {((metaLeads / totalLeads) * 100).toFixed(0)}% de los leads. Google ha ejecutado {googlePctExec !== null ? googlePctExec.toFixed(1) : '—'}% del suyo y aporta {((googleLeads / totalLeads) * 100).toFixed(0)}%. Mismo presupuesto declarado por canal — el que más leads genere por peso ejecutado gana.
           </p>
         )}
       </CardContent>
