@@ -230,13 +230,6 @@ func GetWeeklyBrief(cfg *config.Config) http.HandlerFunc {
 		}
 	}
 
-	// Google Ads section (placeholder)
-	if cfg.EnableGoogleAds {
-		brief["google_ads"] = map[string]interface{}{
-			"status": "coming_soon",
-		}
-	}
-
 	// LinkedIn section (placeholder)
 	if cfg.EnableLinkedIn {
 		brief["linkedin"] = map[string]interface{}{
