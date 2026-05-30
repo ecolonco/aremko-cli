@@ -525,19 +525,10 @@ func (c *GA4Client) GetConversionsByEvent(ctx context.Context, startDate, endDat
 			{Name: "eventCount"},
 			{Name: "totalUsers"},
 		},
-		MetricFilter: &analyticsdata.FilterExpression{
-			Filter: &analyticsdata.Filter{
-				FieldName: "conversions",
-				NumericFilter: &analyticsdata.NumericFilter{
-					Operation: "GREATER_THAN",
-					Value:     &analyticsdata.NumericValue{DoubleValue: 0},
-				},
-			},
-		},
 		OrderBys: []*analyticsdata.OrderBy{
 			{Metric: &analyticsdata.MetricOrderBy{MetricName: "conversions"}, Desc: true},
 		},
-		Limit: 25,
+		Limit: 100, // pedimos más para filtrar después por conversions > 0
 	}
 
 	resp, err := c.service.Properties.RunReport(c.propertyID, req).Context(ctx).Do()
@@ -555,6 +546,11 @@ func (c *GA4Client) GetConversionsByEvent(ctx context.Context, startDate, endDat
 		fmt.Sscanf(row.MetricValues[0].Value, "%f", &conversions)
 		fmt.Sscanf(row.MetricValues[1].Value, "%d", &eventCount)
 		fmt.Sscanf(row.MetricValues[2].Value, "%d", &users)
+		// Solo events con conversions > 0 (los marcados como key event en GA4).
+		// Filtramos en código porque el SDK Go omite zero values en NumericFilter.
+		if conversions <= 0 {
+			continue
+		}
 		out = append(out, ConversionByEvent{
 			EventName:   row.DimensionValues[0].Value,
 			Conversions: conversions,
@@ -589,19 +585,10 @@ func (c *GA4Client) GetConversionsBySource(ctx context.Context, startDate, endDa
 			{Name: "eventCount"},
 			{Name: "totalUsers"},
 		},
-		MetricFilter: &analyticsdata.FilterExpression{
-			Filter: &analyticsdata.Filter{
-				FieldName: "conversions",
-				NumericFilter: &analyticsdata.NumericFilter{
-					Operation: "GREATER_THAN",
-					Value:     &analyticsdata.NumericValue{DoubleValue: 0},
-				},
-			},
-		},
 		OrderBys: []*analyticsdata.OrderBy{
 			{Metric: &analyticsdata.MetricOrderBy{MetricName: "conversions"}, Desc: true},
 		},
-		Limit: 50,
+		Limit: 200, // pedimos más para filtrar después por conversions > 0
 	}
 
 	resp, err := c.service.Properties.RunReport(c.propertyID, req).Context(ctx).Do()
@@ -619,6 +606,9 @@ func (c *GA4Client) GetConversionsBySource(ctx context.Context, startDate, endDa
 		fmt.Sscanf(row.MetricValues[0].Value, "%f", &conversions)
 		fmt.Sscanf(row.MetricValues[1].Value, "%d", &eventCount)
 		fmt.Sscanf(row.MetricValues[2].Value, "%d", &users)
+		if conversions <= 0 {
+			continue
+		}
 		out = append(out, ConversionBySource{
 			EventName:   row.DimensionValues[0].Value,
 			Source:      row.DimensionValues[1].Value,
