@@ -496,6 +496,32 @@ Tráfico orgánico vs paid. Tendencia de cada uno. ¿Estamos comprando todo el t
 ### 🟢/🟡/🔴 Instrumentación de Conversión
 Si hay eventos/conversiones en el payload, analizar. Sino, señalar la falta de instrumentación como deuda técnica.
 
+## 🎯 Análisis de Conversiones (SOLO SI conversions_by_event y conversions_by_source EXISTEN)
+
+Si el payload trae conversions_by_event y conversions_by_source, dedicar UNA SECCIÓN completa:
+
+### Eventos clave (key events) configurados
+Para cada evento en conversions_by_event:
+- **Nombre del evento + conversions** (volumen real de conversión)
+- **Eventos totales vs usuarios únicos:** si event_count >> total_users hay micro-conversiones repetidas por usuario; si event_count ≈ total_users es 1 evento por persona (más limpio).
+- **Lectura ejecutiva:** ¿este evento es el "Lead" real del negocio o solo una micro-acción? Si es whatsapp_click, recordar que NO es lo mismo que reserva confirmada — es intención.
+
+### Atribución por canal (conversions_by_source)
+Ordenar el array por conversions desc. Para los top 5-7:
+- **Source/Medium + evento + conversions:** quién genera más de cada tipo
+- **Patrones:** ¿qué canal trae whatsapp_clicks? ¿qué canal trae reservation_completed? Si son distintos, el embudo se rompe en algún paso (gente clickea WhatsApp pero no reserva, o reserva sin pasar por WhatsApp).
+- **Eventos solo desde (direct)/(none):** señalan UTM tracking faltante en algún flow. Atribuir esto como deuda de instrumentación, no como mérito del "direct".
+- **Comparativa orgánico vs paid:** sumar conversions de google/organic + ig/social + (direct) vs facebook/paid_social + google/cpc. Si paid trae <20% de conversiones con mucho gasto Meta, alertar.
+
+### Hallazgos cruzados con traffic_sources
+Cruzar conversions_by_source con traffic_sources: ¿qué fuentes tienen alta CONVERSION RATE (conversions / sessions)? Eso identifica los canales de **calidad alta** independientemente del volumen. Una fuente con 50 sesiones y 20 conversiones tiene mejor conversion rate (40%) que una con 500 sesiones y 30 conversiones (6%) — y debería escalarse.
+
+### Falta de eventos esperados
+Si NO aparecen eventos como "Lead", "refugio_form_submit", "generate_lead", "purchase", considerar:
+- ¿No están configurados como Key event en GA4 Admin → Events?
+- ¿No se están disparando del lado del cliente (problema de gtag)?
+Recomendación accionable: listar los eventos que el negocio "debería" estar midiendo y proponer fix de instrumentación.
+
 `
 
 	systemPrompt := roleIntro + "\n\n" + executiveAnalystCore + "\n\n" + executiveOutputStructureBase + "\n" + domainStructure + "\n" + executiveOutputStructureTail
@@ -939,10 +965,10 @@ func (c *OpenRouterClient) GenerateOverviewAnalysis(ctx context.Context, fullBri
 	domainStructure := `## 🔍 Análisis Profundo por Área (cruzado entre datasets)
 
 ### Web + Adquisición Digital
-Cruzar GA4 (sessions, top_pages, traffic_sources, weekly_trends) + Meta Ads (spend, CTR, campañas) + Instagram orgánico (reach, engagement, top_posts). Preguntas obligatorias:
-- ¿El tráfico que llega convierte? Si tenemos N sesiones/semana y X reservas, ¿qué % se convierte?
-- ¿Qué fuente trae al MEJOR cliente (más recurrente, mayor ticket)?
-- ¿La inversión en Meta está justificando el costo dado el ticket promedio de Aremko?
+Cruzar GA4 (sessions, top_pages, traffic_sources, weekly_trends, **conversions_by_event, conversions_by_source**) + Meta Ads (spend, CTR, campañas) + Instagram orgánico (reach, engagement, top_posts). Preguntas obligatorias:
+- ¿El tráfico que llega convierte? Si tenemos N sesiones/semana y X conversions (de conversions_by_event), ¿qué % se convierte por canal?
+- ¿Qué fuente trae más conversions? Usar conversions_by_source para responder esto con números absolutos. Ej: si google/organic trae 93 whatsapp_clicks vs facebook/paid_social 2 con todo el gasto Meta, hay un problema serio de atribución o efectividad.
+- ¿La inversión en Meta está justificando el costo dado el ticket promedio de Aremko? Si reservation_completed solo aparece desde (direct)/(none) en conversions_by_source, el UTM tracking del flow de reserva está roto y NINGÚN canal recibe crédito por la conversión final.
 - Si meta_ads.refugio existe (campaña activa de leads): tratarla aparte porque su métrica primaria es CPL no CTR. Cruzar meta_ads.refugio.platforms (gasto FB vs IG) con web_analytics.traffic_sources para validar que el reparto de sesiones GA4 desde facebook/instagram coincide con el reparto de gasto Meta. Si una plataforma cobra mucho pero entrega pocas sesiones (o sesiones de mala calidad), señalarlo explícitamente como ineficiencia.
 
 ### Ventas + Estacionalidad de Largo Plazo

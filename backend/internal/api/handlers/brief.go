@@ -1049,6 +1049,9 @@ func AnalyzeWebAnalytics(cfg *config.Config) http.HandlerFunc {
 					weeklyTrends, _ := ga4Client.GetWeeklyTrends(ctx)
 					topPagesWeekly, _ := ga4Client.GetTopPagesWeekly(ctx, 5)
 					trafficSourcesWeekly, _ := ga4Client.GetTrafficSourcesWeekly(ctx)
+					// Conversiones: eventos key marcados en GA4 + atribución por source/medium
+					convByEvent, _ := ga4Client.GetConversionsByEvent(ctx, dateStart, dateStop)
+					convBySource, _ := ga4Client.GetConversionsBySource(ctx, dateStart, dateStop)
 
 					webAnalyticsData = map[string]interface{}{
 						"period": map[string]string{
@@ -1070,6 +1073,8 @@ func AnalyzeWebAnalytics(cfg *config.Config) http.HandlerFunc {
 						"top_pages_weekly":       topPagesWeekly,
 						"traffic_sources":        trafficSources,
 						"traffic_sources_weekly": trafficSourcesWeekly,
+						"conversions_by_event":   convByEvent,
+						"conversions_by_source":  convBySource,
 					}
 				}
 			}
@@ -1526,6 +1531,8 @@ func AnalyzeOverview(cfg *config.Config) http.HandlerFunc {
 				topPages, _ := ga4Client.GetTopPages(ctx, dateStart, dateStop, 10)
 				trafficSources, _ := ga4Client.GetTrafficSources(ctx, dateStart, dateStop)
 				weeklyTrends, _ := ga4Client.GetWeeklyTrends(ctx)
+				convByEvent, _ := ga4Client.GetConversionsByEvent(ctx, dateStart, dateStop)
+				convBySource, _ := ga4Client.GetConversionsBySource(ctx, dateStart, dateStop)
 				setSection("web_analytics", map[string]interface{}{
 					"summary": map[string]interface{}{
 						"active_users":         ga4Stats.ActiveUsers,
@@ -1535,9 +1542,11 @@ func AnalyzeOverview(cfg *config.Config) http.HandlerFunc {
 						"avg_session_duration": ga4Stats.AvgSessionDuration,
 						"new_users":            ga4Stats.NewUsers,
 					},
-					"weekly_trends":   weeklyTrends,
-					"top_pages":       topPages,
-					"traffic_sources": trafficSources,
+					"weekly_trends":         weeklyTrends,
+					"top_pages":             topPages,
+					"traffic_sources":       trafficSources,
+					"conversions_by_event":  convByEvent,
+					"conversions_by_source": convBySource,
 				})
 			}()
 		}
