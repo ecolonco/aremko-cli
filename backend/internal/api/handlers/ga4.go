@@ -223,3 +223,63 @@ func GetGA4PageMetrics(cfg *config.Config) http.HandlerFunc {
 		json.NewEncoder(w).Encode(response)
 	}
 }
+
+// GetGA4Conversions devuelve eventos de conversión configurados como key events
+// en GA4, agregados a nivel evento y desglosados por source/medium.
+//
+// Solo aparecen eventos marcados como "Key event" en GA4 Admin → Events. Si la
+// lista viene vacía aunque haya eventos en el sitio, hay que marcarlos.
+func GetGA4Conversions(cfg *config.Config) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if !cfg.EnableGA4 {
+			http.Error(w, `{"error":"GA4 no está habilitado"}`, http.StatusServiceUnavailable)
+			return
+		}
+
+		dateStart := r.URL.Query().Get("date_start")
+		dateStop := r.URL.Query().Get("date_stop")
+		if dateStart == "" {
+			dateStart = time.Now().AddDate(0, 0, -30).Format("2006-01-02")
+		}
+		if dateStop == "" {
+			dateStop = time.Now().Format("2006-01-02")
+		}
+
+		client, err := analytics.NewGA4Client(cfg.GA4CredentialsPath, cfg.GA4PropertyID)
+		if err != nil {
+			http.Error(w, `{"error":"Error inicializando GA4 client"}`, http.StatusInternalServerError)
+			return
+		}
+		ctx := context.Background()
+
+		byEvent, evErr := client.GetConversionsByEvent(ctx, dateStart, dateStop)
+		bySource, srcErr := client.GetConversionsBySource(ctx, dateStart, dateStop)
+
+		if evErr != nil && srcErr != nil {
+			http.Error(w, `{"error":"Error obteniendo conversiones"}`, http.StatusInternalServerError)
+			return
+		}
+
+		// Totales globales para mostrar arriba en la card
+		var totalConv float64
+		var totalUsers int64
+		for _, e := range byEvent {
+			totalConv += e.Conversions
+			totalUsers += e.TotalUsers
+		}
+
+		respondJSON(w, http.StatusOK, map[string]interface{}{
+			"success": true,
+			"data": map[string]interface{}{
+				"events":      byEvent,
+				"by_source":   bySource,
+				"total_conversions": totalConv,
+				"total_users":       totalUsers,
+				"period": map[string]string{
+					"start": dateStart,
+					"end":   dateStop,
+				},
+			},
+		})
+	}
+}

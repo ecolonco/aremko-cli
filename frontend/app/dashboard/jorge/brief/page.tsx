@@ -99,6 +99,11 @@ export default function BriefPage() {
   const [loadingProducts, setLoadingProducts] = useState(false);
   const [productsError, setProductsError] = useState<string | null>(null);
 
+  // Conversiones GA4 — eventos key marcados en GA4 Admin
+  const [conversionsData, setConversionsData] = useState<any>(null);
+  const [loadingConversions, setLoadingConversions] = useState(false);
+  const [conversionsError, setConversionsError] = useState<string | null>(null);
+
   // Landing genérica — selector de URL en pestaña Web
   const [landingPath, setLandingPath] = useState<string>('/refugio/');
   const [landingPathCustom, setLandingPathCustom] = useState<string>('');
@@ -514,6 +519,29 @@ export default function BriefPage() {
     const range = resolveLandingDateRange();
     if (range) fetchLandingMetrics(effectiveLandingPath, range);
   }, [effectiveLandingPath, resolveLandingDateRange, fetchLandingMetrics]);
+
+  const fetchConversions = useCallback(async () => {
+    setLoadingConversions(true);
+    setConversionsError(null);
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+      const today = new Date().toISOString().slice(0, 10);
+      const start = new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString().slice(0, 10);
+      const res = await fetch(`${apiUrl}/api/v1/ga4/conversions?date_start=${start}&date_stop=${today}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const json = await res.json();
+      if (!json.success) throw new Error(json.error || 'error');
+      setConversionsData(json.data);
+    } catch (e: any) {
+      setConversionsError(e?.message || 'Error cargando conversiones');
+    } finally {
+      setLoadingConversions(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchConversions();
+  }, [fetchConversions]);
 
   const fetchFamilyCombos = useCallback(async () => {
     setLoadingCombos(true);
@@ -1615,6 +1643,127 @@ export default function BriefPage() {
                       <p className="text-xs text-muted-foreground">{(data.web_analytics.event_count / data.web_analytics.sessions).toFixed(1)} por sesión</p>
                     </div>
                   </div>
+                </CardContent>
+              </Card>
+
+              {/* Conversiones GA4 — eventos key + breakdown por source/medium */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    🎯 Conversiones — Últimos 30 días
+                  </CardTitle>
+                  <CardDescription>
+                    Eventos marcados como <strong>Key event</strong> en GA4 Admin → Events. Si la lista viene vacía, hay que marcar los eventos relevantes (Lead, refugio_form_submit, etc.) como key events para que GA4 los reporte como conversiones.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {loadingConversions && (
+                    <div className="flex items-center gap-2 py-6 justify-center text-gray-500 text-sm">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Cargando conversiones…
+                    </div>
+                  )}
+                  {conversionsError && !loadingConversions && !conversionsData && (
+                    <div className="bg-amber-50 border border-amber-200 rounded-md p-3 text-sm text-amber-800">
+                      No se pudo cargar conversiones. Detalle: {conversionsError}
+                    </div>
+                  )}
+                  {conversionsData && !loadingConversions && (() => {
+                    const events: any[] = conversionsData.events || [];
+                    const bySource: any[] = conversionsData.by_source || [];
+                    const totalConv = conversionsData.total_conversions || 0;
+                    const totalUsers = conversionsData.total_users || 0;
+                    if (events.length === 0) {
+                      return (
+                        <div className="bg-amber-50 border border-amber-200 rounded-md p-3 text-sm text-amber-800">
+                          GA4 no devolvió eventos con conversions &gt; 0 en los últimos 30 días.
+                          Esto suele significar que <strong>ningún evento está marcado como Key event</strong> en GA4 Admin → Events.
+                          Para ver Leads, abre GA4, ve a Admin → Events, encuentra el evento (ej. <code>Lead</code> o <code>refugio_form_submit</code>) y activá el toggle "Mark as key event".
+                        </div>
+                      );
+                    }
+                    return (
+                      <div className="space-y-5">
+                        {/* Totales */}
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="rounded-lg border border-emerald-200 bg-emerald-50/40 p-4">
+                            <p className="text-xs text-muted-foreground">Conversiones totales</p>
+                            <p className="mt-1 text-3xl font-bold">{formatNumber(totalConv)}</p>
+                          </div>
+                          <div className="rounded-lg border border-gray-200 p-4">
+                            <p className="text-xs text-muted-foreground">Usuarios únicos que convirtieron</p>
+                            <p className="mt-1 text-3xl font-bold">{formatNumber(totalUsers)}</p>
+                          </div>
+                        </div>
+
+                        {/* Por evento */}
+                        <div>
+                          <h3 className="text-sm font-semibold mb-2 text-gray-700">Por evento</h3>
+                          <div className="overflow-x-auto">
+                            <table className="w-full text-sm">
+                              <thead>
+                                <tr className="border-b text-xs text-muted-foreground">
+                                  <th className="text-left py-2 px-2 font-medium">Evento</th>
+                                  <th className="text-right py-2 px-2 font-medium">Conversiones</th>
+                                  <th className="text-right py-2 px-2 font-medium">Eventos totales</th>
+                                  <th className="text-right py-2 px-2 font-medium">Usuarios</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {events.map((e, idx) => (
+                                  <tr key={idx} className="border-b">
+                                    <td className="py-2 px-2 font-medium"><code className="text-xs bg-gray-100 px-1.5 py-0.5 rounded">{e.event_name}</code></td>
+                                    <td className="py-2 px-2 text-right font-semibold">{formatNumber(e.conversions)}</td>
+                                    <td className="py-2 px-2 text-right text-muted-foreground">{formatNumber(e.event_count)}</td>
+                                    <td className="py-2 px-2 text-right text-muted-foreground">{formatNumber(e.total_users)}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+
+                        {/* Por fuente */}
+                        {bySource.length > 0 && (
+                          <div>
+                            <h3 className="text-sm font-semibold mb-2 text-gray-700">Por fuente de tráfico (atribución)</h3>
+                            <div className="overflow-x-auto">
+                              <table className="w-full text-sm">
+                                <thead>
+                                  <tr className="border-b text-xs text-muted-foreground">
+                                    <th className="text-left py-2 px-2 font-medium">Evento</th>
+                                    <th className="text-left py-2 px-2 font-medium">Source</th>
+                                    <th className="text-left py-2 px-2 font-medium">Medium</th>
+                                    <th className="text-right py-2 px-2 font-medium">Conversiones</th>
+                                    <th className="text-right py-2 px-2 font-medium">Usuarios</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {bySource.slice(0, 20).map((row, idx) => {
+                                    const isMeta = /facebook|instagram|fb|ig|meta/i.test(`${row.source} ${row.medium}`);
+                                    const isGoogle = /google/i.test(row.source);
+                                    return (
+                                      <tr key={idx} className="border-b">
+                                        <td className="py-2 px-2"><code className="text-xs bg-gray-100 px-1.5 py-0.5 rounded">{row.event_name}</code></td>
+                                        <td className="py-2 px-2 font-medium">
+                                          {row.source}
+                                          {isMeta && <span className="ml-1 inline-flex px-1.5 py-0.5 text-[10px] rounded-full bg-blue-100 text-blue-800">Meta</span>}
+                                          {isGoogle && <span className="ml-1 inline-flex px-1.5 py-0.5 text-[10px] rounded-full bg-emerald-100 text-emerald-800">Google</span>}
+                                        </td>
+                                        <td className="py-2 px-2 text-muted-foreground">{row.medium}</td>
+                                        <td className="py-2 px-2 text-right font-semibold">{formatNumber(row.conversions)}</td>
+                                        <td className="py-2 px-2 text-right text-muted-foreground">{formatNumber(row.total_users)}</td>
+                                      </tr>
+                                    );
+                                  })}
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
                 </CardContent>
               </Card>
             </>

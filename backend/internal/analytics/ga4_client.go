@@ -484,6 +484,153 @@ func (c *GA4Client) GetPageMetricsByWeek(ctx context.Context, pagePath string, w
 	return out, nil
 }
 
+// ConversionByEvent representa un evento de conversión agregado por nombre.
+type ConversionByEvent struct {
+	EventName   string  `json:"event_name"`
+	Conversions float64 `json:"conversions"`
+	EventCount  int64   `json:"event_count"`
+	TotalUsers  int64   `json:"total_users"`
+}
+
+// ConversionBySource representa conversiones por fuente/medio para un evento.
+type ConversionBySource struct {
+	EventName   string  `json:"event_name"`
+	Source      string  `json:"source"`
+	Medium      string  `json:"medium"`
+	Conversions float64 `json:"conversions"`
+	EventCount  int64   `json:"event_count"`
+	TotalUsers  int64   `json:"total_users"`
+}
+
+// GetConversionsByEvent devuelve los eventos de conversión configurados como
+// "key events" en GA4 con sus métricas en el rango. GA4 solo devuelve conversions>0
+// para eventos marcados como key event en Admin → Events.
+func (c *GA4Client) GetConversionsByEvent(ctx context.Context, startDate, endDate string) ([]ConversionByEvent, error) {
+	if startDate == "" {
+		startDate = time.Now().AddDate(0, 0, -30).Format("2006-01-02")
+	}
+	if endDate == "" {
+		endDate = time.Now().Format("2006-01-02")
+	}
+
+	req := &analyticsdata.RunReportRequest{
+		DateRanges: []*analyticsdata.DateRange{
+			{StartDate: startDate, EndDate: endDate},
+		},
+		Dimensions: []*analyticsdata.Dimension{
+			{Name: "eventName"},
+		},
+		Metrics: []*analyticsdata.Metric{
+			{Name: "conversions"},
+			{Name: "eventCount"},
+			{Name: "totalUsers"},
+		},
+		MetricFilter: &analyticsdata.FilterExpression{
+			Filter: &analyticsdata.Filter{
+				FieldName: "conversions",
+				NumericFilter: &analyticsdata.NumericFilter{
+					Operation: "GREATER_THAN",
+					Value:     &analyticsdata.NumericValue{DoubleValue: 0},
+				},
+			},
+		},
+		OrderBys: []*analyticsdata.OrderBy{
+			{Metric: &analyticsdata.MetricOrderBy{MetricName: "conversions"}, Desc: true},
+		},
+		Limit: 25,
+	}
+
+	resp, err := c.service.Properties.RunReport(c.propertyID, req).Context(ctx).Do()
+	if err != nil {
+		return nil, fmt.Errorf("error fetching conversions by event: %w", err)
+	}
+
+	out := make([]ConversionByEvent, 0, len(resp.Rows))
+	for _, row := range resp.Rows {
+		if len(row.DimensionValues) < 1 || len(row.MetricValues) < 3 {
+			continue
+		}
+		var conversions float64
+		var eventCount, users int64
+		fmt.Sscanf(row.MetricValues[0].Value, "%f", &conversions)
+		fmt.Sscanf(row.MetricValues[1].Value, "%d", &eventCount)
+		fmt.Sscanf(row.MetricValues[2].Value, "%d", &users)
+		out = append(out, ConversionByEvent{
+			EventName:   row.DimensionValues[0].Value,
+			Conversions: conversions,
+			EventCount:  eventCount,
+			TotalUsers:  users,
+		})
+	}
+	return out, nil
+}
+
+// GetConversionsBySource desglosa las conversiones por evento × source × medium.
+// Sirve para responder "¿quién atribuye el lead — Meta, Google, orgánico?".
+func (c *GA4Client) GetConversionsBySource(ctx context.Context, startDate, endDate string) ([]ConversionBySource, error) {
+	if startDate == "" {
+		startDate = time.Now().AddDate(0, 0, -30).Format("2006-01-02")
+	}
+	if endDate == "" {
+		endDate = time.Now().Format("2006-01-02")
+	}
+
+	req := &analyticsdata.RunReportRequest{
+		DateRanges: []*analyticsdata.DateRange{
+			{StartDate: startDate, EndDate: endDate},
+		},
+		Dimensions: []*analyticsdata.Dimension{
+			{Name: "eventName"},
+			{Name: "sessionSource"},
+			{Name: "sessionMedium"},
+		},
+		Metrics: []*analyticsdata.Metric{
+			{Name: "conversions"},
+			{Name: "eventCount"},
+			{Name: "totalUsers"},
+		},
+		MetricFilter: &analyticsdata.FilterExpression{
+			Filter: &analyticsdata.Filter{
+				FieldName: "conversions",
+				NumericFilter: &analyticsdata.NumericFilter{
+					Operation: "GREATER_THAN",
+					Value:     &analyticsdata.NumericValue{DoubleValue: 0},
+				},
+			},
+		},
+		OrderBys: []*analyticsdata.OrderBy{
+			{Metric: &analyticsdata.MetricOrderBy{MetricName: "conversions"}, Desc: true},
+		},
+		Limit: 50,
+	}
+
+	resp, err := c.service.Properties.RunReport(c.propertyID, req).Context(ctx).Do()
+	if err != nil {
+		return nil, fmt.Errorf("error fetching conversions by source: %w", err)
+	}
+
+	out := make([]ConversionBySource, 0, len(resp.Rows))
+	for _, row := range resp.Rows {
+		if len(row.DimensionValues) < 3 || len(row.MetricValues) < 3 {
+			continue
+		}
+		var conversions float64
+		var eventCount, users int64
+		fmt.Sscanf(row.MetricValues[0].Value, "%f", &conversions)
+		fmt.Sscanf(row.MetricValues[1].Value, "%d", &eventCount)
+		fmt.Sscanf(row.MetricValues[2].Value, "%d", &users)
+		out = append(out, ConversionBySource{
+			EventName:   row.DimensionValues[0].Value,
+			Source:      row.DimensionValues[1].Value,
+			Medium:      row.DimensionValues[2].Value,
+			Conversions: conversions,
+			EventCount:  eventCount,
+			TotalUsers:  users,
+		})
+	}
+	return out, nil
+}
+
 // GetTrafficSourcesForPage devuelve las fuentes de tráfico (source/medium)
 // que llevaron a una página específica. Útil para saber si /refugio recibe
 // principalmente tráfico orgánico, directo, Meta Ads, etc.
