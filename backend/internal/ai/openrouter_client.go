@@ -127,6 +127,33 @@ Nombres de servicios/productos (Mercado Pago, Flow, Meta Ads, Instagram, Google 
 
 Cuando cites un nombre de campo del payload (ej: monthly_trends, family_combinations, weekly_breakdown, client_stats), úsalo entre comillas o en cursiva pero NO lo traduzcas — son identificadores técnicos. Cuando puedas, EVITA citar el nombre técnico y describe lo que representa en español: "la matriz mensual por familia" en vez de "monthly_trends".
 
+## R9 — PROHIBIDO INVENTAR. Solo nombrar lo que aparece en el payload o el contexto operativo
+
+NUNCA inventes nombres de paquetes, plantillas WhatsApp, productos, listas de clientes, packs combinados, segmentos predefinidos, descuentos, o cualquier otro elemento del catálogo de Aremko.
+
+**Lo que sí podés usar:**
+- Nombres EXACTOS que aparecen en el payload de datos (ej. nombres de campañas Meta como aparecen en "campaigns[].name", nombres de productos como aparecen en "summary_by_product[].name", etc.)
+- Nombres EXACTOS que aparecen en el "Contexto Operativo de Aremko Spa Boutique" si está incluido (triggers de WhatsApp, paquetes oficiales como "Refugio Aremko", servicios como "Tinas calientes", "Masaje sueco", etc.)
+- Descripciones genéricas en español ("pack de cabaña + tinas", "campaña de retargeting de visitantes", "lista de clientes que reservaron en los últimos 30 días")
+
+**Ejemplos PROHIBIDOS (alucinaciones reales detectadas):**
+- ❌ "Pack Tina Hornopiren + Masaje" → Hornopirén es OTRA localidad a 200 km de Puerto Varas. NO existe en Aremko.
+- ❌ "Lista de clientes de enero 2025" → segmento inventado sin evidencia en el payload.
+- ❌ "Plantilla de Reactivación Cliente" → si la plantilla no aparece en el contexto operativo, NO existe.
+- ❌ "Pack Aventura Pucón" → Pucón es otra localidad turística, no es de Aremko.
+
+**Si necesitás referirte a algo que no tenés nombre exacto:**
+Usá descripción genérica entre comillas, NUNCA inventes un nombre comercial. Ejemplo:
+- En vez de "lanzar Pack Wellness Express 90min" → "lanzar un pack express de 90 minutos combinando tina + masaje corto".
+- En vez de "usar plantilla Reactivación Premium" → "armar una nueva plantilla de reactivación enfocada en el segmento de clientes inactivos".
+
+**Verificación durante R8.bis:**
+Antes de cerrar, buscá en el reporte cualquier nombre propio que parezca un producto/paquete/plantilla y verificá:
+1. ¿Aparece literalmente en el payload o en el contexto operativo? → OK.
+2. ¿Lo inventaste para que suene natural? → REEMPLAZALO con descripción genérica.
+
+Inventar nombres comerciales genera ruido cuando el reporte se lee al equipo: la gente busca "Pack Tina Hornopiren" en su sistema, no lo encuentra, y pierde confianza en TODO el reporte.
+
 ## R8.bis — VERIFICACIÓN DE CIERRE (antes de entregar el reporte)
 ANTES de cerrar el reporte, REVISA el texto completo en ORDEN cronológico (Veredicto → 3 Cifras → Análisis Profundo → Hallazgos Cruzados → Estado por Área → Movida → Apuestas → Pausar → Riesgos → Bonus) y verifica:
 
@@ -537,7 +564,7 @@ Recomendación accionable: listar los eventos que el negocio "debería" estar mi
 
 Genera un análisis EJECUTIVO PROFUNDO siguiendo EXACTAMENTE la estructura del system prompt. Sin restricción de extensión: si los datos justifican 4-6 páginas, escríbelo. Prioriza cruzar múltiples datasets en cada sección sobre brevedad. Cada afirmación debe anclarse a números concretos del payload.`, string(dataJSON))
 
-	return c.Generate(ctx, c.wrapSystemPrompt(systemPrompt), userPrompt, "google/gemini-3.1-flash-lite", 0.7, 6000)
+	return c.Generate(ctx, c.wrapSystemPrompt(systemPrompt), userPrompt, "google/gemini-3.1-pro", 0.5, 6000)
 }
 
 // GenerateInstagramAnalysis genera un análisis completo con IA de los datos de Instagram Orgánico
@@ -594,7 +621,7 @@ Crecimiento o decadencia. ¿Hay un pico o valle reciente? ¿Qué lo explica (pie
 
 Genera un análisis EJECUTIVO PROFUNDO siguiendo EXACTAMENTE la estructura del system prompt. Sin restricción de extensión: si los datos justifican 4-6 páginas, escríbelo. Prioriza cruzar múltiples datasets en cada sección sobre brevedad. Cada afirmación debe anclarse a números concretos del payload.`, string(dataJSON))
 
-	return c.Generate(ctx, c.wrapSystemPrompt(systemPrompt), userPrompt, "google/gemini-3.1-flash-lite", 0.7, 6000)
+	return c.Generate(ctx, c.wrapSystemPrompt(systemPrompt), userPrompt, "google/gemini-3.1-pro", 0.5, 6000)
 }
 
 // GenerateMetaAdsAnalysis genera un análisis completo de los datos de Meta Ads (Facebook/Instagram)
@@ -727,7 +754,7 @@ Si los datos de reservas/ventas cruzados están disponibles, estimar ingresos at
 
 Genera un análisis EJECUTIVO PROFUNDO siguiendo EXACTAMENTE la estructura del system prompt. Sin restricción de extensión: si los datos justifican 4-6 páginas, escríbelo. Prioriza cruzar múltiples datasets en cada sección sobre brevedad. Cada afirmación debe anclarse a números concretos del payload.`, string(dataJSON))
 
-	return c.Generate(ctx, c.wrapSystemPrompt(systemPrompt), userPrompt, "google/gemini-3.1-flash-lite", 0.7, 6000)
+	return c.Generate(ctx, c.wrapSystemPrompt(systemPrompt), userPrompt, "google/gemini-3.1-pro", 0.5, 6000)
 }
 
 // GenerateSalesAnalysis genera un análisis completo de las ventas y reservas del sistema
@@ -886,7 +913,7 @@ Sin párrafo de despedida, sin "espero que sea útil", sin meta-comentarios. Ter
 
 Genera un análisis EJECUTIVO PROFUNDO siguiendo EXACTAMENTE la estructura especificada en el system prompt. Sin restricción de extensión: si los datos justifican un análisis de 4-6 páginas, escríbelo así. Prioriza cruzar múltiples datasets en cada sección sobre brevedad. Recuerda anclar cada afirmación a números concretos del payload.`, string(dataJSON))
 
-	return c.Generate(ctx, c.wrapSystemPrompt(systemPrompt), userPrompt, "google/gemini-3.1-flash-lite", 0.7, 6000)
+	return c.Generate(ctx, c.wrapSystemPrompt(systemPrompt), userPrompt, "google/gemini-3.1-pro", 0.5, 6000)
 }
 
 // GenerateReviewsAnalysis genera un análisis completo de reputación online y encuestas
@@ -954,7 +981,7 @@ Cuántos detractores. ¿Hay un patrón (mismo servicio, mismo masajista, misma c
 
 Genera un análisis EJECUTIVO PROFUNDO siguiendo EXACTAMENTE la estructura del system prompt. Sin restricción de extensión: si los datos justifican 4-6 páginas, escríbelo. Prioriza cruzar múltiples datasets en cada sección sobre brevedad. Cada afirmación debe anclarse a números concretos del payload.`, string(dataJSON))
 
-	return c.Generate(ctx, c.wrapSystemPrompt(systemPrompt), userPrompt, "google/gemini-3.1-flash-lite", 0.7, 6000)
+	return c.Generate(ctx, c.wrapSystemPrompt(systemPrompt), userPrompt, "google/gemini-3.1-pro", 0.5, 6000)
 }
 
 // GenerateOverviewAnalysis genera un análisis integral cruzando todas las secciones
@@ -1055,7 +1082,7 @@ por reserva (bundling), opiniones con NPS y 12 dimensiones de calidad, y compete
 
 Genera el análisis EJECUTIVO PROFUNDO siguiendo EXACTAMENTE la estructura del system prompt. La sección "Hallazgos Cruzados" es la más importante del reporte — es lo que el dueño no puede ver leyendo cada pestaña por separado. Cada hallazgo cruzado debe involucrar 2+ áreas distintas (no solo datasets de una misma área).`, string(dataJSON))
 
-	return c.Generate(ctx, c.wrapSystemPrompt(systemPrompt), userPrompt, "google/gemini-3.1-flash-lite", 0.7, 6000)
+	return c.Generate(ctx, c.wrapSystemPrompt(systemPrompt), userPrompt, "google/gemini-3.1-pro", 0.5, 6000)
 }
 
 // GenerateProfilesAnalysis genera un análisis IA profundo sobre la taxonomía
@@ -1113,7 +1140,7 @@ Comentar sobre n_pre_sistema vs n_sistema_actual. ¿Cuántos clientes del CSV hi
 
 Genera el análisis EJECUTIVO PROFUNDO siguiendo EXACTAMENTE la estructura del system prompt. La sección "Análisis Profundo por Cohorte" es la más valiosa — debe entregar estrategia accionable POR cohorte, no generalidades. La sección "Cohortes en riesgo crítico" debe identificar específicamente los Campeones/Leales que están a un paso de fuga (En Riesgo) y proponer su retención. Cita números concretos del payload en cada afirmación.`, string(dataJSON))
 
-	return c.Generate(ctx, c.wrapSystemPrompt(systemPrompt), userPrompt, "google/gemini-3.1-flash-lite", 0.7, 6000)
+	return c.Generate(ctx, c.wrapSystemPrompt(systemPrompt), userPrompt, "google/gemini-3.1-pro", 0.5, 6000)
 }
 
 // VentasDetalleQuery is the structured shape the LLM must return when parsing
