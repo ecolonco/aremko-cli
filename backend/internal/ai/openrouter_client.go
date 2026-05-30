@@ -1145,12 +1145,19 @@ Genera el análisis EJECUTIVO PROFUNDO siguiendo EXACTAMENTE la estructura del s
 
 // VentasDetalleQuery is the structured shape the LLM must return when parsing
 // a natural-language sales query. All dates are absolute YYYY-MM-DD.
+//
+// Tipo distingue entre consultas de servicios (la histórica, default) y de
+// productos (nueva en mayo 2026 cuando se agregaron al inventario gift cards,
+// café marley, tablas, etc.).
 type VentasDetalleQuery struct {
+	Tipo       string `json:"tipo,omitempty"` // "servicios" | "productos"
 	FechaDesde string `json:"fecha_desde"`
 	FechaHasta string `json:"fecha_hasta"`
-	Familia    string `json:"familia,omitempty"`
-	Servicio   string `json:"servicio,omitempty"`
-	Proveedor  string `json:"proveedor,omitempty"`
+	Familia    string `json:"familia,omitempty"`   // solo servicios
+	Servicio   string `json:"servicio,omitempty"`  // solo servicios
+	Proveedor  string `json:"proveedor,omitempty"` // solo servicios
+	Producto   string `json:"producto,omitempty"`  // solo productos
+	Categoria  string `json:"categoria,omitempty"` // solo productos
 	Cliente    string `json:"cliente,omitempty"`
 	Error      string `json:"error,omitempty"`
 }
@@ -1164,14 +1171,24 @@ en parámetros estructurados para una API. Hoy es %s.
 
 DEVUELVE SOLAMENTE UN JSON VÁLIDO con esta forma exacta:
 {
+  "tipo": "servicios" | "productos",
   "fecha_desde": "YYYY-MM-DD o vacío si se filtra por cliente",
   "fecha_hasta": "YYYY-MM-DD o vacío si se filtra por cliente",
   "familia": "tinas" | "masajes" | "cabanas" | "otros" | "",
   "servicio": "<texto parcial del nombre del servicio, o vacío>",
-  "proveedor": "<nombre o parte del nombre del masajista/proveedor que atendió, o vacío>",
+  "proveedor": "<nombre o parte del nombre del masajista/proveedor, o vacío>",
+  "producto": "<texto parcial del nombre del producto, o vacío>",
+  "categoria": "<categoría del producto, o vacío>",
   "cliente": "<nombre, teléfono, email o RUT del cliente, o vacío>",
   "error": "<solo si no puedes parsear la pregunta>"
 }
+
+DETECCIÓN DE tipo (clave para rutear la consulta):
+- Si la pregunta menciona un servicio (masaje, tina, cabaña, alojamiento, descontracturante, sueco, deep tissue, tui-na, masajista) → tipo = "servicios".
+- Si la pregunta menciona un producto físico (café, tabla quesos, tabla jamón, gift card, aceite, crema, alfajor, jugo natural, limonada, agua mineral, vino, pizza, ampe, uma, bata, traje de baño, marley, descuento -1, descuento -500, descuento -1000) → tipo = "productos".
+- Si la pregunta menciona una CATEGORÍA de productos (comestibles, bebestibles, gift cards, toallas, artesanias, marley, productos marley, insumos masaje) → tipo = "productos".
+- Si la pregunta es genérica ("ventas del 1 de mayo", "qué compró Juan") → tipo = "servicios" (default histórico).
+- Si la pregunta es claramente ambigua ("ventas del lunes"), default = "servicios".
 
 REGLAS:
 - fecha_desde y fecha_hasta:
@@ -1194,30 +1211,48 @@ REGLAS:
 
 EJEMPLOS:
 Pregunta: "ventas del 1 de mayo de 2026 familia masajes"
-Respuesta: {"fecha_desde":"2026-05-01","fecha_hasta":"2026-05-01","familia":"masajes","servicio":"","proveedor":"","cliente":""}
+Respuesta: {"tipo":"servicios","fecha_desde":"2026-05-01","fecha_hasta":"2026-05-01","familia":"masajes"}
 
 Pregunta: "ventas de masaje sueco en abril"
-Respuesta: {"fecha_desde":"2026-04-01","fecha_hasta":"2026-04-30","familia":"masajes","servicio":"sueco","proveedor":"","cliente":""}
+Respuesta: {"tipo":"servicios","fecha_desde":"2026-04-01","fecha_hasta":"2026-04-30","familia":"masajes","servicio":"sueco"}
 
 Pregunta: "masajes de Paul en mayo 2026"
-Respuesta: {"fecha_desde":"2026-05-01","fecha_hasta":"2026-05-31","familia":"masajes","servicio":"","proveedor":"Paul","cliente":""}
+Respuesta: {"tipo":"servicios","fecha_desde":"2026-05-01","fecha_hasta":"2026-05-31","familia":"masajes","proveedor":"Paul"}
+
+Pregunta: "ventas de café marley en abril"
+Respuesta: {"tipo":"productos","fecha_desde":"2026-04-01","fecha_hasta":"2026-04-30","producto":"cafe marley"}
+
+Pregunta: "tablas de quesos vendidas el 15 de mayo"
+Respuesta: {"tipo":"productos","fecha_desde":"2026-05-15","fecha_hasta":"2026-05-15","producto":"tabla quesos"}
+
+Pregunta: "ventas de gift cards este mes"
+Respuesta: {"tipo":"productos","fecha_desde":"2026-05-01","fecha_hasta":"2026-05-30","producto":"gift card","categoria":"gift cards"}
+
+Pregunta: "comestibles vendidos el lunes"
+Respuesta: {"tipo":"productos","fecha_desde":"2026-05-26","fecha_hasta":"2026-05-26","categoria":"comestibles"}
+
+Pregunta: "ventas de bebestibles en abril"
+Respuesta: {"tipo":"productos","fecha_desde":"2026-04-01","fecha_hasta":"2026-04-30","categoria":"bebestibles"}
 
 Pregunta: "cuántas ventas le hemos hecho al cliente +56958655810"
-Respuesta: {"fecha_desde":"","fecha_hasta":"","familia":"","servicio":"","proveedor":"","cliente":"+56958655810"}
+Respuesta: {"tipo":"servicios","cliente":"+56958655810"}
 
 Pregunta: "historial del cliente ana.perez@gmail.com"
-Respuesta: {"fecha_desde":"","fecha_hasta":"","familia":"","servicio":"","proveedor":"","cliente":"ana.perez@gmail.com"}
+Respuesta: {"tipo":"servicios","cliente":"ana.perez@gmail.com"}
 
 Pregunta: "qué compró Juan Pérez"
-Respuesta: {"fecha_desde":"","fecha_hasta":"","familia":"","servicio":"","proveedor":"","cliente":"Juan Pérez"}
+Respuesta: {"tipo":"servicios","cliente":"Juan Pérez"}
+
+Pregunta: "qué productos compró Juan Pérez"
+Respuesta: {"tipo":"productos","cliente":"Juan Pérez"}
 
 Pregunta: "ventas a 12345678-9 en 2025"
-Respuesta: {"fecha_desde":"2025-01-01","fecha_hasta":"2025-12-31","familia":"","servicio":"","proveedor":"","cliente":"12345678-9"}
+Respuesta: {"tipo":"servicios","fecha_desde":"2025-01-01","fecha_hasta":"2025-12-31","cliente":"12345678-9"}
 
 Pregunta: "qué clima hay hoy"
-Respuesta: {"fecha_desde":"","fecha_hasta":"","familia":"","servicio":"","proveedor":"","cliente":"","error":"solo puedo responder preguntas de ventas"}`, hoy, hoy)
+Respuesta: {"tipo":"servicios","error":"solo puedo responder preguntas de ventas"}`, hoy, hoy)
 
-	res, err := c.Generate(ctx, c.wrapSystemPrompt(systemPrompt), userQuery, "google/gemini-3.1-flash-lite", 0.0, 200)
+	res, err := c.Generate(ctx, c.wrapSystemPrompt(systemPrompt), userQuery, "google/gemini-3.1-flash-lite", 0.0, 400)
 	if err != nil {
 		return nil, res, err
 	}

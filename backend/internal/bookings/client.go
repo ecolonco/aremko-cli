@@ -667,6 +667,79 @@ func (c *Client) GetVentasDetalle(fechaDesde, fechaHasta, familia, servicio, pro
 	return &result, nil
 }
 
+// VentasDetalleProductoRow es una línea de venta de producto (no servicio)
+// devuelta por /bookings/detalle-productos/.
+type VentasDetalleProductoRow struct {
+	Fecha            string  `json:"fecha"`
+	ClienteNombre    string  `json:"cliente_nombre"`
+	ClienteTelefono  string  `json:"cliente_telefono"`
+	VentaReservaID   int     `json:"venta_reserva_id"`
+	ProductoID       int     `json:"producto_id"`
+	ProductoNombre   string  `json:"producto_nombre"`
+	Categoria        string  `json:"categoria"`
+	Cantidad         int     `json:"cantidad"`
+	PrecioUnitario   float64 `json:"precio_unitario"`
+	Revenue          float64 `json:"revenue"`
+	MetodoPago       string  `json:"metodo_pago"`
+	EstadoPago       string  `json:"estado_pago"`
+}
+
+// VentasDetalleProductosResult es la respuesta de /bookings/detalle-productos/.
+// Espejo de VentasDetalleResult pero a nivel SKU de producto.
+type VentasDetalleProductosResult struct {
+	FechaDesde       string                     `json:"fecha_desde"`
+	FechaHasta       string                     `json:"fecha_hasta"`
+	FiltrosAplicados map[string]interface{}     `json:"filtros_aplicados"`
+	TotalRevenue     float64                    `json:"total_revenue"`
+	TotalUnidades    int                        `json:"total_unidades"`
+	TotalLineas      int                        `json:"total_lineas"`
+	Rows             []VentasDetalleProductoRow `json:"rows"`
+}
+
+// GetVentasDetalleProductos consulta el detalle de ventas de productos. Espejo
+// de GetVentasDetalle pero contra el endpoint Django para productos.
+// Filtros: producto / categoria son substrings case-insensitive del catálogo;
+// cliente matchea teléfono/email/nombre.
+func (c *Client) GetVentasDetalleProductos(fechaDesde, fechaHasta, producto, categoria, cliente string) (*VentasDetalleProductosResult, error) {
+	q := url.Values{}
+	if fechaDesde != "" {
+		q.Set("fecha_desde", fechaDesde)
+	}
+	if fechaHasta != "" {
+		q.Set("fecha_hasta", fechaHasta)
+	}
+	if producto != "" {
+		q.Set("producto", producto)
+	}
+	if categoria != "" {
+		q.Set("categoria", categoria)
+	}
+	if cliente != "" {
+		q.Set("cliente", cliente)
+	}
+	endpoint := fmt.Sprintf("%s/ventas/api/aremko-cli/bookings/detalle-productos/?%s", c.BaseURL, q.Encode())
+
+	resp, err := c.HTTPClient.Get(endpoint)
+	if err != nil {
+		return nil, fmt.Errorf("error fetching ventas detalle productos: %w", err)
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("error reading detalle-productos body: %w", err)
+	}
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("detalle-productos endpoint returned %d: %s", resp.StatusCode, string(body))
+	}
+
+	var result VentasDetalleProductosResult
+	if err := json.Unmarshal(body, &result); err != nil {
+		return nil, fmt.Errorf("error parsing detalle-productos response: %w", err)
+	}
+	return &result, nil
+}
+
 // GetFamilyStatsMTD fetches the month-to-date breakdown by family with comparative
 // against same days of previous month and previous year. Revenue is correctly
 // computed as precio_unitario_venta * cantidad_personas.

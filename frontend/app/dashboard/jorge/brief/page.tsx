@@ -150,6 +150,9 @@ export default function BriefPage() {
   const [nlQueryRunning, setNlQueryRunning] = useState(false);
   const [nlQueryResult, setNlQueryResult] = useState<any>(null);
   const [nlQueryError, setNlQueryError] = useState<string | null>(null);
+  // Toggle Auto / Servicios / Productos para forzar el tipo de consulta.
+  // "" = auto-detect (LLM decide); "servicios" = forzar servicios; "productos" = forzar productos.
+  const [nlQueryForce, setNlQueryForce] = useState<'' | 'servicios' | 'productos'>('');
 
   // Export PDF / Print (formato carta — letter)
   const [exporting, setExporting] = useState(false);
@@ -584,7 +587,7 @@ export default function BriefPage() {
       const response = await fetch(`${apiUrl}/api/v1/analytics/nl-query`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query }),
+        body: JSON.stringify({ query, force: nlQueryForce || undefined }),
         signal: controller.signal,
       });
       const data = await response.json();
@@ -2475,10 +2478,39 @@ export default function BriefPage() {
                 Consulta en lenguaje natural
               </CardTitle>
               <CardDescription>
-                Pregunta por ventas detalladas. Ej: <em>"ventas del 1 de mayo familia masajes"</em>, <em>"masaje sueco en abril"</em>, <em>"tinas la semana pasada"</em>.
+                Pregunta por ventas detalladas. Ej servicios: <em>"masaje sueco en abril"</em>, <em>"tinas la semana pasada"</em>. Ej productos: <em>"café marley en abril"</em>, <em>"gift cards este mes"</em>, <em>"tabla quesos el 15 de mayo"</em>.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
+              {/* Toggle Auto / Servicios / Productos: el modo Auto deja al LLM
+                  detectar, los otros dos fuerzan el tipo si el LLM se equivoca */}
+              <div className="flex items-center gap-2 text-xs">
+                <span className="text-muted-foreground">Buscar en:</span>
+                <div className="inline-flex rounded-md border border-gray-200 overflow-hidden">
+                  <button
+                    onClick={() => setNlQueryForce('')}
+                    className={`px-3 py-1 ${nlQueryForce === '' ? 'bg-indigo-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-50'}`}
+                    title="El parser decide automáticamente si la pregunta es de servicios o productos"
+                  >
+                    Auto
+                  </button>
+                  <button
+                    onClick={() => setNlQueryForce('servicios')}
+                    className={`px-3 py-1 ${nlQueryForce === 'servicios' ? 'bg-indigo-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-50'}`}
+                    title="Forzar consulta sobre servicios (tinas, masajes, cabañas)"
+                  >
+                    Servicios
+                  </button>
+                  <button
+                    onClick={() => setNlQueryForce('productos')}
+                    className={`px-3 py-1 ${nlQueryForce === 'productos' ? 'bg-indigo-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-50'}`}
+                    title="Forzar consulta sobre productos (café, tablas, gift cards, etc.)"
+                  >
+                    Productos
+                  </button>
+                </div>
+              </div>
+
               <div className="flex gap-2">
                 <input
                   type="text"
@@ -2519,9 +2551,16 @@ export default function BriefPage() {
                   ) : (
                     <code className="bg-indigo-50 px-1 rounded">historial completo</code>
                   )}
+                  {nlQueryResult.tipo && (
+                    <> · <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${nlQueryResult.tipo === 'productos' ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800'}`}>
+                      {nlQueryResult.tipo === 'productos' ? '🛍️ productos' : '🧖 servicios'}
+                    </span></>
+                  )}
                   {nlQueryResult.parsed_args.familia && <> · familia <code className="bg-indigo-50 px-1 rounded">{nlQueryResult.parsed_args.familia}</code></>}
                   {nlQueryResult.parsed_args.servicio && <> · servicio <code className="bg-indigo-50 px-1 rounded">{nlQueryResult.parsed_args.servicio}</code></>}
                   {nlQueryResult.parsed_args.proveedor && <> · proveedor <code className="bg-indigo-50 px-1 rounded">{nlQueryResult.parsed_args.proveedor}</code></>}
+                  {nlQueryResult.parsed_args.producto && <> · producto <code className="bg-indigo-50 px-1 rounded">{nlQueryResult.parsed_args.producto}</code></>}
+                  {nlQueryResult.parsed_args.categoria && <> · categoría <code className="bg-indigo-50 px-1 rounded">{nlQueryResult.parsed_args.categoria}</code></>}
                   {nlQueryResult.parsed_args.cliente && <> · cliente <code className="bg-indigo-50 px-1 rounded">{nlQueryResult.parsed_args.cliente}</code></>}
                   {typeof nlQueryResult.parse_ms === 'number' && <span className="text-gray-400"> · {(nlQueryResult.parse_ms / 1000).toFixed(1)}s</span>}
                 </div>
@@ -2555,7 +2594,55 @@ export default function BriefPage() {
                 );
               })()}
 
-              {nlQueryResult?.success && nlQueryResult.result && (
+              {nlQueryResult?.success && nlQueryResult.result && nlQueryResult.tipo === 'productos' && (
+                <div className="bg-white border border-gray-200 rounded-md overflow-hidden">
+                  <div className="px-3 py-2 bg-gray-50 border-b flex items-center justify-between text-sm">
+                    <div>
+                      <span className="font-semibold">{nlQueryResult.result.total_lineas}</span> {nlQueryResult.result.total_lineas === 1 ? 'línea' : 'líneas'}
+                      <span className="mx-2 text-gray-400">·</span>
+                      <span className="font-semibold">{(nlQueryResult.result.total_unidades || 0).toLocaleString('es-CL')}</span> unidades
+                      <span className="mx-2 text-gray-400">·</span>
+                      Total: <span className="font-semibold text-emerald-700">${(nlQueryResult.result.total_revenue || 0).toLocaleString('es-CL')}</span>
+                    </div>
+                  </div>
+                  {!nlQueryResult.result.rows || nlQueryResult.result.rows.length === 0 ? (
+                    <div className="p-6 text-center text-gray-500 text-sm">No hay ventas de productos en ese rango.</div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-xs">
+                        <thead className="bg-gray-50 text-left">
+                          <tr>
+                            <th className="px-2 py-1.5 font-medium">Fecha</th>
+                            <th className="px-2 py-1.5 font-medium">Cliente</th>
+                            <th className="px-2 py-1.5 font-medium">Producto</th>
+                            <th className="px-2 py-1.5 font-medium">Categoría</th>
+                            <th className="px-2 py-1.5 font-medium text-right">Cant.</th>
+                            <th className="px-2 py-1.5 font-medium text-right">P. Unit.</th>
+                            <th className="px-2 py-1.5 font-medium text-right">Total</th>
+                            <th className="px-2 py-1.5 font-medium">Pago</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {nlQueryResult.result.rows.map((row: any, i: number) => (
+                            <tr key={`${row.venta_reserva_id}-${row.producto_id}-${i}`} className="border-t hover:bg-gray-50">
+                              <td className="px-2 py-1.5">{row.fecha}</td>
+                              <td className="px-2 py-1.5">{row.cliente_nombre}</td>
+                              <td className="px-2 py-1.5">{row.producto_nombre}</td>
+                              <td className="px-2 py-1.5 text-gray-600">{row.categoria || <span className="text-gray-400">—</span>}</td>
+                              <td className="px-2 py-1.5 text-right">{row.cantidad}</td>
+                              <td className="px-2 py-1.5 text-right">${row.precio_unitario.toLocaleString('es-CL')}</td>
+                              <td className="px-2 py-1.5 text-right font-medium">${row.revenue.toLocaleString('es-CL')}</td>
+                              <td className="px-2 py-1.5 text-gray-600">{row.metodo_pago}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {nlQueryResult?.success && nlQueryResult.result && nlQueryResult.tipo !== 'productos' && (
                 <div className="bg-white border border-gray-200 rounded-md overflow-hidden">
                   <div className="px-3 py-2 bg-gray-50 border-b flex items-center justify-between text-sm">
                     <div>

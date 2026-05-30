@@ -15,6 +15,10 @@ import (
 
 type nlQueryRequest struct {
 	Query string `json:"query"`
+	// Force fuerza el tipo si el usuario lo selecciona manualmente desde el
+	// toggle del frontend. Valores aceptados: "servicios" | "productos" | "".
+	// Si está vacío, el LLM autodetecta.
+	Force string `json:"force,omitempty"`
 }
 
 // NLQuery parses a natural-language sales question and runs it against the
@@ -89,13 +93,49 @@ func NLQuery(cfg *config.Config) http.HandlerFunc {
 			return
 		}
 
+		// El toggle del frontend puede forzar el tipo. Si está set y es válido,
+		// sobrescribe la detección del LLM.
+		tipo := strings.ToLower(strings.TrimSpace(parsed.Tipo))
+		if req.Force == "servicios" || req.Force == "productos" {
+			tipo = req.Force
+		}
+		if tipo != "servicios" && tipo != "productos" {
+			tipo = "servicios" // default histórico
+		}
+
 		client := bookings.NewClient(cfg.BookingSystemURL)
+
+		if tipo == "productos" {
+			productosResult, err := client.GetVentasDetalleProductos(parsed.FechaDesde, parsed.FechaHasta, parsed.Producto, parsed.Categoria, parsed.Cliente)
+			if err != nil {
+				respondJSON(w, http.StatusBadGateway, map[string]interface{}{
+					"success":     false,
+					"function":    "ventas_detalle_productos",
+					"parsed_args": parsed,
+					"tipo":        tipo,
+					"error":       fmt.Sprintf("error consultando Django (productos): %v", err),
+				})
+				return
+			}
+			respondJSON(w, http.StatusOK, map[string]interface{}{
+				"success":      true,
+				"function":     "ventas_detalle_productos",
+				"tipo":         tipo,
+				"parsed_args":  parsed,
+				"result":       productosResult,
+				"parse_tokens": parseRes.InputTokens + parseRes.OutputTokens,
+				"parse_ms":     parseRes.LatencyMs,
+			})
+			return
+		}
+
 		result, err := client.GetVentasDetalle(parsed.FechaDesde, parsed.FechaHasta, parsed.Familia, parsed.Servicio, parsed.Proveedor, parsed.Cliente)
 		if err != nil {
 			respondJSON(w, http.StatusBadGateway, map[string]interface{}{
 				"success":     false,
 				"function":    "ventas_detalle",
 				"parsed_args": parsed,
+				"tipo":        tipo,
 				"error":       fmt.Sprintf("error consultando Django: %v", err),
 			})
 			return
@@ -104,6 +144,7 @@ func NLQuery(cfg *config.Config) http.HandlerFunc {
 		respondJSON(w, http.StatusOK, map[string]interface{}{
 			"success":      true,
 			"function":     "ventas_detalle",
+			"tipo":         tipo,
 			"parsed_args":  parsed,
 			"result":       result,
 			"parse_tokens": parseRes.InputTokens + parseRes.OutputTokens,
