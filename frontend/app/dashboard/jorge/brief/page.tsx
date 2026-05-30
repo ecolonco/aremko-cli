@@ -2603,6 +2603,7 @@ export default function BriefPage() {
                       <span className="font-semibold">{(nlQueryResult.result.total_unidades || 0).toLocaleString('es-CL')}</span> unidades
                       <span className="mx-2 text-gray-400">·</span>
                       Total: <span className="font-semibold text-emerald-700">${(nlQueryResult.result.total_revenue || 0).toLocaleString('es-CL')}</span>
+                      {nlQueryResult.result.truncated && <span className="ml-2 text-amber-600">(truncado a 500)</span>}
                     </div>
                   </div>
                   {!nlQueryResult.result.rows || nlQueryResult.result.rows.length === 0 ? (

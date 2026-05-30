@@ -670,22 +670,26 @@ func (c *Client) GetVentasDetalle(fechaDesde, fechaHasta, familia, servicio, pro
 // VentasDetalleProductoRow es una línea de venta de producto (no servicio)
 // devuelta por /bookings/detalle-productos/.
 type VentasDetalleProductoRow struct {
-	Fecha            string  `json:"fecha"`
-	ClienteNombre    string  `json:"cliente_nombre"`
-	ClienteTelefono  string  `json:"cliente_telefono"`
-	VentaReservaID   int     `json:"venta_reserva_id"`
-	ProductoID       int     `json:"producto_id"`
-	ProductoNombre   string  `json:"producto_nombre"`
-	Categoria        string  `json:"categoria"`
-	Cantidad         int     `json:"cantidad"`
-	PrecioUnitario   float64 `json:"precio_unitario"`
-	Revenue          float64 `json:"revenue"`
-	MetodoPago       string  `json:"metodo_pago"`
-	EstadoPago       string  `json:"estado_pago"`
+	Fecha           string  `json:"fecha"`
+	ClienteID       int     `json:"cliente_id"`
+	ClienteNombre   string  `json:"cliente_nombre"`
+	ClienteTelefono string  `json:"cliente_telefono"`
+	ClienteEmail    string  `json:"cliente_email"`
+	VentaReservaID  int     `json:"venta_reserva_id"`
+	ProductoID      int     `json:"producto_id"`
+	ProductoNombre  string  `json:"producto_nombre"`
+	Categoria       string  `json:"categoria"`
+	Cantidad        int     `json:"cantidad"`
+	PrecioUnitario  float64 `json:"precio_unitario"`
+	Revenue         float64 `json:"revenue"`
+	MetodoPago      string  `json:"metodo_pago"`
+	EstadoPago      string  `json:"estado_pago"`
 }
 
 // VentasDetalleProductosResult es la respuesta de /bookings/detalle-productos/.
 // Espejo de VentasDetalleResult pero a nivel SKU de producto.
+// Django excluye automáticamente estado_pago='cancelado' y líneas con
+// producto huérfano. Truncated=true cuando se alcanzó el hard cap de 500 rows.
 type VentasDetalleProductosResult struct {
 	FechaDesde       string                     `json:"fecha_desde"`
 	FechaHasta       string                     `json:"fecha_hasta"`
@@ -693,6 +697,7 @@ type VentasDetalleProductosResult struct {
 	TotalRevenue     float64                    `json:"total_revenue"`
 	TotalUnidades    int                        `json:"total_unidades"`
 	TotalLineas      int                        `json:"total_lineas"`
+	Truncated        bool                       `json:"truncated"`
 	Rows             []VentasDetalleProductoRow `json:"rows"`
 }
 
