@@ -26,7 +26,7 @@ import (
 )
 
 const (
-	apiBaseURL = "https://googleads.googleapis.com/v18"
+	apiBaseURL = "https://googleads.googleapis.com/v20"
 	tokenURL   = "https://oauth2.googleapis.com/token"
 )
 
