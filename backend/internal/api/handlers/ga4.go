@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -256,7 +257,12 @@ func GetGA4Conversions(cfg *config.Config) http.HandlerFunc {
 		bySource, srcErr := client.GetConversionsBySource(ctx, dateStart, dateStop)
 
 		if evErr != nil && srcErr != nil {
-			http.Error(w, `{"error":"Error obteniendo conversiones"}`, http.StatusInternalServerError)
+			respondJSON(w, http.StatusInternalServerError, map[string]interface{}{
+				"success":         false,
+				"error":           "GA4 conversions failed",
+				"by_event_error":  fmt.Sprintf("%v", evErr),
+				"by_source_error": fmt.Sprintf("%v", srcErr),
+			})
 			return
 		}
 
