@@ -89,7 +89,7 @@ func (c *Client) rowToCampaign(r *row, dateStart, dateStop string) CampaignInsig
 	conv := r.Metrics.Conversions.String()
 	convVal := r.Metrics.ConversionsValue.String()
 	ctr := r.Metrics.CTR.String()
-	avgCPC := r.Metrics.AverageCpc.String()
+	avgCPCRaw := r.Metrics.AverageCpc.String()
 	cpconv := r.Metrics.CostPerConversion.String()
 	sis := r.Metrics.SearchImpressionShare.String()
 
@@ -105,6 +105,13 @@ func (c *Client) rowToCampaign(r *row, dateStart, dateStop string) CampaignInsig
 		convRate = (convCount / float64(clicksI)) * 100
 	}
 
+	// CPC: usamos average_cpc de Google, pero si viene en 0 (campañas nuevas o
+	// campos no poblados) lo derivamos de gasto / clics, que siempre son reales.
+	avgCPC := microsToCLP(parseInt64FromString(avgCPCRaw))
+	if avgCPC == 0 && clicksI > 0 {
+		avgCPC = costCLP / float64(clicksI)
+	}
+
 	_ = cpconv // por ahora no lo exponemos, derivamos CPL desde cost/conversions
 	return CampaignInsights{
 		CampaignID:       r.campaignIDString(),
@@ -116,7 +123,7 @@ func (c *Client) rowToCampaign(r *row, dateStart, dateStop string) CampaignInsig
 		Conversions:      convCount,
 		ConversionsValue: parseFloatFromString(convVal),
 		CTR:              parseFloatFromString(ctr) * 100, // Google da fracción, mostramos %
-		AvgCPC:           microsToCLP(parseInt64FromString(avgCPC)),
+		AvgCPC:           avgCPC,
 		CPL:              cpl,
 		ConversionRate:   convRate,
 		SearchImprShare:  parseFloatFromString(sis) * 100,

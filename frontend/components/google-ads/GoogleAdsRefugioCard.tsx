@@ -207,13 +207,19 @@ export default function GoogleAdsRefugioCard({ data }: Props) {
                     <tr key={idx} className="border-b hover:bg-emerald-50/40">
                       <td className="py-2 px-2 font-medium">{k.keyword_text}</td>
                       <td className="py-2 px-2 text-right">
-                        <Badge variant="outline" className={`text-xs ${statusColor(qsStatus(k.quality_score, thresholds))}`}>
-                          {k.quality_score}/10
-                        </Badge>
+                        {k.quality_score > 0 ? (
+                          <Badge variant="outline" className={`text-xs ${statusColor(qsStatus(k.quality_score, thresholds))}`}>
+                            {k.quality_score}/10
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="text-xs bg-slate-100 text-slate-500 border-slate-200">
+                            Sin datos aún
+                          </Badge>
+                        )}
                       </td>
-                      <td className="py-2 px-2 text-muted-foreground">{k.expected_ctr}</td>
-                      <td className="py-2 px-2 text-muted-foreground">{k.ad_relevance}</td>
-                      <td className="py-2 px-2 text-muted-foreground">{k.landing_page_experience}</td>
+                      <td className="py-2 px-2 text-muted-foreground">{k.expected_ctr || '—'}</td>
+                      <td className="py-2 px-2 text-muted-foreground">{k.ad_relevance || '—'}</td>
+                      <td className="py-2 px-2 text-muted-foreground">{k.landing_page_experience || '—'}</td>
                     </tr>
                   ))}
                 </tbody>
