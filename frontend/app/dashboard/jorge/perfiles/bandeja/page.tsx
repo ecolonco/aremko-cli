@@ -22,6 +22,7 @@ import {
   marcarStaff,
 } from './api';
 import type {
+  Conflict409,
   Contacto,
   PantallaAsistente,
   SiguienteResponse,
@@ -31,7 +32,17 @@ import { TarjetaCliente } from './TarjetaCliente';
 import { TarjetaRegistrarRespuesta } from './TarjetaRegistrarRespuesta';
 import { TarjetaCelebracion } from './TarjetaCelebracion';
 import { HistorialDrawer } from './HistorialDrawer';
+import { ModalConflicto } from './ModalConflicto';
 import { History } from 'lucide-react';
+
+// Estado del ModalConflicto (Task #41): qué contacto está en conflicto y los
+// datos del 409 que devolvió el backend. null = modal oculto.
+interface ConflictoState {
+  contacto: Contacto;
+  data: Conflict409;
+  /** True si ya se intentó "registrar igual" y el backend siguió en 409. */
+  forzarNoDisponible: boolean;
+}
 
 export default function BandejaPage() {
   const { data: session, status: sessionStatus } = useSession();
@@ -43,6 +54,7 @@ export default function BandejaPage() {
   const [actuando, setActuando] = useState(false);
   const [transicionMsg, setTransicionMsg] = useState<string>('');
   const [historialOpen, setHistorialOpen] = useState(false);
+  const [conflicto, setConflicto] = useState<ConflictoState | null>(null);
 
   // Fetch del próximo cliente / respuesta pendiente / celebración / fin del día.
   const cargarSiguiente = useCallback(async () => {
@@ -88,10 +100,13 @@ export default function BandejaPage() {
         mensaje_enviado_editado: mensajeEditado,
       });
       if (res.conflict) {
-        alert(
-          `${res.conflict.mensaje}\n\nEstado anterior: ${res.conflict.eje_valor_anterior}\nEstado actual: ${res.conflict.eje_valor_actual}`
-        );
-        await cargarSiguiente();
+        // Conflicto de clasificación (Task #41): abrimos el modal con las 3
+        // decisiones en vez de un alert que descartaba la acción en silencio.
+        setConflicto({
+          contacto,
+          data: res.conflict,
+          forzarNoDisponible: false,
+        });
         return;
       }
       // Pre-resolución: si el backend devolvió el siguiente, lo cacheamos.
@@ -222,6 +237,70 @@ export default function BandejaPage() {
           e instanceof Error ? e.message : String(e)
         }`
       );
+    } finally {
+      setActuando(false);
+    }
+  };
+
+  // ============ HANDLERS DEL MODAL DE CONFLICTO (Task #41) ============
+
+  // "Sí, envié; registrar igual" — reintenta marcar-enviado con forzar:true.
+  // Si el backend aún no honra el flag y devuelve 409 de nuevo, marcamos
+  // forzarNoDisponible para mostrar el aviso honesto en el modal.
+  const handleConflictoRegistrarIgual = async () => {
+    if (!conflicto || actuando) return;
+    setActuando(true);
+    try {
+      const res = await marcarEnviado(conflicto.contacto.id, {
+        operador,
+        forzar: true,
+      });
+      if (res.conflict) {
+        setConflicto({ ...conflicto, forzarNoDisponible: true });
+        return;
+      }
+      const nombre = conflicto.contacto.cliente.nombre;
+      setConflicto(null);
+      irATransicion(`Enviado a ${nombre.split(' ')[0]}`);
+    } catch (e: unknown) {
+      alert(`Error al registrar: ${e instanceof Error ? e.message : String(e)}`);
+    } finally {
+      setActuando(false);
+    }
+  };
+
+  // "No envié; saltar" — marca omitido (reaparece otro día) y avanza.
+  const handleConflictoSaltar = async () => {
+    if (!conflicto || actuando) return;
+    setActuando(true);
+    try {
+      await marcarOmitido(conflicto.contacto.id, operador);
+      const nombre = conflicto.contacto.cliente.nombre;
+      setConflicto(null);
+      irATransicion(`Saltado: ${nombre.split(' ')[0]}`);
+    } catch (e: unknown) {
+      alert(`Error al saltar: ${e instanceof Error ? e.message : String(e)}`);
+    } finally {
+      setActuando(false);
+    }
+  };
+
+  // "Descartar de la bandeja" — lo saca de la bandeja activa (no_aplica con
+  // razón automática) para reevaluarlo en una próxima generación.
+  const handleConflictoDescartar = async () => {
+    if (!conflicto || actuando) return;
+    setActuando(true);
+    try {
+      await marcarNoAplica(
+        conflicto.contacto.id,
+        operador,
+        'Descartado por conflicto de clasificación'
+      );
+      const nombre = conflicto.contacto.cliente.nombre;
+      setConflicto(null);
+      irATransicion(`Descartado: ${nombre.split(' ')[0]}`);
+    } catch (e: unknown) {
+      alert(`Error al descartar: ${e instanceof Error ? e.message : String(e)}`);
     } finally {
       setActuando(false);
     }
@@ -471,6 +550,18 @@ export default function BandejaPage() {
         onClose={() => setHistorialOpen(false)}
         operadorActivo={operador}
         onAccionAplicada={cargarSiguiente}
+      />
+
+      {/* Modal de conflicto de clasificación (Task #41) */}
+      <ModalConflicto
+        conflict={conflicto?.data ?? null}
+        clienteNombre={conflicto?.contacto.cliente.nombre ?? ''}
+        procesando={actuando}
+        forzarNoDisponible={conflicto?.forzarNoDisponible ?? false}
+        onRegistrarIgual={handleConflictoRegistrarIgual}
+        onSaltar={handleConflictoSaltar}
+        onDescartar={handleConflictoDescartar}
+        onCerrar={() => setConflicto(null)}
       />
     </div>
   );

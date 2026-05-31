@@ -74,6 +74,13 @@ export const fetchDelDia = (opts: DelDiaOptions = {}) => {
 export interface MarcarEnviadoBody {
   operador: string;
   mensaje_enviado_editado?: string;
+  /**
+   * Fuerza el registro pese a un conflicto de clasificación (409).
+   * Lo envía el botón "registrar igual" del ModalConflicto (Task #41).
+   * Requiere que el backend Go + Django honren el flag; hasta entonces
+   * se ignora server-side y el 409 persiste (el modal lo detecta).
+   */
+  forzar?: boolean;
 }
 
 export interface MarcarEnviadoResult {
