@@ -1416,8 +1416,8 @@ export default function BriefPage() {
               {data.web_analytics.top_pages_weekly && (
                 <Card>
                   <CardHeader>
-                    <CardTitle>Páginas Más Visitadas - Últimas 4 Semanas</CardTitle>
-                    <CardDescription>Evolución de las top 5 páginas semana a semana</CardDescription>
+                    <CardTitle>Páginas Clave del Sitio - Últimas 4 Semanas</CardTitle>
+                    <CardDescription>Embudo de reserva (siempre visible) + páginas más relevantes, semana a semana</CardDescription>
                   </CardHeader>
                   <CardContent>
                     <div className="overflow-x-auto">
@@ -1432,28 +1432,52 @@ export default function BriefPage() {
                           </tr>
                         </thead>
                         <tbody>
-                          {/* Obtener lista única de todas las páginas */}
+                          {/* Selección por relevancia: páginas clave del embudo
+                              (siempre visibles) + resto del sitio por tráfico.
+                              Mismo criterio que LANDING_PRESETS. */}
                           {(() => {
+                            const KEY_PATHS = ['/', '/refugio/', '/alojamientos/', '/tinas/', '/masajes/', '/productos/', '/ventas/cart/', '/ventas/giftcards/'];
+                            const normPath = (p: string) => (p && p.length > 1 && p.endsWith('/') ? p.slice(0, -1) : p);
+                            const isKey = (p: string) => KEY_PATHS.some((k) => normPath(k) === normPath(p));
+
+                            // Páginas únicas + total de visitas en las 4 semanas (para ordenar).
                             const allPages = new Map();
                             ['week_1', 'week_2', 'week_3', 'week_4'].forEach(week => {
                               (data.web_analytics.top_pages_weekly[week] || []).forEach((page: any) => {
                                 if (!allPages.has(page.path)) {
-                                  allPages.set(page.path, { title: page.title, path: page.path });
+                                  allPages.set(page.path, { title: page.title, path: page.path, totalViews: 0 });
                                 }
+                                allPages.get(page.path).totalViews += page.page_views || 0;
                               });
                             });
 
-                            return Array.from(allPages.values()).slice(0, 5).map((pageInfo: any, idx: number) => {
+                            const pages = Array.from(allPages.values());
+                            // Embudo primero (siempre), ordenado por tráfico.
+                            const keyRows = pages.filter((p: any) => isKey(p.path)).sort((a: any, b: any) => b.totalViews - a.totalViews);
+                            // Resto del sitio: top 15 por tráfico, para cortar la cola larga.
+                            const otherRows = pages.filter((p: any) => !isKey(p.path)).sort((a: any, b: any) => b.totalViews - a.totalViews).slice(0, 15);
+
+                            return [...keyRows, ...otherRows].map((pageInfo: any, idx: number) => {
                               const week1 = (data.web_analytics.top_pages_weekly.week_1 || []).find((p: any) => p.path === pageInfo.path);
                               const week2 = (data.web_analytics.top_pages_weekly.week_2 || []).find((p: any) => p.path === pageInfo.path);
                               const week3 = (data.web_analytics.top_pages_weekly.week_3 || []).find((p: any) => p.path === pageInfo.path);
                               const week4 = (data.web_analytics.top_pages_weekly.week_4 || []).find((p: any) => p.path === pageInfo.path);
 
+                              const esClave = isKey(pageInfo.path);
+                              const esRefugio = normPath(pageInfo.path) === '/refugio';
                               return (
-                                <tr key={idx} className="border-b hover:bg-gray-50">
+                                <tr key={idx} className={`border-b hover:bg-gray-50 ${esClave ? 'bg-amber-50/40' : ''}`}>
                                   <td className="p-2">
                                     <div className="max-w-xs">
-                                      <p className="font-medium truncate text-sm">{pageInfo.title}</p>
+                                      <p className="font-medium truncate text-sm">
+                                        {pageInfo.title}
+                                        {esRefugio && (
+                                          <span className="ml-2 rounded bg-purple-100 px-1.5 py-0.5 text-[10px] font-semibold text-purple-700 align-middle">campaña</span>
+                                        )}
+                                        {esClave && !esRefugio && (
+                                          <span className="ml-2 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700 align-middle">embudo</span>
+                                        )}
+                                      </p>
                                       <p className="text-xs text-muted-foreground truncate">{pageInfo.path}</p>
                                     </div>
                                   </td>
@@ -1546,7 +1570,7 @@ export default function BriefPage() {
                               });
                             });
 
-                            return Array.from(allSources.values()).slice(0, 6).map((sourceInfo: any, idx: number) => {
+                            return Array.from(allSources.values()).slice(0, 10).map((sourceInfo: any, idx: number) => {
                               const key = `${sourceInfo.source}/${sourceInfo.medium}`;
                               const week1 = (data.web_analytics.traffic_sources_weekly.week_1 || []).find((s: any) => `${s.source}/${s.medium}` === key);
                               const week2 = (data.web_analytics.traffic_sources_weekly.week_2 || []).find((s: any) => `${s.source}/${s.medium}` === key);
