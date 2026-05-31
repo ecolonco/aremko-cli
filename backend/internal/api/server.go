@@ -139,6 +139,12 @@ func (s *Server) setupRoutes() {
 			r.Post("/clientes/{clienteID}/marcar-staff", handlers.OVCMarcarStaff(s.config))
 		})
 
+		// WhatsApp Cloud API — webhook + envío (piloto inbound Refugio)
+		// El webhook lo llama Meta: sin auth de app, se valida con firma HMAC.
+		r.Get("/whatsapp/webhook", handlers.WhatsAppWebhookVerify(s.config))
+		r.Post("/whatsapp/webhook", handlers.WhatsAppWebhookReceive(s.config))
+		r.Post("/whatsapp/send-test", handlers.WhatsAppSendTest(s.config))
+
 		// Stats endpoints (próximamente)
 		r.Get("/stats/overview", handlers.GetStatsOverview(s.config))
 	})
@@ -156,6 +162,7 @@ func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 			"bookings":   s.config.EnableBookings,
 			"ga4":        s.config.EnableGA4,
 			"ai":         s.config.EnableAI,
+			"whatsapp":   s.config.EnableWhatsApp,
 		},
 	}
 
