@@ -121,6 +121,13 @@ export default function CrossChannelComparison({ meta, google }: Props) {
           </table>
         </div>
 
+        <p className="text-xs text-gray-600 bg-gray-50 border border-gray-200 rounded px-3 py-2 mt-3">
+          <strong>Fuente de leads:</strong> Meta = leads reales del <strong>formulario Refugio</strong> (BD, atribución por UTM facebook/instagram){m?.leads_source === 'pixel' ? ' — sin conexión a BD, mostrando evento Pixel (provisorio)' : ''}. Google = su propia conversión &quot;Refugio Form Submit&quot; (gclid); la BD por UTM no captura gclid, por eso puede diferir. El antiguo número de Meta venía del evento Pixel <em>Lead</em>, contaminado con reservas del checkout (ya corregido a <code>Schedule</code>).
+          {typeof m?.leads_reales_total === 'number' && (
+            <> Formulario real total en el período: <strong>{m.leads_reales_total}</strong>{typeof m?.leads_pixel === 'number' ? ` (evento Pixel Meta: ${m.leads_pixel}).` : '.'}</>
+          )}
+        </p>
+
         {!meta && (
           <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-3 py-2 mt-3">
             No hay datos de Meta Ads Refugio cargados aún.

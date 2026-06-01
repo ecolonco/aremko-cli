@@ -107,7 +107,12 @@ export default function RefugioCampaignSection({ data }: Props) {
       <CardContent className="space-y-6">
         {/* Sección 1 — Resumen ejecutivo (Leads/CPL son las métricas primarias) */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <MetricCard label="Leads" value={formatNumber(summary.leads)} hint="Métrica primaria" highlight />
+          <MetricCard
+            label="Leads"
+            value={formatNumber(summary.leads)}
+            hint={summary.leads_source === 'bd_formulario' ? 'Formulario real (BD)' : 'Evento Pixel (provisorio)'}
+            highlight
+          />
           <MetricCard
             label="CPL"
             value={summary.leads === 0 ? '—' : formatCLP(summary.cpl)}
@@ -122,6 +127,11 @@ export default function RefugioCampaignSection({ data }: Props) {
             status={ctrStatus(summary.ctr, thresholds)}
           />
         </div>
+        {summary.leads_source === 'bd_formulario' && (
+          <p className="text-xs text-gray-600 bg-gray-50 border border-gray-200 rounded px-3 py-2">
+            <strong>Leads</strong> = formulario Refugio real (BD, atribuido a Meta por UTM){typeof summary.leads_pixel === 'number' ? ` — evento Pixel Meta: ${summary.leads_pixel}` : ''}. Los desgloses por adset/variante/plataforma de abajo muestran el <strong>evento Lead del Pixel</strong> (única granularidad disponible por anuncio); sirven para dirección, no suman al total real.
+          </p>
+        )}
 
         {/* Sección 2 — Comparativo por Adset (Fría vs Retargeting) */}
         {adsets.length > 0 && (
@@ -137,7 +147,7 @@ export default function RefugioCampaignSection({ data }: Props) {
                     <th className="text-right py-2 px-2 font-medium">Clics</th>
                     <th className="text-right py-2 px-2 font-medium">CTR</th>
                     <th className="text-right py-2 px-2 font-medium">Freq</th>
-                    <th className="text-right py-2 px-2 font-medium">Leads</th>
+                    <th className="text-right py-2 px-2 font-medium">Lead Pixel</th>
                     <th className="text-right py-2 px-2 font-medium">CPL</th>
                   </tr>
                 </thead>
@@ -182,7 +192,7 @@ export default function RefugioCampaignSection({ data }: Props) {
                     <th className="text-right py-2 px-2 font-medium">Impresiones</th>
                     <th className="text-right py-2 px-2 font-medium">Clics</th>
                     <th className="text-right py-2 px-2 font-medium">CTR</th>
-                    <th className="text-right py-2 px-2 font-medium">Leads</th>
+                    <th className="text-right py-2 px-2 font-medium">Lead Pixel</th>
                     <th className="text-right py-2 px-2 font-medium">CPL</th>
                   </tr>
                 </thead>
@@ -245,7 +255,7 @@ export default function RefugioCampaignSection({ data }: Props) {
                     <th className="text-right py-2 px-2 font-medium">Impresiones</th>
                     <th className="text-right py-2 px-2 font-medium">Clics</th>
                     <th className="text-right py-2 px-2 font-medium">CTR</th>
-                    <th className="text-right py-2 px-2 font-medium">Leads</th>
+                    <th className="text-right py-2 px-2 font-medium">Lead Pixel</th>
                     <th className="text-right py-2 px-2 font-medium">CPL</th>
                     <th className="text-right py-2 px-2 font-medium">% gasto</th>
                   </tr>
