@@ -55,6 +55,15 @@ interface Props {
 export default function GoogleAdsRefugioCard({ data }: Props) {
   const { summary, search_terms, quality_scores, thresholds, campaign_name, period } = data;
   const lowQS = (quality_scores || []).filter((k) => k.quality_score > 0 && k.quality_score < 5);
+  // Orden: keywords CON Quality Score primero (peor QS arriba), y las "sin datos
+  // aún" (QS 0/null) al final. Así la tabla (top 15) no esconde las que sí tienen
+  // dato detrás de las que aún no lo tienen.
+  const sortedQS = [...(quality_scores || [])].sort((a, b) => {
+    const aHas = a.quality_score > 0 ? 0 : 1;
+    const bHas = b.quality_score > 0 ? 0 : 1;
+    if (aHas !== bHas) return aHas - bHas;
+    return a.quality_score - b.quality_score;
+  });
   const conversionsZero = (summary?.conversions ?? 0) === 0;
 
   return (
@@ -203,7 +212,7 @@ export default function GoogleAdsRefugioCard({ data }: Props) {
                   </tr>
                 </thead>
                 <tbody>
-                  {quality_scores.slice(0, 15).map((k, idx) => (
+                  {sortedQS.slice(0, 15).map((k, idx) => (
                     <tr key={idx} className="border-b hover:bg-emerald-50/40">
                       <td className="py-2 px-2 font-medium">{k.keyword_text}</td>
                       <td className="py-2 px-2 text-right">
