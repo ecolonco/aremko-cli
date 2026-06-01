@@ -34,6 +34,13 @@ type Config struct {
 	GoogleAdsRefugioCampaignID string // ID de la campaña Refugio Search
 	GoogleAdsBudgetCLP         float64
 
+	// WhatsApp Cloud API (piloto inbound Refugio)
+	WhatsAppAccessToken   string
+	WhatsAppPhoneNumberID string
+	WhatsAppWABAID        string
+	WhatsAppVerifyToken   string
+	WhatsAppAppSecret     string
+
 	// Google Analytics 4
 	GA4PropertyID      string
 	GA4CredentialsPath string
@@ -62,6 +69,7 @@ type Config struct {
 	EnableBookings    bool
 	EnableGA4         bool
 	EnableAI          bool
+	EnableWhatsApp    bool
 }
 
 var AppConfig *Config
@@ -85,6 +93,11 @@ func LoadConfig() (*Config, error) {
 		GoogleAdsLoginCustomerID:   getEnvOrDefault("GOOGLE_ADS_LOGIN_CUSTOMER_ID", ""),
 		GoogleAdsRefugioCampaignID: getEnvOrDefault("GOOGLE_ADS_REFUGIO_CAMPAIGN_ID", ""),
 		GoogleAdsBudgetCLP:         parseFloatEnv("GOOGLE_ADS_BUDGET_CLP", 100000),
+		WhatsAppAccessToken:   getEnvOrDefault("WHATSAPP_ACCESS_TOKEN", ""),
+		WhatsAppPhoneNumberID: getEnvOrDefault("WHATSAPP_PHONE_NUMBER_ID", ""),
+		WhatsAppWABAID:        getEnvOrDefault("WHATSAPP_WABA_ID", ""),
+		WhatsAppVerifyToken:   getEnvOrDefault("WHATSAPP_VERIFY_TOKEN", ""),
+		WhatsAppAppSecret:     getEnvOrDefault("WHATSAPP_APP_SECRET", ""),
 		GA4PropertyID:      getEnvOrDefault("GA4_PROPERTY_ID", ""),
 		GA4CredentialsPath: getEnvOrDefault("GA4_CREDENTIALS_PATH", "ga4-credentials.json"),
 		OpenRouterAPIKey:   getEnvOrDefault("OPENROUTER_API_KEY", ""),
@@ -100,6 +113,7 @@ func LoadConfig() (*Config, error) {
 		EnableBookings:     getEnvOrDefault("ENABLE_BOOKINGS", "true") == "true",
 		EnableGA4:          getEnvOrDefault("ENABLE_GA4", "true") == "true",
 		EnableAI:           getEnvOrDefault("ENABLE_AI", "true") == "true",
+		EnableWhatsApp:     getEnvOrDefault("ENABLE_WHATSAPP", "false") == "true",
 	}
 
 	// Validar configuración mínima
