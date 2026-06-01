@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/aremko/aremko-cli/internal/bookings"
 	"github.com/aremko/aremko-cli/internal/config"
 	"github.com/aremko/aremko-cli/internal/meta"
 )
@@ -91,6 +92,10 @@ func GetRefugioCampaign(cfg *config.Config) http.HandlerFunc {
 			}
 		}
 
+		// Reemplaza el conteo Pixel (contaminado con reservas) por leads reales del
+		// formulario desde la BD. El Pixel queda como leads_pixel para referencia.
+		applyRealRefugioLeads(cfg, summary, dateStart, dateStop)
+
 		// Comparativo por adset
 		adsetRows := make([]map[string]interface{}, 0, len(adsets))
 		for i := range adsets {
@@ -129,6 +134,42 @@ func GetRefugioCampaign(cfg *config.Config) http.HandlerFunc {
 				"thresholds":     refugioThresholds(),
 			},
 		})
+	}
+}
+
+// applyRealRefugioLeads reemplaza el conteo de leads del summary por los leads
+// REALES del formulario Refugio (BD ventas_refugiolead vía Django), atribuidos
+// por UTM. El conteo Pixel (fb_pixel_lead) estaba contaminado con reservas de
+// checkout; la BD es la fuente de verdad.
+//
+//   - "leads"      → leads reales de Meta (facebook + instagram por UTM)
+//   - "cpl"        → recalculado = spend / leads reales de Meta
+//   - "leads_pixel"→ conteo Pixel original (referencia; usado en desgloses por ad)
+//   - "leads_reales_total" / "leads_by_canal" / "leads_source" → contexto
+//
+// Falla suave: sin LUNA_API_KEY o si el endpoint falla, conserva el conteo Pixel.
+func applyRealRefugioLeads(cfg *config.Config, summary map[string]interface{}, dateStart, dateStop string) {
+	pixel, _ := summary["leads"].(int64)
+	summary["leads_pixel"] = pixel
+	summary["leads_source"] = "pixel"
+
+	if cfg.LunaAPIKey == "" || cfg.BookingSystemURL == "" {
+		return
+	}
+	real, err := bookings.NewClient(cfg.BookingSystemURL).GetRefugioLeadsSummary(dateStart, dateStop, cfg.LunaAPIKey)
+	if err != nil || real == nil {
+		return
+	}
+	leadsMeta := int64(real.ByCanal["facebook"] + real.ByCanal["instagram"])
+	summary["leads"] = leadsMeta
+	summary["leads_reales_total"] = real.Total
+	summary["leads_by_canal"] = real.ByCanal
+	summary["leads_source"] = "bd_formulario"
+	spend, _ := summary["spend"].(float64)
+	if leadsMeta > 0 {
+		summary["cpl"] = spend / float64(leadsMeta)
+	} else {
+		summary["cpl"] = 0.0
 	}
 }
 

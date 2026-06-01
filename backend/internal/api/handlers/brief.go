@@ -773,6 +773,9 @@ func buildRefugioBlock(cfg *config.Config, token string, accounts []config.MetaA
 		}
 	}
 
+	// Leads reales del formulario (BD) en lugar del Pixel contaminado.
+	applyRealRefugioLeads(cfg, summary, dateStart, dateStop)
+
 	adsetRows := make([]map[string]interface{}, 0, len(adsets))
 	for i := range adsets {
 		a := &adsets[i]

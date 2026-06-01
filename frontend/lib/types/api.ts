@@ -124,10 +124,15 @@ export interface RefugioSummary {
   frequency: number;
   ctr: number;
   cpc: number;
-  leads: number;
+  leads: number; // leads REALES de Meta (formulario, BD por UTM) cuando leads_source='bd_formulario'
   cpl: number;
   budget_total_clp: number;
   budget_pct_used: number;
+  // Contexto de la fuente de leads (inyectado por el backend desde la BD Refugio)
+  leads_pixel?: number;        // conteo del evento Pixel (incluye reservas históricas; usado en desgloses por ad)
+  leads_reales_total?: number; // total real del formulario en el período (todos los canales)
+  leads_by_canal?: Record<string, number>; // { facebook, instagram, google, "directo/organico" }
+  leads_source?: 'bd_formulario' | 'pixel'; // de dónde salió "leads"
 }
 
 export interface RefugioAdset {

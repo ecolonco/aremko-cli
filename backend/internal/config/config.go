@@ -55,6 +55,10 @@ type Config struct {
 	// Auth para endpoints write de Operación Vuelta a Casa (header X-API-KEY)
 	AutomationAPIKey string
 
+	// API key para leer endpoints /api/ del Django de aremko.cl (header X-API-Key).
+	// Usado para traer leads reales del formulario Refugio (ventas_refugiolead).
+	LunaAPIKey string
+
 	// Database
 	DatabaseURL string
 
@@ -104,6 +108,7 @@ func LoadConfig() (*Config, error) {
 		OpenRouterBaseURL:  getEnvOrDefault("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1"),
 		BookingSystemURL:   getEnvOrDefault("BOOKING_SYSTEM_URL", "http://localhost:8002"),
 		AutomationAPIKey:   getEnvOrDefault("AUTOMATION_API_KEY", ""),
+		LunaAPIKey:         getEnvOrDefault("LUNA_API_KEY", ""),
 		DatabaseURL:        getEnvOrDefault("DATABASE_URL", "postgres://localhost/aremko?sslmode=disable"),
 		Port:               getEnvOrDefault("PORT", "8080"),
 		Environment:        getEnvOrDefault("ENVIRONMENT", "development"),

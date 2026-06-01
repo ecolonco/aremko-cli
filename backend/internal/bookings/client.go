@@ -354,6 +354,44 @@ func (c *Client) HealthCheck() (bool, error) {
 	return apiResp.Success && apiResp.Status == "healthy", nil
 }
 
+// RefugioLeadsSummary es el conteo REAL de leads del formulario Refugio desde la
+// BD (tabla ventas_refugiolead) — la fuente de verdad. NO usar fb_pixel_lead de
+// Meta (contaminado con reservas de checkout).
+type RefugioLeadsSummary struct {
+	Total   int            `json:"total"`
+	ByCanal map[string]int `json:"by_canal"`
+	Desde   string         `json:"desde"`
+	Hasta   string         `json:"hasta"`
+}
+
+// GetRefugioLeadsSummary consulta el endpoint Django /api/refugio-leads/summary/
+// (requiere header X-API-Key). Devuelve el conteo real por canal en el rango.
+func (c *Client) GetRefugioLeadsSummary(desde, hasta, apiKey string) (*RefugioLeadsSummary, error) {
+	url := fmt.Sprintf("%s/api/refugio-leads/summary/?desde=%s&hasta=%s", c.BaseURL, desde, hasta)
+
+	req, err := http.NewRequest(http.MethodGet, url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("error creando request refugio leads: %w", err)
+	}
+	req.Header.Set("X-API-Key", apiKey)
+
+	resp, err := c.HTTPClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("error fetching refugio leads: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("unexpected status code refugio leads: %d", resp.StatusCode)
+	}
+
+	var out RefugioLeadsSummary
+	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
+		return nil, fmt.Errorf("error decoding refugio leads: %w", err)
+	}
+	return &out, nil
+}
+
 // GetWeeklyBreakdown fetches the 12-week matrix of bookings by family and clients
 func (c *Client) GetWeeklyBreakdown(weeks int) (*WeeklyBreakdown, error) {
 	if weeks <= 0 {
