@@ -406,6 +406,85 @@ func WhatsAppSendMedia(cfg *config.Config) http.HandlerFunc {
 	}
 }
 
+// WhatsAppRunTemplateCampaign corre la campaña de primer contacto (Vuelta a
+// Casa): pide a Django los contactos salva 1 pendientes con plantilla asignada,
+// envía cada plantilla por la Cloud API y reporta el resultado a Django.
+// Lo dispara el cron de Django tras generar la bandeja. Protegido con
+// X-API-Key = LUNA_API_KEY (server-to-server; no lo llama el navegador).
+func WhatsAppRunTemplateCampaign(cfg *config.Config) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if cfg.LunaAPIKey == "" || r.Header.Get("X-API-Key") != cfg.LunaAPIKey {
+			respondError(w, http.StatusUnauthorized, "no autorizado")
+			return
+		}
+		if cfg.WhatsAppAccessToken == "" || cfg.WhatsAppPhoneNumberID == "" {
+			respondError(w, http.StatusServiceUnavailable, "WhatsApp no configurado")
+			return
+		}
+		if cfg.BookingSystemURL == "" {
+			respondError(w, http.StatusServiceUnavailable, "Django no configurado")
+			return
+		}
+		limit := 50
+		if l := r.URL.Query().Get("limit"); l != "" {
+			if n, err := strconv.Atoi(l); err == nil && n > 0 {
+				limit = n
+			}
+		}
+
+		bc := bookings.NewClient(cfg.BookingSystemURL)
+		pendientes, err := bc.GetPendingTemplateSends(cfg.LunaAPIKey, limit)
+		if err != nil {
+			respondError(w, http.StatusBadGateway, err.Error())
+			return
+		}
+
+		wc := whatsapp.NewClient(cfg.WhatsAppAccessToken, cfg.WhatsAppPhoneNumberID)
+		enviados, fallidos := 0, 0
+		for _, p := range pendientes {
+			lang := p.Language
+			if lang == "" {
+				lang = "es"
+			}
+			res, err := wc.SendTemplate(p.Phone, p.MetaTemplateName, lang, buildTemplateBody(p.Params))
+			if err != nil {
+				fallidos++
+				log.Printf("[whatsapp] plantilla falló contacto=%d script=%s: %v", p.ContactoID, p.ScriptID, err)
+				if e := bc.MarkTemplateFailed(cfg.LunaAPIKey, p.ContactoID, err.Error()); e != nil {
+					log.Printf("[whatsapp] error en mark-template-failed contacto=%d: %v", p.ContactoID, e)
+				}
+				continue
+			}
+			enviados++
+			if e := bc.MarkTemplateSent(cfg.LunaAPIKey, p.ContactoID, res.MessageID); e != nil {
+				log.Printf("[whatsapp] error en mark-template-sent contacto=%d: %v", p.ContactoID, e)
+			}
+		}
+
+		respondJSON(w, http.StatusOK, map[string]interface{}{
+			"success":  true,
+			"total":    len(pendientes),
+			"enviados": enviados,
+			"fallidos": fallidos,
+		})
+	}
+}
+
+// buildTemplateBody arma el component "body" de una plantilla con sus variables
+// posicionales ({{1}}, {{2}}…). Devuelve nil si la plantilla no tiene variables.
+func buildTemplateBody(params []string) []interface{} {
+	if len(params) == 0 {
+		return nil
+	}
+	ps := make([]interface{}, 0, len(params))
+	for _, p := range params {
+		ps = append(ps, map[string]interface{}{"type": "text", "text": p})
+	}
+	return []interface{}{
+		map[string]interface{}{"type": "body", "parameters": ps},
+	}
+}
+
 // WhatsAppConversation proxea el historial de conversación de Django para la
 // bandeja (el backend Go agrega la X-API-Key que el frontend no debe conocer).
 func WhatsAppConversation(cfg *config.Config) http.HandlerFunc {

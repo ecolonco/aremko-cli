@@ -149,6 +149,7 @@ func (s *Server) setupRoutes() {
 		r.Get("/whatsapp/conversation", handlers.WhatsAppConversation(s.config))
 		r.Get("/whatsapp/conversations", handlers.WhatsAppConversations(s.config))
 		r.Post("/whatsapp/conversations/{phone}/marcar-atendido", handlers.WhatsAppMarcarAtendido(s.config))
+		r.Post("/whatsapp/run-template-campaign", handlers.WhatsAppRunTemplateCampaign(s.config))
 
 		// Stats endpoints (próximamente)
 		r.Get("/stats/overview", handlers.GetStatsOverview(s.config))

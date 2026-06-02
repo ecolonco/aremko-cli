@@ -554,6 +554,64 @@ func (c *Client) GetWhatsAppConversationRaw(apiKey, phone string, limit int) ([]
 	return b, nil
 }
 
+// PendingTemplateSend es un contacto de salva 1 listo para enviar por plantilla.
+type PendingTemplateSend struct {
+	ContactoID       int      `json:"contacto_id"`
+	Phone            string   `json:"phone"`
+	MetaTemplateName string   `json:"meta_template_name"`
+	Language         string   `json:"language"`
+	Params           []string `json:"params"`
+	ScriptID         string   `json:"script_id"`
+}
+
+// GetPendingTemplateSends consulta los contactos salva 1 pendientes de envío
+// automático (solo los que ya tienen meta_template_name cargado en Django).
+func (c *Client) GetPendingTemplateSends(apiKey string, limit int) ([]PendingTemplateSend, error) {
+	if limit <= 0 {
+		limit = 50
+	}
+	u := fmt.Sprintf("%s/api/whatsapp/pending-template-sends?limit=%d", c.BaseURL, limit)
+	req, err := http.NewRequest(http.MethodGet, u, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("X-API-Key", apiKey)
+	resp, err := c.HTTPClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("error en pending-template-sends: %w", err)
+	}
+	defer resp.Body.Close()
+	b, _ := io.ReadAll(resp.Body)
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("django pending-template-sends status %d: %s", resp.StatusCode, b)
+	}
+	var parsed struct {
+		Pending []PendingTemplateSend `json:"pending"`
+	}
+	if err := json.Unmarshal(b, &parsed); err != nil {
+		return nil, fmt.Errorf("error parseando pending-template-sends: %w", err)
+	}
+	return parsed.Pending, nil
+}
+
+// MarkTemplateSent avisa a Django que la plantilla se envió (marca enviado +
+// registra el saliente). Idempotente por contacto_id.
+func (c *Client) MarkTemplateSent(apiKey string, contactoID int, waMessageID string) error {
+	return c.postWhatsApp("/api/whatsapp/mark-template-sent", apiKey, map[string]interface{}{
+		"contacto_id":   contactoID,
+		"wa_message_id": waMessageID,
+	})
+}
+
+// MarkTemplateFailed avisa a Django que el envío falló (pasa el contacto a
+// omitido para que no quede colgado en pendientes).
+func (c *Client) MarkTemplateFailed(apiKey string, contactoID int, errMsg string) error {
+	return c.postWhatsApp("/api/whatsapp/mark-template-failed", apiKey, map[string]interface{}{
+		"contacto_id": contactoID,
+		"error":       errMsg,
+	})
+}
+
 // GetWhatsAppConversationsRaw lista las conversaciones (una fila por teléfono),
 // ordenadas por el mensaje más reciente. Devuelve el JSON crudo de Django para
 // que el frontend lo consuma vía el proxy del backend Go.
