@@ -144,6 +144,8 @@ func (s *Server) setupRoutes() {
 		r.Get("/whatsapp/webhook", handlers.WhatsAppWebhookVerify(s.config))
 		r.Post("/whatsapp/webhook", handlers.WhatsAppWebhookReceive(s.config))
 		r.Post("/whatsapp/send-test", handlers.WhatsAppSendTest(s.config))
+		r.Post("/whatsapp/reply", handlers.WhatsAppReply(s.config))
+		r.Get("/whatsapp/conversation", handlers.WhatsAppConversation(s.config))
 
 		// Stats endpoints (próximamente)
 		r.Get("/stats/overview", handlers.GetStatsOverview(s.config))

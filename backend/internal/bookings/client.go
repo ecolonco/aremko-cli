@@ -1,6 +1,7 @@
 package bookings
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -362,6 +363,87 @@ type RefugioLeadsSummary struct {
 	ByCanal map[string]int `json:"by_canal"`
 	Desde   string         `json:"desde"`
 	Hasta   string         `json:"hasta"`
+}
+
+// ============================================================================
+// Relay de WhatsApp ⇄ Django (persistencia de conversaciones + bandeja OVC)
+// ============================================================================
+
+// WhatsAppInboundReq es el body de POST /api/whatsapp/inbound.
+type WhatsAppInboundReq struct {
+	WaMessageID string `json:"wa_message_id"`
+	From        string `json:"from"`
+	Body        string `json:"body"`
+	Type        string `json:"type"`
+	Timestamp   string `json:"timestamp"` // epoch (seg) o ISO; Django acepta ambos
+	ContactName string `json:"contact_name,omitempty"`
+}
+
+// WhatsAppOutboundReq es el body de POST /api/whatsapp/outbound.
+type WhatsAppOutboundReq struct {
+	WaMessageID string `json:"wa_message_id"`
+	To          string `json:"to"`
+	Body        string `json:"body"`
+	Timestamp   string `json:"timestamp"`
+}
+
+// PostWhatsAppInbound guarda un mensaje entrante en Django (idempotente por
+// wa_message_id) y marca el contacto OVC como respuesta pendiente.
+func (c *Client) PostWhatsAppInbound(apiKey string, req WhatsAppInboundReq) error {
+	return c.postWhatsApp("/api/whatsapp/inbound", apiKey, req)
+}
+
+// PostWhatsAppOutbound registra un mensaje saliente en Django.
+func (c *Client) PostWhatsAppOutbound(apiKey string, req WhatsAppOutboundReq) error {
+	return c.postWhatsApp("/api/whatsapp/outbound", apiKey, req)
+}
+
+func (c *Client) postWhatsApp(path, apiKey string, payload interface{}) error {
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return fmt.Errorf("error serializando %s: %w", path, err)
+	}
+	req, err := http.NewRequest(http.MethodPost, c.BaseURL+path, bytes.NewReader(body))
+	if err != nil {
+		return fmt.Errorf("error creando request %s: %w", path, err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-API-Key", apiKey)
+	resp, err := c.HTTPClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("error en %s: %w", path, err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		b, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("django %s status %d: %s", path, resp.StatusCode, b)
+	}
+	return nil
+}
+
+// GetWhatsAppConversationRaw devuelve el JSON crudo del historial de conversación
+// de Django, para que el frontend lo consuma vía el proxy del backend Go.
+func (c *Client) GetWhatsAppConversationRaw(apiKey, phone string, limit int) ([]byte, error) {
+	if limit <= 0 {
+		limit = 50
+	}
+	u := fmt.Sprintf("%s/api/whatsapp/conversation/?phone=%s&limit=%d",
+		c.BaseURL, url.QueryEscape(phone), limit)
+	req, err := http.NewRequest(http.MethodGet, u, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("X-API-Key", apiKey)
+	resp, err := c.HTTPClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("error en conversation: %w", err)
+	}
+	defer resp.Body.Close()
+	b, _ := io.ReadAll(resp.Body)
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("django conversation status %d: %s", resp.StatusCode, b)
+	}
+	return b, nil
 }
 
 // GetRefugioLeadsSummary consulta el endpoint Django /api/refugio-leads/summary/
