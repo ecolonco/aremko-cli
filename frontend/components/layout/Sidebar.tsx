@@ -32,6 +32,7 @@ const navigation = {
     { name: 'Informes', href: '/dashboard/jorge/brief', icon: DocumentTextIcon },
     { name: 'Perfiles', href: '/dashboard/jorge/perfiles', icon: UsersIcon },
     { name: 'Bandeja WhatsApp', href: '/dashboard/jorge/perfiles/bandeja', icon: ChatBubbleLeftRightIcon },
+    { name: 'Mensajes WhatsApp', href: '/dashboard/jorge/perfiles/whatsapp', icon: ChatBubbleLeftRightIcon },
     { name: 'Tableros Bandeja', href: '/dashboard/jorge/perfiles/tableros', icon: ChartBarIcon },
     { name: 'Métricas Operadores', href: '/dashboard/jorge/perfiles/metricas-operadores', icon: TrophyIcon },
     { name: 'Aremko-CLI Sistema', href: '/dashboard/jorge/sistema', icon: BookOpenIcon },
@@ -40,6 +41,7 @@ const navigation = {
   deborah: [
     { name: 'Dashboard', href: '/dashboard/deborah', icon: HomeIcon },
     { name: 'Bandeja WhatsApp', href: '/dashboard/jorge/perfiles/bandeja', icon: ChatBubbleLeftRightIcon },
+    { name: 'Mensajes WhatsApp', href: '/dashboard/jorge/perfiles/whatsapp', icon: ChatBubbleLeftRightIcon },
     { name: 'Ventas', href: '/dashboard/deborah/sales', icon: ChartBarIcon },
     { name: 'Campañas', href: '/dashboard/deborah/campaigns', icon: MegaphoneIcon },
   ],
