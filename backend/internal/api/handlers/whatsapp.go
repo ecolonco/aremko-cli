@@ -144,7 +144,16 @@ func handleInboundWhatsApp(cfg *config.Config, v whatsappChangeValue, msg whatsa
 	if cfg.LunaAPIKey == "" || cfg.BookingSystemURL == "" {
 		return
 	}
-	err := bookings.NewClient(cfg.BookingSystemURL).PostWhatsAppInbound(cfg.LunaAPIKey, bookings.WhatsAppInboundReq{
+	bc := bookings.NewClient(cfg.BookingSystemURL)
+
+	// Adjuntos (foto/video/audio/voz/documento): la Cloud API solo manda un
+	// media_id; hay que descargar los bytes con el token y subirlos a Django.
+	if media := msg.media(); media != nil && media.ID != "" {
+		handleInboundMedia(cfg, bc, msg, media, phone, nombre)
+		return
+	}
+
+	err := bc.PostWhatsAppInbound(cfg.LunaAPIKey, bookings.WhatsAppInboundReq{
 		WaMessageID: msg.ID,
 		From:        phone,
 		Body:        msg.Text.Body,
@@ -154,6 +163,71 @@ func handleInboundWhatsApp(cfg *config.Config, v whatsappChangeValue, msg whatsa
 	})
 	if err != nil {
 		log.Printf("[whatsapp] error guardando inbound en Django: %v", err)
+	}
+}
+
+// extPorMime deduce una extensión de archivo razonable desde el mime de Meta.
+func extPorMime(mime string) string {
+	switch {
+	case strings.HasPrefix(mime, "image/jpeg"):
+		return ".jpg"
+	case strings.HasPrefix(mime, "image/png"):
+		return ".png"
+	case strings.HasPrefix(mime, "image/webp"):
+		return ".webp"
+	case strings.HasPrefix(mime, "application/pdf"):
+		return ".pdf"
+	case strings.HasPrefix(mime, "audio/ogg"):
+		return ".ogg"
+	case strings.HasPrefix(mime, "audio/mpeg"):
+		return ".mp3"
+	case strings.HasPrefix(mime, "audio/"):
+		return ".m4a"
+	case strings.HasPrefix(mime, "video/mp4"):
+		return ".mp4"
+	case strings.HasPrefix(mime, "video/"):
+		return ".mp4"
+	}
+	return ".bin"
+}
+
+// handleInboundMedia descarga el adjunto desde Meta y lo sube a Django (multipart).
+func handleInboundMedia(cfg *config.Config, bc *bookings.Client, msg whatsappInboundMessage, media *whatsappMedia, phone, nombre string) {
+	if cfg.WhatsAppAccessToken == "" {
+		log.Printf("[whatsapp] media entrante sin token configurado; se omite")
+		return
+	}
+	dl, err := whatsapp.NewClient(cfg.WhatsAppAccessToken, cfg.WhatsAppPhoneNumberID).
+		DownloadMedia(media.ID)
+	if err != nil {
+		log.Printf("[whatsapp] error descargando media %s: %v", media.ID, err)
+		return
+	}
+	mime := media.MimeType
+	if mime == "" {
+		mime = dl.MimeType
+	}
+	filename := media.Filename
+	if filename == "" {
+		filename = msg.ID + extPorMime(mime)
+	}
+	// Las notas de voz llegan como type=audio con voice=true; lo distinguimos.
+	tipo := msg.Type
+	if tipo == "audio" && media.Voice {
+		tipo = "voice"
+	}
+	err = bc.PostWhatsAppInboundMedia(cfg.LunaAPIKey, bookings.WhatsAppInboundMediaReq{
+		WaMessageID: msg.ID,
+		From:        phone,
+		Type:        tipo,
+		Timestamp:   msg.Timestamp,
+		ContactName: nombre,
+		Caption:     media.Caption,
+		MimeType:    mime,
+		Filename:    filename,
+	}, dl.Data)
+	if err != nil {
+		log.Printf("[whatsapp] error subiendo media a Django: %v", err)
 	}
 }
 
@@ -334,6 +408,14 @@ type whatsappChangeValue struct {
 	} `json:"statuses"`
 }
 
+type whatsappMedia struct {
+	ID       string `json:"id"`
+	MimeType string `json:"mime_type"`
+	Caption  string `json:"caption"`  // image | video | document
+	Filename string `json:"filename"` // document
+	Voice    bool   `json:"voice"`    // audio: true = nota de voz
+}
+
 type whatsappInboundMessage struct {
 	From      string `json:"from"`
 	ID        string `json:"id"`
@@ -342,4 +424,26 @@ type whatsappInboundMessage struct {
 	Text      struct {
 		Body string `json:"body"`
 	} `json:"text"`
+	Image    *whatsappMedia `json:"image"`
+	Video    *whatsappMedia `json:"video"`
+	Audio    *whatsappMedia `json:"audio"`
+	Document *whatsappMedia `json:"document"`
+	Sticker  *whatsappMedia `json:"sticker"`
+}
+
+// media devuelve el adjunto del mensaje según su tipo (nil si es texto).
+func (m whatsappInboundMessage) media() *whatsappMedia {
+	switch m.Type {
+	case "image":
+		return m.Image
+	case "video":
+		return m.Video
+	case "audio":
+		return m.Audio
+	case "document":
+		return m.Document
+	case "sticker":
+		return m.Sticker
+	}
+	return nil
 }

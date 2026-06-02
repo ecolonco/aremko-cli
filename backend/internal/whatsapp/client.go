@@ -72,6 +72,64 @@ func (c *Client) SendTemplate(to, templateName, langCode string, components []in
 	return c.send(payload)
 }
 
+// MediaDownload son los bytes de un adjunto entrante + su mime.
+type MediaDownload struct {
+	Data     []byte
+	MimeType string
+}
+
+// DownloadMedia baja un adjunto entrante. La Cloud API obliga a 2 pasos:
+//  1. GET /{media_id} → devuelve una URL temporal + mime_type
+//  2. GET {url} (con el mismo Bearer) → los bytes reales
+//
+// La URL del paso 2 (lookaside.fbsbx.com) también exige el header Authorization.
+func (c *Client) DownloadMedia(mediaID string) (*MediaDownload, error) {
+	// Paso 1: resolver la URL temporal.
+	metaURL := fmt.Sprintf("%s/%s", graphAPIBaseURL, mediaID)
+	req, err := http.NewRequest(http.MethodGet, metaURL, nil)
+	if err != nil {
+		return nil, fmt.Errorf("error creando request media meta: %w", err)
+	}
+	req.Header.Set("Authorization", "Bearer "+c.accessToken)
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("error resolviendo media: %w", err)
+	}
+	defer resp.Body.Close()
+	raw, _ := io.ReadAll(resp.Body)
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("media meta status %d: %s", resp.StatusCode, raw)
+	}
+	var meta struct {
+		URL      string `json:"url"`
+		MimeType string `json:"mime_type"`
+	}
+	if err := json.Unmarshal(raw, &meta); err != nil || meta.URL == "" {
+		return nil, fmt.Errorf("media meta sin url: %s", raw)
+	}
+
+	// Paso 2: descargar los bytes (la URL exige el Bearer igual).
+	dl, err := http.NewRequest(http.MethodGet, meta.URL, nil)
+	if err != nil {
+		return nil, fmt.Errorf("error creando request media bytes: %w", err)
+	}
+	dl.Header.Set("Authorization", "Bearer "+c.accessToken)
+	resp2, err := c.httpClient.Do(dl)
+	if err != nil {
+		return nil, fmt.Errorf("error descargando media: %w", err)
+	}
+	defer resp2.Body.Close()
+	if resp2.StatusCode != http.StatusOK {
+		b, _ := io.ReadAll(resp2.Body)
+		return nil, fmt.Errorf("media bytes status %d: %s", resp2.StatusCode, b)
+	}
+	data, err := io.ReadAll(resp2.Body)
+	if err != nil {
+		return nil, fmt.Errorf("error leyendo media: %w", err)
+	}
+	return &MediaDownload{Data: data, MimeType: meta.MimeType}, nil
+}
+
 func (c *Client) send(payload map[string]interface{}) (*SendResult, error) {
 	body, err := json.Marshal(payload)
 	if err != nil {

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"mime/multipart"
 	"net/http"
 	"net/url"
 	"strings"
@@ -388,10 +389,64 @@ type WhatsAppOutboundReq struct {
 	Timestamp   string `json:"timestamp"`
 }
 
+// WhatsAppInboundMediaReq son los metadatos de un adjunto entrante (los bytes
+// van aparte como archivo multipart).
+type WhatsAppInboundMediaReq struct {
+	WaMessageID string
+	From        string
+	Type        string // image | video | audio | voice | document | sticker
+	Timestamp   string
+	ContactName string
+	Caption     string
+	MimeType    string
+	Filename    string
+}
+
 // PostWhatsAppInbound guarda un mensaje entrante en Django (idempotente por
 // wa_message_id) y marca el contacto OVC como respuesta pendiente.
 func (c *Client) PostWhatsAppInbound(apiKey string, req WhatsAppInboundReq) error {
 	return c.postWhatsApp("/api/whatsapp/inbound", apiKey, req)
+}
+
+// PostWhatsAppInboundMedia sube un adjunto entrante a Django como multipart
+// (metadatos + archivo). Idempotente por wa_message_id del lado Django.
+func (c *Client) PostWhatsAppInboundMedia(apiKey string, m WhatsAppInboundMediaReq, data []byte) error {
+	var buf bytes.Buffer
+	mw := multipart.NewWriter(&buf)
+	_ = mw.WriteField("wa_message_id", m.WaMessageID)
+	_ = mw.WriteField("from", m.From)
+	_ = mw.WriteField("type", m.Type)
+	_ = mw.WriteField("timestamp", m.Timestamp)
+	_ = mw.WriteField("contact_name", m.ContactName)
+	_ = mw.WriteField("caption", m.Caption)
+	_ = mw.WriteField("mime_type", m.MimeType)
+	fw, err := mw.CreateFormFile("file", m.Filename)
+	if err != nil {
+		return fmt.Errorf("error armando multipart: %w", err)
+	}
+	if _, err := fw.Write(data); err != nil {
+		return fmt.Errorf("error escribiendo archivo: %w", err)
+	}
+	if err := mw.Close(); err != nil {
+		return fmt.Errorf("error cerrando multipart: %w", err)
+	}
+
+	req, err := http.NewRequest(http.MethodPost, c.BaseURL+"/api/whatsapp/inbound-media", &buf)
+	if err != nil {
+		return fmt.Errorf("error creando request inbound-media: %w", err)
+	}
+	req.Header.Set("Content-Type", mw.FormDataContentType())
+	req.Header.Set("X-API-Key", apiKey)
+	resp, err := c.HTTPClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("error en inbound-media: %w", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		b, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("django inbound-media status %d: %s", resp.StatusCode, b)
+	}
+	return nil
 }
 
 // PostWhatsAppOutbound registra un mensaje saliente en Django.

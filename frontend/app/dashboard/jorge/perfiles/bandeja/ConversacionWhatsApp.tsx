@@ -8,6 +8,8 @@ import {
   Send,
   MessageSquare,
   AlertTriangle,
+  FileText,
+  Mic,
 } from 'lucide-react';
 import {
   fetchConversacionWhatsApp,
@@ -49,6 +51,67 @@ const dentroVentana24h = (msgs: MensajeWhatsApp[]): boolean => {
   if (Number.isNaN(t)) return false;
   return Date.now() - t < 24 * 60 * 60 * 1000;
 };
+
+// Renderiza el adjunto según su tipo (imagen, video, audio/voz, documento).
+function MediaContenido({
+  m,
+  saliente,
+}: {
+  m: MensajeWhatsApp;
+  saliente: boolean;
+}) {
+  const url = m.media_url || undefined;
+  if (!url) return null;
+  const mime = m.mime_type || '';
+
+  if (m.type === 'image' || m.type === 'sticker' || mime.startsWith('image/')) {
+    return (
+      <a href={url} target="_blank" rel="noopener noreferrer" className="block">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={url}
+          alt={m.filename || 'imagen'}
+          className="max-h-56 w-auto rounded-lg"
+        />
+      </a>
+    );
+  }
+  if (m.type === 'video' || mime.startsWith('video/')) {
+    return <video src={url} controls className="max-h-56 w-full rounded-lg" />;
+  }
+  if (
+    m.type === 'audio' ||
+    m.type === 'voice' ||
+    mime.startsWith('audio/')
+  ) {
+    return (
+      <div className="flex items-center gap-2">
+        <Mic
+          className={`h-4 w-4 flex-shrink-0 ${
+            saliente ? 'text-emerald-100' : 'text-slate-400'
+          }`}
+        />
+        <audio src={url} controls className="h-9 max-w-[220px]" />
+      </div>
+    );
+  }
+  // Documento u otros → enlace de descarga con el nombre original.
+  return (
+    <a
+      href={url}
+      target="_blank"
+      rel="noopener noreferrer"
+      className={`flex items-center gap-2 rounded-md px-2 py-1.5 ${
+        saliente ? 'bg-emerald-600/40' : 'bg-slate-100'
+      }`}
+    >
+      <FileText className="h-5 w-5 flex-shrink-0" />
+      <span className="truncate text-xs underline">
+        {m.filename || 'Documento'}
+      </span>
+    </a>
+  );
+}
 
 export function ConversacionWhatsApp({
   telefono,
@@ -177,7 +240,16 @@ export function ConversacionWhatsApp({
                       : 'rounded-bl-sm border border-slate-200 bg-white text-slate-800'
                   }`}
                 >
-                  <p className="whitespace-pre-wrap break-words">{m.body}</p>
+                  <div className="space-y-1.5">
+                    <MediaContenido m={m} saliente={saliente} />
+                    {m.body ? (
+                      <p className="whitespace-pre-wrap break-words">{m.body}</p>
+                    ) : !m.media_url ? (
+                      <p className="whitespace-pre-wrap break-words italic opacity-70">
+                        [{m.type}]
+                      </p>
+                    ) : null}
+                  </div>
                   <p
                     className={`mt-1 text-right text-[10px] ${
                       saliente ? 'text-emerald-100' : 'text-slate-400'

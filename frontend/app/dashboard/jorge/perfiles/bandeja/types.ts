@@ -175,10 +175,13 @@ export type DireccionMensaje = 'in' | 'out';
 export interface MensajeWhatsApp {
   wa_message_id: string;
   direction: DireccionMensaje;
-  body: string;
-  type: string;            // text | image | ... (sólo renderizamos text por ahora)
+  body: string;            // texto, o caption del adjunto
+  type: string;            // text | image | video | audio | voice | document | sticker
   status: string;          // received | sent | delivered | read | failed
   timestamp: string;       // ISO 8601
+  media_url?: string | null;  // URL del adjunto en Django (null si es texto)
+  mime_type?: string | null;
+  filename?: string | null;   // nombre original (documentos)
 }
 
 export interface ConversacionWhatsAppResponse {
