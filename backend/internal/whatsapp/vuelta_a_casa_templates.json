@@ -143,7 +143,7 @@
     "name": "vac_c_1",
     "language": "es",
     "category": "MARKETING",
-    "body": "Hola {{1}}, te escribe Aremko.\nPasó un mes desde tu primera visita a {{2}} y quería preguntarte cómo te sentiste. Si te animas a contarnos algo, lo leemos con cariño.\nY si quieres volver, tenemos cupos los {{3}}.",
+    "body": "Hola {{1}}, te escribe Aremko.\nPasó un mes desde tu primera visita a {{2}} y quería preguntarte cómo te sentiste. Si te animas a contarnos algo, lo leemos con cariño.\nY si quieres volver, tenemos cupos los {{3}}. ¿Te reservo uno?",
     "example": ["Jorge", "una tina caliente", "jueves"]
   },
   {

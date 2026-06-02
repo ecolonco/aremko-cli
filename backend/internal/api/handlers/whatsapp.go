@@ -430,6 +430,16 @@ func WhatsAppCreateTemplates(cfg *config.Config) http.HandlerFunc {
 			respondError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
+		// Filtro opcional ?name= para (re)crear solo una plantilla puntual.
+		if only := r.URL.Query().Get("name"); only != "" {
+			filtered := specs[:0:0]
+			for _, t := range specs {
+				if t.Name == only {
+					filtered = append(filtered, t)
+				}
+			}
+			specs = filtered
+		}
 		wc := whatsapp.NewClient(cfg.WhatsAppAccessToken, cfg.WhatsAppPhoneNumberID)
 		creadas, fallidas := 0, 0
 		results := make([]map[string]interface{}, 0, len(specs))
