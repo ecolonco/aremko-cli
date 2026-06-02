@@ -211,7 +211,13 @@ export function ConversacionWhatsApp({
             value={texto}
             onChange={(e) => setTexto(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+              // Enter envía; Shift+Enter hace salto de línea. isComposing evita
+              // enviar al confirmar acentos/IME a mitad de palabra.
+              if (
+                e.key === 'Enter' &&
+                !e.shiftKey &&
+                !e.nativeEvent.isComposing
+              ) {
                 e.preventDefault();
                 handleEnviar();
               }
@@ -236,7 +242,7 @@ export function ConversacionWhatsApp({
         </div>
         <p className="text-[10px] text-slate-400">
           Se envía desde el WhatsApp oficial de Aremko y queda guardado en la ficha.
-          Atajo: ⌘/Ctrl + Enter.
+          Enter envía · Shift+Enter hace salto de línea.
         </p>
         {enviarError && (
           <div className="flex items-start gap-2 rounded-md border border-red-200 bg-red-50 p-2 text-xs text-red-800">
