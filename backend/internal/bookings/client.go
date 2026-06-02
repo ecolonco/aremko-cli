@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 )
 
@@ -473,10 +474,18 @@ func (c *Client) GetWhatsAppConversationsRaw(apiKey string, soloPendientes bool,
 }
 
 // PostWhatsAppMarcarAtendidoRaw saca una conversación de la cola de pendientes.
-// El + del teléfono se url-encodea como %2B para que Django respete el path.
+// Normaliza el teléfono a dígitos y reconstruye "%2B<dígitos>" UNA sola vez: así
+// Django siempre recibe el path como %2B (que decodifica a +), sin importar si
+// chi ya nos pasó el valor codificado o no (evita el doble-encoding %252B).
 func (c *Client) PostWhatsAppMarcarAtendidoRaw(apiKey, phone string) ([]byte, error) {
-	u := fmt.Sprintf("%s/api/whatsapp/conversations/%s/marcar-atendido/",
-		c.BaseURL, url.QueryEscape(phone))
+	digits := strings.Map(func(r rune) rune {
+		if r >= '0' && r <= '9' {
+			return r
+		}
+		return -1
+	}, phone)
+	u := fmt.Sprintf("%s/api/whatsapp/conversations/%%2B%s/marcar-atendido/",
+		c.BaseURL, digits)
 	req, err := http.NewRequest(http.MethodPost, u, nil)
 	if err != nil {
 		return nil, err
