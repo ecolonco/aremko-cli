@@ -9,6 +9,7 @@ import type {
   DelDiaResponse,
   RegionGeografica,
   MetricasOperadoresResponse,
+  ConversacionWhatsAppResponse,
 } from './types';
 
 const apiBase = () =>
@@ -311,4 +312,57 @@ export const fetchMetricasOperadores = (opts: MetricasOperadoresOptions = {}) =>
   return getJSON<MetricasOperadoresResponse>(
     `${OVC}/metricas-operadores${query ? `?${query}` : ''}`
   );
+};
+
+// ====================================================================
+// 12. WhatsApp Cloud API — hilo de conversación + responder
+// --------------------------------------------------------------------
+// Estos viven en /api/v1/whatsapp/* (NO bajo /ovc). El backend Go agrega
+// las credenciales (token de WhatsApp + LUNA_API_KEY) server-side; el
+// navegador nunca las porta. La conversación devuelve JSON crudo de
+// Django (sin envelope {success,data}); reply sí usa {success,...}.
+// ====================================================================
+
+const WA = '/api/v1/whatsapp';
+
+/** Normaliza un teléfono a E.164 con "+" inicial (Django indexa por ese formato). */
+export const telefonoE164 = (raw: string): string => {
+  const d = (raw || '').replace(/\D/g, '');
+  return d ? `+${d}` : '';
+};
+
+export const fetchConversacionWhatsApp = async (
+  phone: string,
+  limit = 50
+): Promise<ConversacionWhatsAppResponse> => {
+  const q = new URLSearchParams({ phone, limit: String(limit) }).toString();
+  const res = await fetch(`${apiBase()}${WA}/conversation?${q}`);
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(json.error || `HTTP ${res.status}`);
+  }
+  // Django responde directo { phone, cliente_id, count, messages }.
+  return json as ConversacionWhatsAppResponse;
+};
+
+export interface ResponderWhatsAppResult {
+  success: boolean;
+  message_id?: string;
+}
+
+export const responderWhatsApp = async (
+  phone: string,
+  text: string
+): Promise<ResponderWhatsAppResult> => {
+  const res = await fetch(`${apiBase()}${WA}/reply`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ to: phone, text }),
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok || json.success === false) {
+    // 502 fuera de la ventana de 24h, token vencido, etc. → mensaje de Django/Meta.
+    throw new Error(json.error || `HTTP ${res.status}`);
+  }
+  return json as ResponderWhatsAppResult;
 };

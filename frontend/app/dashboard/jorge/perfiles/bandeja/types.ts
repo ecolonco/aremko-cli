@@ -167,6 +167,28 @@ export interface DelDiaResponse {
 }
 
 // ============================================================================
+// WhatsApp Cloud API — hilo de conversación (espejo de Django /api/whatsapp/conversation)
+// ============================================================================
+
+export type DireccionMensaje = 'in' | 'out';
+
+export interface MensajeWhatsApp {
+  wa_message_id: string;
+  direction: DireccionMensaje;
+  body: string;
+  type: string;            // text | image | ... (sólo renderizamos text por ahora)
+  status: string;          // received | sent | delivered | read | failed
+  timestamp: string;       // ISO 8601
+}
+
+export interface ConversacionWhatsAppResponse {
+  phone: string;
+  cliente_id: number | null;
+  count: number;
+  messages: MensajeWhatsApp[];
+}
+
+// ============================================================================
 // Métricas atribución por operador (MVP last-touch, ventana 60d)
 // ============================================================================
 

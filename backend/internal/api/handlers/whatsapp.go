@@ -157,14 +157,13 @@ func handleInboundWhatsApp(cfg *config.Config, v whatsappChangeValue, msg whatsa
 }
 
 // WhatsAppReply envía una respuesta (mensaje de sesión, ventana 24h) vía Cloud
-// API y la registra en Django. Protegido con X-API-KEY si AUTOMATION_API_KEY está
-// configurada. Lo usa la bandeja para responderle al cliente desde aremko-cli.
+// API y la registra en Django. Lo usa la bandeja para responderle al cliente
+// desde aremko-cli, por eso NO exige X-API-KEY del llamador: igual que los
+// endpoints OVC, el secreto (token de WhatsApp + LUNA_API_KEY) vive sólo en el
+// servidor; el navegador no puede portarlo sin exponerlo. El acceso se acota vía
+// CORS + despliegue privado del backend, mismo modelo que /ovc/*.
 func WhatsAppReply(cfg *config.Config) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if cfg.AutomationAPIKey != "" && r.Header.Get("X-API-KEY") != cfg.AutomationAPIKey {
-			respondError(w, http.StatusUnauthorized, "no autorizado")
-			return
-		}
 		if cfg.WhatsAppAccessToken == "" || cfg.WhatsAppPhoneNumberID == "" {
 			respondError(w, http.StatusServiceUnavailable, "WhatsApp no configurado")
 			return

@@ -16,6 +16,7 @@ import {
   ExternalLink,
 } from 'lucide-react';
 import type { Contacto, TipoRespuesta } from './types';
+import { ConversacionWhatsApp } from './ConversacionWhatsApp';
 
 interface TarjetaRegistrarRespuestaProps {
   contacto: Contacto;
@@ -176,6 +177,15 @@ export function TarjetaRegistrarRespuesta({
           <pre className="whitespace-pre-wrap rounded-lg border border-slate-200 bg-slate-50 p-3 font-sans text-xs leading-relaxed text-slate-700">
             {textoEnviado}
           </pre>
+        </section>
+
+        {/* Hilo de WhatsApp en vivo + responder desde el sistema (sin salir a la app) */}
+        <section>
+          <ConversacionWhatsApp
+            telefono={cliente.telefono_limpio || cliente.telefono}
+            nombre={cliente.nombre}
+            disabled={disabled}
+          />
         </section>
 
         {/* Opciones de respuesta */}
