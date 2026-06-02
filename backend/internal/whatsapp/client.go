@@ -8,6 +8,7 @@ package whatsapp
 
 import (
 	"bytes"
+	_ "embed"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -18,6 +19,27 @@ import (
 	"strings"
 	"time"
 )
+
+//go:embed vuelta_a_casa_templates.json
+var vueltaACasaTemplatesJSON []byte
+
+// TemplateSpec define una plantilla de Meta a crear (campaña Vuelta a Casa).
+type TemplateSpec struct {
+	Name     string   `json:"name"`
+	Language string   `json:"language"`
+	Category string   `json:"category"`
+	Body     string   `json:"body"`     // texto con {{1}}, {{2}}…
+	Example  []string `json:"example"`  // valores de ejemplo para {{1}}… (aprobación Meta)
+}
+
+// VueltaACasaTemplates devuelve el catálogo embebido de plantillas a crear.
+func VueltaACasaTemplates() ([]TemplateSpec, error) {
+	var specs []TemplateSpec
+	if err := json.Unmarshal(vueltaACasaTemplatesJSON, &specs); err != nil {
+		return nil, fmt.Errorf("error parseando catálogo de plantillas: %w", err)
+	}
+	return specs, nil
+}
 
 // graphAPIBaseURL — misma versión que internal/meta para mantener consistencia.
 const graphAPIBaseURL = "https://graph.facebook.com/v21.0"
@@ -148,6 +170,45 @@ func (c *Client) DownloadMedia(mediaID string, maxBytes int64) (*MediaDownload, 
 		return nil, fmt.Errorf("%w (stream)", ErrMediaTooLarge)
 	}
 	return &MediaDownload{Data: data, MimeType: meta.MimeType}, nil
+}
+
+// CreateTemplate crea una plantilla de mensaje en una WABA (queda en revisión de
+// Meta). Requiere que el token tenga permiso whatsapp_business_management sobre
+// esa WABA. Devuelve la respuesta cruda (incluye id + status).
+func (c *Client) CreateTemplate(wabaID string, t TemplateSpec) (map[string]interface{}, error) {
+	body := map[string]interface{}{"type": "BODY", "text": t.Body}
+	if len(t.Example) > 0 {
+		body["example"] = map[string]interface{}{"body_text": [][]string{t.Example}}
+	}
+	payload := map[string]interface{}{
+		"name":       t.Name,
+		"language":   t.Language,
+		"category":   t.Category,
+		"components": []interface{}{body},
+	}
+	raw, err := json.Marshal(payload)
+	if err != nil {
+		return nil, fmt.Errorf("error serializando plantilla: %w", err)
+	}
+	url := fmt.Sprintf("%s/%s/message_templates", graphAPIBaseURL, wabaID)
+	req, err := http.NewRequest(http.MethodPost, url, bytes.NewReader(raw))
+	if err != nil {
+		return nil, fmt.Errorf("error creando request plantilla: %w", err)
+	}
+	req.Header.Set("Authorization", "Bearer "+c.accessToken)
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("error creando plantilla: %w", err)
+	}
+	defer resp.Body.Close()
+	b, _ := io.ReadAll(resp.Body)
+	var parsed map[string]interface{}
+	_ = json.Unmarshal(b, &parsed)
+	if resp.StatusCode != http.StatusOK {
+		return parsed, fmt.Errorf("create template status %d: %s", resp.StatusCode, b)
+	}
+	return parsed, nil
 }
 
 // MediaTypeForSend mapea un mime al tipo de mensaje de WhatsApp para enviar.

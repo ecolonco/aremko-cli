@@ -406,6 +406,54 @@ func WhatsAppSendMedia(cfg *config.Config) http.HandlerFunc {
 	}
 }
 
+// WhatsAppCreateTemplates crea (un disparo) todas las plantillas embebidas de
+// Vuelta a Casa en la WABA indicada (?waba_id=). Quedan en revisión de Meta.
+// Protegido con X-API-Key = LUNA_API_KEY (server-to-server). Idempotente del
+// lado Meta: si una plantilla ya existe, devuelve error y seguimos con el resto.
+func WhatsAppCreateTemplates(cfg *config.Config) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if cfg.LunaAPIKey == "" || r.Header.Get("X-API-Key") != cfg.LunaAPIKey {
+			respondError(w, http.StatusUnauthorized, "no autorizado")
+			return
+		}
+		if cfg.WhatsAppAccessToken == "" {
+			respondError(w, http.StatusServiceUnavailable, "WhatsApp no configurado")
+			return
+		}
+		wabaID := r.URL.Query().Get("waba_id")
+		if wabaID == "" {
+			respondError(w, http.StatusBadRequest, "falta waba_id")
+			return
+		}
+		specs, err := whatsapp.VueltaACasaTemplates()
+		if err != nil {
+			respondError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+		wc := whatsapp.NewClient(cfg.WhatsAppAccessToken, cfg.WhatsAppPhoneNumberID)
+		creadas, fallidas := 0, 0
+		results := make([]map[string]interface{}, 0, len(specs))
+		for _, t := range specs {
+			res, err := wc.CreateTemplate(wabaID, t)
+			if err != nil {
+				fallidas++
+				results = append(results, map[string]interface{}{
+					"name": t.Name, "ok": false, "error": err.Error(),
+				})
+				continue
+			}
+			creadas++
+			results = append(results, map[string]interface{}{
+				"name": t.Name, "ok": true, "id": res["id"], "status": res["status"],
+			})
+		}
+		respondJSON(w, http.StatusOK, map[string]interface{}{
+			"success": true, "total": len(specs), "creadas": creadas, "fallidas": fallidas,
+			"results": results,
+		})
+	}
+}
+
 // WhatsAppRunTemplateCampaign corre la campaña de primer contacto (Vuelta a
 // Casa): pide a Django los contactos salva 1 pendientes con plantilla asignada,
 // envía cada plantilla por la Cloud API y reporta el resultado a Django.

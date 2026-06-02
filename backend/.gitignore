@@ -1,5 +1,7 @@
 ga4-credentials.json
 *.json
+# Excepción: catálogo de plantillas embebido con go:embed (debe versionarse)
+!internal/whatsapp/vuelta_a_casa_templates.json
 
 # Binaries
 aremko
