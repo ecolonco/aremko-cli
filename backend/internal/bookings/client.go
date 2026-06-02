@@ -446,6 +446,54 @@ func (c *Client) GetWhatsAppConversationRaw(apiKey, phone string, limit int) ([]
 	return b, nil
 }
 
+// GetWhatsAppConversationsRaw lista las conversaciones (una fila por teléfono),
+// ordenadas por el mensaje más reciente. Devuelve el JSON crudo de Django para
+// que el frontend lo consuma vía el proxy del backend Go.
+func (c *Client) GetWhatsAppConversationsRaw(apiKey string, soloPendientes bool, limit int) ([]byte, error) {
+	if limit <= 0 {
+		limit = 50
+	}
+	u := fmt.Sprintf("%s/api/whatsapp/conversations/?solo_pendientes=%t&limit=%d",
+		c.BaseURL, soloPendientes, limit)
+	req, err := http.NewRequest(http.MethodGet, u, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("X-API-Key", apiKey)
+	resp, err := c.HTTPClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("error en conversations: %w", err)
+	}
+	defer resp.Body.Close()
+	b, _ := io.ReadAll(resp.Body)
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("django conversations status %d: %s", resp.StatusCode, b)
+	}
+	return b, nil
+}
+
+// PostWhatsAppMarcarAtendidoRaw saca una conversación de la cola de pendientes.
+// El + del teléfono se url-encodea como %2B para que Django respete el path.
+func (c *Client) PostWhatsAppMarcarAtendidoRaw(apiKey, phone string) ([]byte, error) {
+	u := fmt.Sprintf("%s/api/whatsapp/conversations/%s/marcar-atendido/",
+		c.BaseURL, url.QueryEscape(phone))
+	req, err := http.NewRequest(http.MethodPost, u, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("X-API-Key", apiKey)
+	resp, err := c.HTTPClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("error en marcar-atendido: %w", err)
+	}
+	defer resp.Body.Close()
+	b, _ := io.ReadAll(resp.Body)
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("django marcar-atendido status %d: %s", resp.StatusCode, b)
+	}
+	return b, nil
+}
+
 // GetRefugioLeadsSummary consulta el endpoint Django /api/refugio-leads/summary/
 // (requiere header X-API-Key). Devuelve el conteo real por canal en el rango.
 func (c *Client) GetRefugioLeadsSummary(desde, hasta, apiKey string) (*RefugioLeadsSummary, error) {

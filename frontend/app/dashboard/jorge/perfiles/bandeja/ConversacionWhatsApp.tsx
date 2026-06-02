@@ -21,6 +21,8 @@ interface ConversacionWhatsAppProps {
   telefono: string;
   nombre: string;
   disabled?: boolean;
+  /** Se llama tras enviar una respuesta con éxito (para refrescar listas externas). */
+  onReplySent?: () => void;
 }
 
 const horaCorta = (iso: string): string => {
@@ -52,6 +54,7 @@ export function ConversacionWhatsApp({
   telefono,
   nombre,
   disabled,
+  onReplySent,
 }: ConversacionWhatsAppProps) {
   const phone = telefonoE164(telefono);
   const [mensajes, setMensajes] = useState<MensajeWhatsApp[]>([]);
@@ -102,6 +105,7 @@ export function ConversacionWhatsApp({
       setTexto('');
       // Recarga silenciosa para traer el saliente recién registrado en Django.
       await cargar(true);
+      onReplySent?.();
     } catch (e: unknown) {
       setEnviarError(
         e instanceof Error ? e.message : 'No se pudo enviar el mensaje'

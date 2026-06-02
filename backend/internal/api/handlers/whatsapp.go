@@ -15,6 +15,7 @@ import (
 	"github.com/aremko/aremko-cli/internal/bookings"
 	"github.com/aremko/aremko-cli/internal/config"
 	"github.com/aremko/aremko-cli/internal/whatsapp"
+	"github.com/go-chi/chi/v5"
 )
 
 // ============================================================================
@@ -224,6 +225,59 @@ func WhatsAppConversation(cfg *config.Config) http.HandlerFunc {
 			}
 		}
 		raw, err := bookings.NewClient(cfg.BookingSystemURL).GetWhatsAppConversationRaw(cfg.LunaAPIKey, phone, limit)
+		if err != nil {
+			respondError(w, http.StatusBadGateway, err.Error())
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write(raw)
+	}
+}
+
+// WhatsAppConversations proxea el listado de conversaciones de Django (una fila
+// por teléfono) para poblar la bandeja de entrada. La X-API-Key la agrega el
+// backend Go server-side; el navegador no la porta.
+func WhatsAppConversations(cfg *config.Config) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if cfg.LunaAPIKey == "" || cfg.BookingSystemURL == "" {
+			respondError(w, http.StatusServiceUnavailable, "Django no configurado")
+			return
+		}
+		soloPendientes := r.URL.Query().Get("solo_pendientes") == "true"
+		limit := 50
+		if l := r.URL.Query().Get("limit"); l != "" {
+			if n, err := strconv.Atoi(l); err == nil && n > 0 {
+				limit = n
+			}
+		}
+		raw, err := bookings.NewClient(cfg.BookingSystemURL).
+			GetWhatsAppConversationsRaw(cfg.LunaAPIKey, soloPendientes, limit)
+		if err != nil {
+			respondError(w, http.StatusBadGateway, err.Error())
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write(raw)
+	}
+}
+
+// WhatsAppMarcarAtendido saca una conversación de la cola de pendientes
+// (proxy a Django). El teléfono llega como path param {phone} en E.164.
+func WhatsAppMarcarAtendido(cfg *config.Config) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if cfg.LunaAPIKey == "" || cfg.BookingSystemURL == "" {
+			respondError(w, http.StatusServiceUnavailable, "Django no configurado")
+			return
+		}
+		phone := chi.URLParam(r, "phone")
+		if phone == "" {
+			respondError(w, http.StatusBadRequest, "falta el teléfono")
+			return
+		}
+		raw, err := bookings.NewClient(cfg.BookingSystemURL).
+			PostWhatsAppMarcarAtendidoRaw(cfg.LunaAPIKey, phone)
 		if err != nil {
 			respondError(w, http.StatusBadGateway, err.Error())
 			return

@@ -188,6 +188,24 @@ export interface ConversacionWhatsAppResponse {
   messages: MensajeWhatsApp[];
 }
 
+// Fila del listado de conversaciones (bandeja de entrada).
+export interface ConversacionResumen {
+  phone: string;
+  cliente_id: number | null;
+  cliente_nombre: string | null;
+  ultimo_mensaje: string;
+  ultimo_direction: DireccionMensaje;
+  ultimo_timestamp: string;
+  sin_responder: number;
+  requiere_atencion: boolean;
+  total_mensajes: number;
+}
+
+export interface ConversacionesResponse {
+  count: number;
+  conversations: ConversacionResumen[];
+}
+
 // ============================================================================
 // Métricas atribución por operador (MVP last-touch, ventana 60d)
 // ============================================================================

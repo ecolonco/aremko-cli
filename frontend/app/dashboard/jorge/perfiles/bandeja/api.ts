@@ -10,6 +10,7 @@ import type {
   RegionGeografica,
   MetricasOperadoresResponse,
   ConversacionWhatsAppResponse,
+  ConversacionesResponse,
 } from './types';
 
 const apiBase = () =>
@@ -365,4 +366,33 @@ export const responderWhatsApp = async (
     throw new Error(json.error || `HTTP ${res.status}`);
   }
   return json as ResponderWhatsAppResult;
+};
+
+/** Lista las conversaciones para poblar la bandeja de entrada (proxy a Django). */
+export const fetchConversacionesWhatsApp = async (
+  soloPendientes = false,
+  limit = 50
+): Promise<ConversacionesResponse> => {
+  const q = new URLSearchParams({
+    solo_pendientes: String(soloPendientes),
+    limit: String(limit),
+  }).toString();
+  const res = await fetch(`${apiBase()}${WA}/conversations?${q}`);
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(json.error || `HTTP ${res.status}`);
+  }
+  return json as ConversacionesResponse;
+};
+
+/** Saca una conversación de la cola de pendientes (responder ya la atiende). */
+export const marcarAtendidoWhatsApp = async (phone: string): Promise<void> => {
+  const res = await fetch(
+    `${apiBase()}${WA}/conversations/${encodeURIComponent(phone)}/marcar-atendido`,
+    { method: 'POST' }
+  );
+  if (!res.ok) {
+    const json = await res.json().catch(() => ({}));
+    throw new Error(json.error || `HTTP ${res.status}`);
+  }
 };
