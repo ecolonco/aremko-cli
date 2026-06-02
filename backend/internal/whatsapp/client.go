@@ -9,6 +9,7 @@ package whatsapp
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -17,6 +18,9 @@ import (
 
 // graphAPIBaseURL — misma versión que internal/meta para mantener consistencia.
 const graphAPIBaseURL = "https://graph.facebook.com/v21.0"
+
+// ErrMediaTooLarge: el adjunto supera el tope permitido (lo aplica DownloadMedia).
+var ErrMediaTooLarge = errors.New("adjunto excede el tamaño máximo")
 
 // Client envía mensajes a través del número de WhatsApp Business conectado.
 type Client struct {
@@ -79,11 +83,13 @@ type MediaDownload struct {
 }
 
 // DownloadMedia baja un adjunto entrante. La Cloud API obliga a 2 pasos:
-//  1. GET /{media_id} → devuelve una URL temporal + mime_type
+//  1. GET /{media_id} → devuelve una URL temporal + mime_type + file_size
 //  2. GET {url} (con el mismo Bearer) → los bytes reales
 //
 // La URL del paso 2 (lookaside.fbsbx.com) también exige el header Authorization.
-func (c *Client) DownloadMedia(mediaID string) (*MediaDownload, error) {
+// maxBytes>0 rechaza el adjunto (ErrMediaTooLarge) ANTES de descargarlo, usando
+// el file_size del paso 1; un LimitReader actúa de respaldo si el size viene en 0.
+func (c *Client) DownloadMedia(mediaID string, maxBytes int64) (*MediaDownload, error) {
 	// Paso 1: resolver la URL temporal.
 	metaURL := fmt.Sprintf("%s/%s", graphAPIBaseURL, mediaID)
 	req, err := http.NewRequest(http.MethodGet, metaURL, nil)
@@ -103,9 +109,13 @@ func (c *Client) DownloadMedia(mediaID string) (*MediaDownload, error) {
 	var meta struct {
 		URL      string `json:"url"`
 		MimeType string `json:"mime_type"`
+		FileSize int64  `json:"file_size"`
 	}
 	if err := json.Unmarshal(raw, &meta); err != nil || meta.URL == "" {
 		return nil, fmt.Errorf("media meta sin url: %s", raw)
+	}
+	if maxBytes > 0 && meta.FileSize > maxBytes {
+		return nil, fmt.Errorf("%w (%d bytes)", ErrMediaTooLarge, meta.FileSize)
 	}
 
 	// Paso 2: descargar los bytes (la URL exige el Bearer igual).
@@ -123,9 +133,16 @@ func (c *Client) DownloadMedia(mediaID string) (*MediaDownload, error) {
 		b, _ := io.ReadAll(resp2.Body)
 		return nil, fmt.Errorf("media bytes status %d: %s", resp2.StatusCode, b)
 	}
-	data, err := io.ReadAll(resp2.Body)
+	var reader io.Reader = resp2.Body
+	if maxBytes > 0 {
+		reader = io.LimitReader(resp2.Body, maxBytes+1) // +1 para detectar exceso
+	}
+	data, err := io.ReadAll(reader)
 	if err != nil {
 		return nil, fmt.Errorf("error leyendo media: %w", err)
+	}
+	if maxBytes > 0 && int64(len(data)) > maxBytes {
+		return nil, fmt.Errorf("%w (stream)", ErrMediaTooLarge)
 	}
 	return &MediaDownload{Data: data, MimeType: meta.MimeType}, nil
 }

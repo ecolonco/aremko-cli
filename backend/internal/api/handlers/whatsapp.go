@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"io"
 	"log"
 	"net/http"
@@ -191,15 +192,24 @@ func extPorMime(mime string) string {
 	return ".bin"
 }
 
+// maxMediaBytes: tope de adjunto entrante (16 MB), alineado con el límite del
+// endpoint de Django (Cloudinary) y con los topes de la Cloud API (imagen 5 MB,
+// audio/voz/video 16 MB). Si Django lo cambia vía env, ajustar aquí también.
+const maxMediaBytes int64 = 16 * 1024 * 1024
+
 // handleInboundMedia descarga el adjunto desde Meta y lo sube a Django (multipart).
 func handleInboundMedia(cfg *config.Config, bc *bookings.Client, msg whatsappInboundMessage, media *whatsappMedia, phone, nombre string) {
 	if cfg.WhatsAppAccessToken == "" {
 		log.Printf("[whatsapp] media entrante sin token configurado; se omite")
 		return
 	}
-	dl, err := whatsapp.NewClient(cfg.WhatsAppAccessToken, cfg.WhatsAppPhoneNumberID).
-		DownloadMedia(media.ID)
+	wc := whatsapp.NewClient(cfg.WhatsAppAccessToken, cfg.WhatsAppPhoneNumberID)
+	dl, err := wc.DownloadMedia(media.ID, maxMediaBytes)
 	if err != nil {
+		if errors.Is(err, whatsapp.ErrMediaTooLarge) {
+			handleMediaTooLarge(cfg, bc, wc, msg, phone, nombre)
+			return
+		}
 		log.Printf("[whatsapp] error descargando media %s: %v", media.ID, err)
 		return
 	}
@@ -228,6 +238,43 @@ func handleInboundMedia(cfg *config.Config, bc *bookings.Client, msg whatsappInb
 	}, dl.Data)
 	if err != nil {
 		log.Printf("[whatsapp] error subiendo media a Django: %v", err)
+	}
+}
+
+// handleMediaTooLarge: el adjunto supera el tope. Deja una nota en el hilo para
+// el operador y le avisa al cliente (la ventana de 24h está abierta: acaba de
+// escribir) para que lo reenvíe más liviano. No descarga los bytes.
+func handleMediaTooLarge(cfg *config.Config, bc *bookings.Client, wc *whatsapp.Client, msg whatsappInboundMessage, phone, nombre string) {
+	log.Printf("[whatsapp] adjunto de %s excede %d bytes; aviso al cliente", phone, maxMediaBytes)
+
+	// Nota para el operador en el hilo (idempotente con sufijo en el wa_message_id).
+	if e := bc.PostWhatsAppInbound(cfg.LunaAPIKey, bookings.WhatsAppInboundReq{
+		WaMessageID: msg.ID + "-toolarge",
+		From:        phone,
+		Body:        "⚠️ El cliente envió un archivo demasiado grande (límite 16 MB); no se pudo guardar. Pídele reenviarlo más liviano.",
+		Type:        "text",
+		Timestamp:   msg.Timestamp,
+		ContactName: nombre,
+	}); e != nil {
+		log.Printf("[whatsapp] error dejando nota de archivo grande: %v", e)
+	}
+
+	// Aviso automático al cliente + registro del saliente.
+	aviso := "Recibimos tu archivo, pero es muy pesado para guardarlo (máximo 16 MB). ¿Puedes reenviarlo más liviano o como foto? 🙏"
+	res, err := wc.SendSessionMessage(phone, aviso)
+	if err != nil {
+		log.Printf("[whatsapp] no se pudo avisar al cliente del archivo grande: %v", err)
+		return
+	}
+	if cfg.LunaAPIKey != "" {
+		if e := bc.PostWhatsAppOutbound(cfg.LunaAPIKey, bookings.WhatsAppOutboundReq{
+			WaMessageID: res.MessageID,
+			To:          phone,
+			Body:        aviso,
+			Timestamp:   strconv.FormatInt(time.Now().Unix(), 10),
+		}); e != nil {
+			log.Printf("[whatsapp] error registrando aviso saliente: %v", e)
+		}
 	}
 }
 
