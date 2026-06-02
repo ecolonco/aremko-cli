@@ -478,6 +478,11 @@ func (c *Client) GetWhatsAppConversationsRaw(apiKey string, soloPendientes bool,
 // Django siempre recibe el path como %2B (que decodifica a +), sin importar si
 // chi ya nos pasó el valor codificado o no (evita el doble-encoding %252B).
 func (c *Client) PostWhatsAppMarcarAtendidoRaw(apiKey, phone string) ([]byte, error) {
+	// chi puede entregar el path param aún codificado ("%2B..."); decodificar
+	// primero evita que el "2" del %2B se cuele al extraer dígitos.
+	if dec, err := url.PathUnescape(phone); err == nil {
+		phone = dec
+	}
 	digits := strings.Map(func(r rune) rune {
 		if r >= '0' && r <= '9' {
 			return r
