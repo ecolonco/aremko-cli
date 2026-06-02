@@ -326,6 +326,86 @@ func WhatsAppReply(cfg *config.Config) http.HandlerFunc {
 	}
 }
 
+// WhatsAppSendMedia recibe un archivo del frontend (multipart), lo sube a la
+// Cloud API, lo envía al cliente y registra el saliente en Django (con el
+// archivo, para que aparezca en el hilo). Tope 16 MB. No exige X-API-KEY del
+// llamador (mismo modelo que /whatsapp/reply y /ovc/*).
+func WhatsAppSendMedia(cfg *config.Config) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if cfg.WhatsAppAccessToken == "" || cfg.WhatsAppPhoneNumberID == "" {
+			respondError(w, http.StatusServiceUnavailable, "WhatsApp no configurado")
+			return
+		}
+		// Tope duro del body (deja ~1 MB de margen para campos/boundaries).
+		r.Body = http.MaxBytesReader(w, r.Body, maxMediaBytes+(1<<20))
+		if err := r.ParseMultipartForm(maxMediaBytes + (1 << 20)); err != nil {
+			respondError(w, http.StatusRequestEntityTooLarge, "archivo demasiado grande (máx 16 MB)")
+			return
+		}
+		to := strings.TrimSpace(r.FormValue("to"))
+		caption := r.FormValue("caption")
+		if to == "" {
+			respondError(w, http.StatusBadRequest, "falta 'to'")
+			return
+		}
+		file, hdr, err := r.FormFile("file")
+		if err != nil {
+			respondError(w, http.StatusBadRequest, "falta el archivo 'file'")
+			return
+		}
+		defer file.Close()
+		data, err := io.ReadAll(file)
+		if err != nil {
+			respondError(w, http.StatusBadRequest, "no se pudo leer el archivo")
+			return
+		}
+		if int64(len(data)) > maxMediaBytes {
+			respondError(w, http.StatusRequestEntityTooLarge, "archivo demasiado grande (máx 16 MB)")
+			return
+		}
+		mime := hdr.Header.Get("Content-Type")
+		if mime == "" {
+			mime = "application/octet-stream"
+		}
+		filename := hdr.Filename
+		mediaType := whatsapp.MediaTypeForSend(mime)
+
+		wc := whatsapp.NewClient(cfg.WhatsAppAccessToken, cfg.WhatsAppPhoneNumberID)
+		mediaID, err := wc.UploadMedia(data, mime, filename)
+		if err != nil {
+			respondError(w, http.StatusBadGateway, err.Error())
+			return
+		}
+		res, err := wc.SendMediaMessage(to, mediaType, mediaID, caption, filename)
+		if err != nil {
+			respondError(w, http.StatusBadGateway, err.Error())
+			return
+		}
+
+		// Registrar el saliente en Django (con el archivo) para verlo en el hilo.
+		if cfg.LunaAPIKey != "" && cfg.BookingSystemURL != "" {
+			ts := strconv.FormatInt(time.Now().Unix(), 10)
+			if e := bookings.NewClient(cfg.BookingSystemURL).PostWhatsAppOutboundMedia(cfg.LunaAPIKey,
+				bookings.WhatsAppOutboundMediaReq{
+					WaMessageID: res.MessageID,
+					To:          to,
+					Type:        mediaType,
+					Timestamp:   ts,
+					Caption:     caption,
+					MimeType:    mime,
+					Filename:    filename,
+				}, data); e != nil {
+				log.Printf("[whatsapp] error registrando outbound-media en Django: %v", e)
+			}
+		}
+
+		respondJSON(w, http.StatusOK, map[string]interface{}{
+			"success":    true,
+			"message_id": res.MessageID,
+		})
+	}
+}
+
 // WhatsAppConversation proxea el historial de conversación de Django para la
 // bandeja (el backend Go agrega la X-API-Key que el frontend no debe conocer).
 func WhatsAppConversation(cfg *config.Config) http.HandlerFunc {

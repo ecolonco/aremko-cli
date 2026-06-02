@@ -454,6 +454,58 @@ func (c *Client) PostWhatsAppOutbound(apiKey string, req WhatsAppOutboundReq) er
 	return c.postWhatsApp("/api/whatsapp/outbound", apiKey, req)
 }
 
+// WhatsAppOutboundMediaReq son los metadatos de un adjunto saliente (los bytes
+// van como archivo multipart). Es el mismo archivo que se envió al cliente.
+type WhatsAppOutboundMediaReq struct {
+	WaMessageID string
+	To          string
+	Type        string // image | video | audio | document
+	Timestamp   string
+	Caption     string
+	MimeType    string
+	Filename    string
+}
+
+// PostWhatsAppOutboundMedia registra en Django un adjunto saliente (multipart),
+// para que el hilo muestre lo que enviamos. Idempotente por wa_message_id.
+func (c *Client) PostWhatsAppOutboundMedia(apiKey string, m WhatsAppOutboundMediaReq, data []byte) error {
+	var buf bytes.Buffer
+	mw := multipart.NewWriter(&buf)
+	_ = mw.WriteField("wa_message_id", m.WaMessageID)
+	_ = mw.WriteField("to", m.To)
+	_ = mw.WriteField("type", m.Type)
+	_ = mw.WriteField("timestamp", m.Timestamp)
+	_ = mw.WriteField("caption", m.Caption)
+	_ = mw.WriteField("mime_type", m.MimeType)
+	fw, err := mw.CreateFormFile("file", m.Filename)
+	if err != nil {
+		return fmt.Errorf("error armando multipart: %w", err)
+	}
+	if _, err := fw.Write(data); err != nil {
+		return fmt.Errorf("error escribiendo archivo: %w", err)
+	}
+	if err := mw.Close(); err != nil {
+		return fmt.Errorf("error cerrando multipart: %w", err)
+	}
+
+	req, err := http.NewRequest(http.MethodPost, c.BaseURL+"/api/whatsapp/outbound-media", &buf)
+	if err != nil {
+		return fmt.Errorf("error creando request outbound-media: %w", err)
+	}
+	req.Header.Set("Content-Type", mw.FormDataContentType())
+	req.Header.Set("X-API-Key", apiKey)
+	resp, err := c.HTTPClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("error en outbound-media: %w", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		b, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("django outbound-media status %d: %s", resp.StatusCode, b)
+	}
+	return nil
+}
+
 func (c *Client) postWhatsApp(path, apiKey string, payload interface{}) error {
 	body, err := json.Marshal(payload)
 	if err != nil {

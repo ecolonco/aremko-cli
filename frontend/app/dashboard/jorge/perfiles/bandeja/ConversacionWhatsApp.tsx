@@ -10,10 +10,12 @@ import {
   AlertTriangle,
   FileText,
   Mic,
+  Paperclip,
 } from 'lucide-react';
 import {
   fetchConversacionWhatsApp,
   responderWhatsApp,
+  enviarAdjuntoWhatsApp,
   telefonoE164,
 } from './api';
 import type { MensajeWhatsApp } from './types';
@@ -127,6 +129,7 @@ export function ConversacionWhatsApp({
   const [enviando, setEnviando] = useState(false);
   const [enviarError, setEnviarError] = useState<string | null>(null);
   const finRef = useRef<HTMLDivElement | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const cargar = useCallback(
     async (silencioso = false) => {
@@ -185,6 +188,24 @@ export function ConversacionWhatsApp({
       );
     } finally {
       setEnviando(false);
+    }
+  };
+
+  const handleAdjuntar = async (file: File | undefined) => {
+    if (!file || enviando || disabled) return;
+    setEnviando(true);
+    setEnviarError(null);
+    try {
+      // El texto que esté escrito viaja como caption del adjunto.
+      await enviarAdjuntoWhatsApp(phone, file, texto.trim() || undefined);
+      setTexto('');
+      await cargar(true);
+      onReplySent?.();
+    } catch (e: unknown) {
+      setEnviarError(e instanceof Error ? e.message : 'No se pudo enviar el adjunto');
+    } finally {
+      setEnviando(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
 
@@ -279,6 +300,22 @@ export function ConversacionWhatsApp({
           </div>
         )}
         <div className="flex items-end gap-2">
+          <input
+            ref={fileInputRef}
+            type="file"
+            className="hidden"
+            accept="image/*,video/*,audio/*,application/pdf"
+            onChange={(e) => handleAdjuntar(e.target.files?.[0])}
+          />
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={disabled || enviando || !phone}
+            title="Adjuntar foto, PDF, audio o video (máx 16 MB)"
+            className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg border border-slate-300 text-slate-500 hover:bg-slate-100 disabled:opacity-50"
+          >
+            <Paperclip className="h-4 w-4" />
+          </button>
           <textarea
             value={texto}
             onChange={(e) => setTexto(e.target.value)}
@@ -314,7 +351,7 @@ export function ConversacionWhatsApp({
         </div>
         <p className="text-[10px] text-slate-400">
           Se envía desde el WhatsApp oficial de Aremko y queda guardado en la ficha.
-          Enter envía · Shift+Enter hace salto de línea.
+          Enter envía · Shift+Enter salto de línea · 📎 adjunta foto/PDF/audio/video.
         </p>
         {enviarError && (
           <div className="flex items-start gap-2 rounded-md border border-red-200 bg-red-50 p-2 text-xs text-red-800">

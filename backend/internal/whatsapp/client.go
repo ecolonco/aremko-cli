@@ -12,7 +12,10 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"mime/multipart"
 	"net/http"
+	"net/textproto"
+	"strings"
 	"time"
 )
 
@@ -145,6 +148,86 @@ func (c *Client) DownloadMedia(mediaID string, maxBytes int64) (*MediaDownload, 
 		return nil, fmt.Errorf("%w (stream)", ErrMediaTooLarge)
 	}
 	return &MediaDownload{Data: data, MimeType: meta.MimeType}, nil
+}
+
+// MediaTypeForSend mapea un mime al tipo de mensaje de WhatsApp para enviar.
+func MediaTypeForSend(mime string) string {
+	switch {
+	case strings.HasPrefix(mime, "image/"):
+		return "image"
+	case strings.HasPrefix(mime, "video/"):
+		return "video"
+	case strings.HasPrefix(mime, "audio/"):
+		return "audio"
+	default:
+		return "document"
+	}
+}
+
+// UploadMedia sube un archivo a la Cloud API y devuelve su media id (para luego
+// enviarlo con SendMediaMessage). El part 'file' lleva su Content-Type real, que
+// Meta valida contra el campo 'type'.
+func (c *Client) UploadMedia(data []byte, mimeType, filename string) (string, error) {
+	var buf bytes.Buffer
+	mw := multipart.NewWriter(&buf)
+	_ = mw.WriteField("messaging_product", "whatsapp")
+	_ = mw.WriteField("type", mimeType)
+	h := make(textproto.MIMEHeader)
+	h.Set("Content-Disposition", fmt.Sprintf(`form-data; name="file"; filename="%s"`, filename))
+	h.Set("Content-Type", mimeType)
+	part, err := mw.CreatePart(h)
+	if err != nil {
+		return "", fmt.Errorf("error armando upload: %w", err)
+	}
+	if _, err := part.Write(data); err != nil {
+		return "", fmt.Errorf("error escribiendo archivo: %w", err)
+	}
+	if err := mw.Close(); err != nil {
+		return "", fmt.Errorf("error cerrando multipart: %w", err)
+	}
+
+	url := fmt.Sprintf("%s/%s/media", graphAPIBaseURL, c.phoneNumberID)
+	req, err := http.NewRequest(http.MethodPost, url, &buf)
+	if err != nil {
+		return "", fmt.Errorf("error creando request upload: %w", err)
+	}
+	req.Header.Set("Authorization", "Bearer "+c.accessToken)
+	req.Header.Set("Content-Type", mw.FormDataContentType())
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("error subiendo media: %w", err)
+	}
+	defer resp.Body.Close()
+	raw, _ := io.ReadAll(resp.Body)
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("upload media status %d: %s", resp.StatusCode, raw)
+	}
+	var parsed struct {
+		ID string `json:"id"`
+	}
+	if err := json.Unmarshal(raw, &parsed); err != nil || parsed.ID == "" {
+		return "", fmt.Errorf("upload media sin id: %s", raw)
+	}
+	return parsed.ID, nil
+}
+
+// SendMediaMessage envía un adjunto ya subido (por media id). caption aplica a
+// image/video/document; filename solo a document.
+func (c *Client) SendMediaMessage(to, mediaType, mediaID, caption, filename string) (*SendResult, error) {
+	media := map[string]interface{}{"id": mediaID}
+	if caption != "" && (mediaType == "image" || mediaType == "video" || mediaType == "document") {
+		media["caption"] = caption
+	}
+	if filename != "" && mediaType == "document" {
+		media["filename"] = filename
+	}
+	payload := map[string]interface{}{
+		"messaging_product": "whatsapp",
+		"to":                to,
+		"type":              mediaType,
+		mediaType:           media,
+	}
+	return c.send(payload)
 }
 
 func (c *Client) send(payload map[string]interface{}) (*SendResult, error) {

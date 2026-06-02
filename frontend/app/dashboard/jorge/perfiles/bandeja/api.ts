@@ -368,6 +368,28 @@ export const responderWhatsApp = async (
   return json as ResponderWhatsAppResult;
 };
 
+/** Envía un adjunto (foto/PDF/voz/video) al cliente vía Cloud API. El texto va como caption. */
+export const enviarAdjuntoWhatsApp = async (
+  phone: string,
+  file: File,
+  caption?: string
+): Promise<ResponderWhatsAppResult> => {
+  const fd = new FormData();
+  fd.append('to', phone);
+  if (caption) fd.append('caption', caption);
+  fd.append('file', file);
+  const res = await fetch(`${apiBase()}${WA}/send-media`, {
+    method: 'POST',
+    body: fd,
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok || json.success === false) {
+    if (res.status === 413) throw new Error('El archivo supera el límite de 16 MB');
+    throw new Error(json.error || `HTTP ${res.status}`);
+  }
+  return json as ResponderWhatsAppResult;
+};
+
 /** Lista las conversaciones para poblar la bandeja de entrada (proxy a Django). */
 export const fetchConversacionesWhatsApp = async (
   soloPendientes = false,
