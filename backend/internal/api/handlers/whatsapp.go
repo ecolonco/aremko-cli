@@ -8,8 +8,11 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"strconv"
 	"strings"
+	"time"
 
+	"github.com/aremko/aremko-cli/internal/bookings"
 	"github.com/aremko/aremko-cli/internal/config"
 	"github.com/aremko/aremko-cli/internal/whatsapp"
 )
@@ -71,7 +74,7 @@ func WhatsAppWebhookReceive(cfg *config.Config) http.HandlerFunc {
 		for _, entry := range payload.Entry {
 			for _, ch := range entry.Changes {
 				for _, msg := range ch.Value.Messages {
-					handleInboundWhatsApp(ch.Value, msg)
+					handleInboundWhatsApp(cfg, ch.Value, msg)
 				}
 				for _, st := range ch.Value.Statuses {
 					log.Printf("[whatsapp] status=%s id=%s destinatario=%s", st.Status, st.ID, st.RecipientID)
@@ -120,18 +123,116 @@ func WhatsAppSendTest(cfg *config.Config) http.HandlerFunc {
 	}
 }
 
-// handleInboundWhatsApp procesa un mensaje entrante. Piloto: log.
-func handleInboundWhatsApp(v whatsappChangeValue, msg whatsappInboundMessage) {
+// handleInboundWhatsApp procesa un mensaje entrante: lo loguea y lo persiste en
+// Django (vincula al cliente por teléfono + marca respuesta pendiente en la
+// bandeja OVC). Idempotente del lado Django por wa_message_id.
+func handleInboundWhatsApp(cfg *config.Config, v whatsappChangeValue, msg whatsappInboundMessage) {
 	nombre := ""
 	for _, ct := range v.Contacts {
 		if ct.WaID == msg.From {
 			nombre = ct.Profile.Name
 		}
 	}
-	log.Printf("[whatsapp] entrante de %s (%s) tipo=%s: %q", msg.From, nombre, msg.Type, msg.Text.Body)
-	// TODO(pilot): POST a Django para persistir el mensaje, vincular al cliente
-	// por teléfono, abrir/renovar la ventana de 24h y encolarlo en la bandeja
-	// como respuesta_pendiente.
+	// El wa_id viene sin "+"; Django espera E.164 con "+".
+	phone := msg.From
+	if phone != "" && !strings.HasPrefix(phone, "+") {
+		phone = "+" + phone
+	}
+	log.Printf("[whatsapp] entrante de %s (%s) tipo=%s: %q", phone, nombre, msg.Type, msg.Text.Body)
+
+	if cfg.LunaAPIKey == "" || cfg.BookingSystemURL == "" {
+		return
+	}
+	err := bookings.NewClient(cfg.BookingSystemURL).PostWhatsAppInbound(cfg.LunaAPIKey, bookings.WhatsAppInboundReq{
+		WaMessageID: msg.ID,
+		From:        phone,
+		Body:        msg.Text.Body,
+		Type:        msg.Type,
+		Timestamp:   msg.Timestamp,
+		ContactName: nombre,
+	})
+	if err != nil {
+		log.Printf("[whatsapp] error guardando inbound en Django: %v", err)
+	}
+}
+
+// WhatsAppReply envía una respuesta (mensaje de sesión, ventana 24h) vía Cloud
+// API y la registra en Django. Protegido con X-API-KEY si AUTOMATION_API_KEY está
+// configurada. Lo usa la bandeja para responderle al cliente desde aremko-cli.
+func WhatsAppReply(cfg *config.Config) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if cfg.AutomationAPIKey != "" && r.Header.Get("X-API-KEY") != cfg.AutomationAPIKey {
+			respondError(w, http.StatusUnauthorized, "no autorizado")
+			return
+		}
+		if cfg.WhatsAppAccessToken == "" || cfg.WhatsAppPhoneNumberID == "" {
+			respondError(w, http.StatusServiceUnavailable, "WhatsApp no configurado")
+			return
+		}
+		var body struct {
+			To   string `json:"to"`
+			Text string `json:"text"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.To == "" || body.Text == "" {
+			respondError(w, http.StatusBadRequest, "se requieren 'to' y 'text'")
+			return
+		}
+
+		client := whatsapp.NewClient(cfg.WhatsAppAccessToken, cfg.WhatsAppPhoneNumberID)
+		res, err := client.SendSessionMessage(body.To, body.Text)
+		if err != nil {
+			respondError(w, http.StatusBadGateway, err.Error())
+			return
+		}
+
+		// Registrar el saliente en Django (no bloquea la respuesta si falla).
+		if cfg.LunaAPIKey != "" && cfg.BookingSystemURL != "" {
+			ts := strconv.FormatInt(time.Now().Unix(), 10)
+			if e := bookings.NewClient(cfg.BookingSystemURL).PostWhatsAppOutbound(cfg.LunaAPIKey, bookings.WhatsAppOutboundReq{
+				WaMessageID: res.MessageID,
+				To:          body.To,
+				Body:        body.Text,
+				Timestamp:   ts,
+			}); e != nil {
+				log.Printf("[whatsapp] error registrando outbound en Django: %v", e)
+			}
+		}
+
+		respondJSON(w, http.StatusOK, map[string]interface{}{
+			"success":    true,
+			"message_id": res.MessageID,
+		})
+	}
+}
+
+// WhatsAppConversation proxea el historial de conversación de Django para la
+// bandeja (el backend Go agrega la X-API-Key que el frontend no debe conocer).
+func WhatsAppConversation(cfg *config.Config) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		phone := r.URL.Query().Get("phone")
+		if phone == "" {
+			respondError(w, http.StatusBadRequest, "falta el parámetro 'phone'")
+			return
+		}
+		if cfg.LunaAPIKey == "" || cfg.BookingSystemURL == "" {
+			respondError(w, http.StatusServiceUnavailable, "Django no configurado")
+			return
+		}
+		limit := 50
+		if l := r.URL.Query().Get("limit"); l != "" {
+			if n, err := strconv.Atoi(l); err == nil && n > 0 {
+				limit = n
+			}
+		}
+		raw, err := bookings.NewClient(cfg.BookingSystemURL).GetWhatsAppConversationRaw(cfg.LunaAPIKey, phone, limit)
+		if err != nil {
+			respondError(w, http.StatusBadGateway, err.Error())
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write(raw)
+	}
 }
 
 // validWhatsAppSignature verifica X-Hub-Signature-256 = "sha256=" + HMAC-SHA256(appSecret, body).
