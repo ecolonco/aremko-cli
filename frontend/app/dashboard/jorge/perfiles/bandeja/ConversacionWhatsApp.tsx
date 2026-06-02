@@ -90,6 +90,16 @@ export function ConversacionWhatsApp({
     cargar();
   }, [cargar]);
 
+  // Auto-refresco del hilo abierto: los mensajes entrantes aparecen solos sin
+  // tener que presionar "Actualizar". Silencioso para no parpadear el loader.
+  const cargarRef = useRef(cargar);
+  cargarRef.current = cargar;
+  useEffect(() => {
+    if (!phone) return;
+    const id = setInterval(() => cargarRef.current(true), 12_000);
+    return () => clearInterval(id);
+  }, [phone]);
+
   // Auto-scroll al último mensaje cuando cambia el hilo.
   useEffect(() => {
     finRef.current?.scrollIntoView({ block: 'end' });
