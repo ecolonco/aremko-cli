@@ -52,6 +52,10 @@ type Config struct {
 	// llamadas de IA (un solo knob para cambiar de modelo desde Render, sin tocar
 	// código). Ej: "google/gemini-2.5-pro". Vacío = usa los modelos por defecto del código.
 	OpenRouterModel string
+	// OpenRouterMaxTokens: si > 0, sobreescribe el largo (max tokens de salida)
+	// de TODAS las llamadas de IA. 0 = usa los largos por defecto del código
+	// (los análisis por sección están en 12000). Ej: 6000 = informes más cortos/rápidos.
+	OpenRouterMaxTokens int
 
 	// Booking System (Django)
 	BookingSystemURL string
@@ -111,6 +115,7 @@ func LoadConfig() (*Config, error) {
 		OpenRouterAPIKey:   getEnvOrDefault("OPENROUTER_API_KEY", ""),
 		OpenRouterBaseURL:  getEnvOrDefault("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1"),
 		OpenRouterModel:    getEnvOrDefault("OPENROUTER_MODEL", ""),
+		OpenRouterMaxTokens: parseIntEnv("OPENROUTER_MAX_TOKENS", 0),
 		BookingSystemURL:   getEnvOrDefault("BOOKING_SYSTEM_URL", "http://localhost:8002"),
 		AutomationAPIKey:   getEnvOrDefault("AUTOMATION_API_KEY", ""),
 		LunaAPIKey:         getEnvOrDefault("LUNA_API_KEY", ""),
@@ -188,6 +193,18 @@ func parseFloatEnv(key string, defaultValue float64) float64 {
 	}
 	var v float64
 	if _, err := fmt.Sscanf(raw, "%f", &v); err != nil {
+		return defaultValue
+	}
+	return v
+}
+
+func parseIntEnv(key string, defaultValue int) int {
+	raw := os.Getenv(key)
+	if raw == "" {
+		return defaultValue
+	}
+	var v int
+	if _, err := fmt.Sscanf(raw, "%d", &v); err != nil {
 		return defaultValue
 	}
 	return v

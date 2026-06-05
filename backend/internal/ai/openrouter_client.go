@@ -256,6 +256,9 @@ type OpenRouterClient struct {
 	// (viene de la env OPENROUTER_MODEL). Un solo knob para cambiar el modelo
 	// de IA desde Render sin tocar código. Vacío = cada caller usa el suyo.
 	Model string
+	// MaxTokens: si > 0, sobreescribe el largo (max tokens de salida) de TODA
+	// llamada a Generate (viene de OPENROUTER_MAX_TOKENS). 0 = cada caller usa el suyo.
+	MaxTokens int
 	// OperatingContext, si está set, se inyecta al final del system prompt de
 	// cada análisis para que la IA evite recomendar acciones que Aremko ya
 	// implementa. Se llena desde el handler con bookings.Client.GetOperatingContext().
@@ -329,15 +332,16 @@ type OpenRouterResponse struct {
 }
 
 // NewOpenRouterClient crea una nueva instancia del cliente
-func NewOpenRouterClient(apiKey, baseURL, model string) *OpenRouterClient {
+func NewOpenRouterClient(apiKey, baseURL, model string, maxTokens int) *OpenRouterClient {
 	if baseURL == "" {
 		baseURL = "https://openrouter.ai/api/v1"
 	}
 
 	return &OpenRouterClient{
-		APIKey:  apiKey,
-		BaseURL: baseURL,
-		Model:   model,
+		APIKey:    apiKey,
+		BaseURL:   baseURL,
+		Model:     model,
+		MaxTokens: maxTokens,
 		Client: &http.Client{
 			// 240s para dar margen a modelos de alta calidad/lentos (ej.
 			// deepseek-v4-pro, gemini-2.5-pro) que generan análisis largos.
@@ -358,6 +362,11 @@ func (c *OpenRouterClient) Generate(ctx context.Context, systemPrompt, userPromp
 	// Fallback si nadie especificó modelo.
 	if model == "" {
 		model = "google/gemini-3.1-flash-lite"
+	}
+	// Knob global de largo: si OPENROUTER_MAX_TOKENS está seteada (c.MaxTokens),
+	// sobreescribe el max de tokens de salida de cualquier llamada.
+	if c.MaxTokens > 0 {
+		maxTokens = c.MaxTokens
 	}
 
 	// Construir request

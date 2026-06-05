@@ -60,7 +60,7 @@ func NLQuery(cfg *config.Config) http.HandlerFunc {
 
 		hoy := time.Now().Format("2006-01-02")
 
-		aiClient := ai.NewOpenRouterClient(cfg.OpenRouterAPIKey, cfg.OpenRouterBaseURL, cfg.OpenRouterModel)
+		aiClient := ai.NewOpenRouterClient(cfg.OpenRouterAPIKey, cfg.OpenRouterBaseURL, cfg.OpenRouterModel, cfg.OpenRouterMaxTokens)
 		parseCtx, cancelParse := context.WithTimeout(r.Context(), 8*time.Second)
 		defer cancelParse()
 
