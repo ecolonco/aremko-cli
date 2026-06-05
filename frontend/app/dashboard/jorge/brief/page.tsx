@@ -338,8 +338,41 @@ export default function BriefPage() {
   };
 
   const handleGenerateWithAI = async () => {
+    // Genera el análisis IA de la pestaña ACTIVA (sus secciones, que son
+    // llamadas individuales y rápidas). Reemplaza al viejo brief global
+    // /brief/weekly-ai, que se colgaba (timeout >120s) y no mostraba nada.
     setGenerating(true);
-    await fetchBrief(true);
+    try {
+      switch (activeTab) {
+        case 'overview':
+          await handleGenerateOverviewAnalysis();
+          break;
+        case 'web':
+          await handleGenerateWebAnalysis();
+          break;
+        case 'social':
+          // Bloque completo de Social: Instagram orgánico + Meta Ads (en paralelo).
+          await Promise.all([
+            handleGenerateInstagramAnalysis(),
+            handleGenerateMetaAdsAnalysis(),
+          ]);
+          break;
+        case 'sales':
+          await handleGenerateSalesAnalysis();
+          break;
+        case 'reviews':
+          await handleGenerateReviewsAnalysis();
+          break;
+        case 'ai':
+          await handleGenerateOverviewAnalysis();
+          break;
+        default:
+          // 'competition' u otras pestañas sin análisis por IA: no-op.
+          break;
+      }
+    } finally {
+      setGenerating(false);
+    }
   };
 
   const handleGenerateWebAnalysis = async () => {
