@@ -1861,10 +1861,10 @@ export default function BriefPage() {
                     <CardHeader>
                       <CardTitle className="text-lg flex items-center">
                         <Sparkles className="h-5 w-5 mr-2 text-pink-600" />
-                        Análisis con IA
+                        Análisis Orgánico con IA
                       </CardTitle>
                       <CardDescription>
-                        Análisis inteligente de tus datos de Instagram orgánico
+                        Instagram + Facebook orgánico, analizados juntos y por separado
                       </CardDescription>
                     </CardHeader>
                     <CardContent>

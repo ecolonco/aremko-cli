@@ -669,6 +669,59 @@ Genera un análisis EJECUTIVO PROFUNDO siguiendo EXACTAMENTE la estructura del s
 	return c.Generate(ctx, c.wrapAnalysisPrompt(systemPrompt), userPrompt, "google/gemini-2.5-pro", 0.5, 12000)
 }
 
+// GenerateOrganicAnalysis genera un análisis combinado del ORGÁNICO social:
+// Instagram (@aremkospa) + Facebook (Página). Analiza cada canal y luego en conjunto.
+func (c *OpenRouterClient) GenerateOrganicAnalysis(ctx context.Context, organicData map[string]interface{}) (*LLMResult, error) {
+	roleIntro := `Eres el analista ejecutivo de Aremko Spa Boutique especializado en el ORGÁNICO de redes sociales: Instagram (@aremkospa) y la Página de Facebook. Tu trabajo es transformar las métricas de contenido orgánico (alcance, interacción, mejores publicaciones) de AMBOS canales en decisiones concretas sobre qué contenido empujar, qué temas resuenan, en qué canal, y cómo el orgánico aporta al embudo de adquisición. El payload trae "instagram" y "facebook" por separado; si "facebook" viene null o vacío, decláralo (es señal de que ese canal no se mide o no tiene actividad) pero analiza Instagram a fondo igual.`
+
+	domainStructure := `## 🔍 Análisis por Canal (Instagram y Facebook por separado)
+
+Para CADA canal presente:
+- **Tamaño y alcance:** seguidores/fans, alcance promedio por post, % de la audiencia alcanzada.
+- **Interacción:** reacciones/me gusta, comentarios, guardados/compartidos, ER (engagement rate / tasa de interacción) vs referencia spa/bienestar (3-5%).
+- **Mejores publicaciones:** las 2-3 top del canal con su tema (pie de foto corto) + métricas + lección replicable.
+- **Lectura ejecutiva del canal:** ¿vale la pena empujar este canal? ¿está vivo o dormido?
+
+## 🔀 Lectura Conjunta (Instagram vs Facebook)
+- ¿Qué canal rinde mejor (alcance, ER, intención) y por qué?
+- ¿Los mismos temas/formatos funcionan igual en ambos, o cada audiencia es distinta?
+- ¿Concentrar esfuerzo en un canal o mantener ambos? Reparto sugerido (ej. 80% IG / 20% FB) con justificación numérica.
+
+## 📊 Estado por Dimensión (orgánico en conjunto)
+
+### 🟢/🟡/🔴 Alcance
+Alcance por canal y total. ¿Qué % de la audiencia se alcanza? Vs referencias.
+
+### 🟢/🟡/🔴 Tasa de Interacción (ER)
+ER por canal vs referencia spa/bienestar (3-5%). ¿Cuál engancha más?
+
+### 🟢/🟡/🔴 Temas y Ganchos que Funcionan
+Patrones en los pies de foto de lo que mejor funciona (ambos canales). Tono, pregunta, beneficio que se repite.
+
+### 🟢/🟡/🔴 Guardados / Compartidos (intención)
+Guardados (IG) y compartidos (FB) son las métricas más predictivas de intención comercial. ¿Crecen?
+
+### 🟢/🟡/🔴 Cobertura de medición
+Si Facebook viene vacío/null o sin alcance, señalarlo como instrumentación faltante a resolver.
+
+`
+
+	systemPrompt := roleIntro + "\n\n" + executiveAnalystCore + "\n\n" + executiveOutputStructureBase + "\n" + domainStructure + "\n" + executiveOutputStructureTail
+
+	dataJSON, err := json.MarshalIndent(organicData, "", "  ")
+	if err != nil {
+		return &LLMResult{Error: fmt.Sprintf("error marshaling data: %v", err)}, err
+	}
+
+	userPrompt := fmt.Sprintf(`Analiza estos datos del ORGÁNICO social de Aremko Spa Boutique (Puerto Varas, Chile). El payload trae dos canales: "instagram" (@aremkospa) y "facebook" (la Página):
+
+%s
+
+Genera un análisis EJECUTIVO PROFUNDO siguiendo EXACTAMENTE la estructura del system prompt: cada canal por separado y luego la lectura conjunta. Sin restricción de extensión. Cada afirmación anclada a números concretos del payload. Si "facebook" es null/vacío, decláralo como brecha de medición pero analiza Instagram a fondo igual.`, string(dataJSON))
+
+	return c.Generate(ctx, c.wrapAnalysisPrompt(systemPrompt), userPrompt, "google/gemini-2.5-pro", 0.5, 12000)
+}
+
 // GenerateMetaAdsAnalysis genera un análisis completo de los datos de Meta Ads (Facebook/Instagram)
 func (c *OpenRouterClient) GenerateMetaAdsAnalysis(ctx context.Context, metaAdsData map[string]interface{}) (*LLMResult, error) {
 	roleIntro := `Eres el analista ejecutivo de Aremko Spa Boutique especializado en publicidad pagada en Meta Ads (Facebook + Instagram). Tu trabajo es transformar las métricas de campañas en decisiones concretas sobre distribución de presupuesto, escalamiento de campañas ganadoras, pausa de perdedoras y prevención de fatiga creativa.

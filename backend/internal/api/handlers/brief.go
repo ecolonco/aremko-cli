@@ -1201,11 +1201,31 @@ func AnalyzeInstagramOrganic(cfg *config.Config) http.HandlerFunc {
 			return
 		}
 
+		// Facebook orgánico (puede venir vacío/error; el análisis lo tolera)
+		var facebookData map[string]interface{}
+		fbClient := social.NewFacebookClient(cfg.MetaAccessToken)
+		if fbInsights, fbErr := fbClient.GetPageInsights(ctx, 10); fbErr == nil {
+			facebookData = map[string]interface{}{
+				"page_info": map[string]interface{}{
+					"name":            fbInsights.Name,
+					"fan_count":       fbInsights.FanCount,
+					"followers_count": fbInsights.FollowersCount,
+				},
+				"top_posts": fbInsights.TopPosts,
+			}
+		}
+
+		// Payload combinado: orgánico = Instagram + Facebook
+		organicData := map[string]interface{}{
+			"instagram": instagramData,
+			"facebook":  facebookData,
+		}
+
 		// Generar análisis con IA
 		aiClient := newAIClientWithOperatingContext(cfg)
 
-		fmt.Println("[AI] Generando análisis de Instagram Orgánico...")
-		analysis, err := aiClient.GenerateInstagramAnalysis(ctx, instagramData)
+		fmt.Println("[AI] Generando análisis Orgánico (Instagram + Facebook)...")
+		analysis, err := aiClient.GenerateOrganicAnalysis(ctx, organicData)
 		if err != nil {
 			respondJSON(w, http.StatusInternalServerError, map[string]interface{}{
 				"success": false,
