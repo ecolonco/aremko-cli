@@ -1845,6 +1845,12 @@ export default function BriefPage() {
 
         {/* REDES SOCIALES */}
         <TabsContent value="social" className="space-y-4" data-tab-export="social">
+          {/* 🟢 ORGÁNICO — sin inversión (Instagram + Facebook) */}
+          <div className="flex items-center gap-2 pt-1">
+            <span className="h-2.5 w-2.5 rounded-full bg-green-500" />
+            <h2 className="text-base font-semibold text-green-700">Orgánico · Instagram + Facebook</h2>
+            <span className="text-xs text-muted-foreground">sin inversión publicitaria</span>
+          </div>
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center">
@@ -2018,9 +2024,6 @@ export default function BriefPage() {
                                 <tr className="border-b">
                                   <th className="text-left py-3 px-2 font-medium">Semana</th>
                                   <th className="text-right py-3 px-2 font-medium">Alcance</th>
-                                  <th className="text-right py-3 px-2 font-medium">Impresiones</th>
-                                  <th className="text-right py-3 px-2 font-medium">Vistas Perfil</th>
-                                  <th className="text-right py-3 px-2 font-medium">Clics Web</th>
                                 </tr>
                               </thead>
                               <tbody>
@@ -2032,16 +2035,6 @@ export default function BriefPage() {
 
                                   const reachChange = prevWeek
                                     ? ((week.reach - prevWeek.reach) / prevWeek.reach) * 100
-                                    : 0;
-                                  const impressionsChange = prevWeek
-                                    ? ((week.impressions - prevWeek.impressions) / prevWeek.impressions) * 100
-                                    : 0;
-                                  const profileViewsChange = prevWeek
-                                    ? ((week.profile_views - prevWeek.profile_views) / prevWeek.profile_views) * 100
-                                    : 0;
-                                  const clicksChange = prevWeek
-                                    ? ((week.website_clicks - prevWeek.website_clicks) / prevWeek.website_clicks) *
-                                      100
                                     : 0;
 
                                   return (
@@ -2062,63 +2055,6 @@ export default function BriefPage() {
                                             >
                                               {reachChange > 0 ? '▲' : reachChange < 0 ? '▼' : '─'}{' '}
                                               {Math.abs(reachChange).toFixed(0)}%
-                                            </span>
-                                          )}
-                                        </div>
-                                      </td>
-                                      <td className="py-3 px-2 text-right">
-                                        <div className="flex items-center justify-end gap-2">
-                                          <span>{week.impressions?.toLocaleString() || '0'}</span>
-                                          {prevWeek && (
-                                            <span
-                                              className={`text-xs ${
-                                                impressionsChange > 0
-                                                  ? 'text-green-600'
-                                                  : impressionsChange < 0
-                                                  ? 'text-red-600'
-                                                  : 'text-gray-500'
-                                              }`}
-                                            >
-                                              {impressionsChange > 0 ? '▲' : impressionsChange < 0 ? '▼' : '─'}{' '}
-                                              {Math.abs(impressionsChange).toFixed(0)}%
-                                            </span>
-                                          )}
-                                        </div>
-                                      </td>
-                                      <td className="py-3 px-2 text-right">
-                                        <div className="flex items-center justify-end gap-2">
-                                          <span>{week.profile_views?.toLocaleString() || '0'}</span>
-                                          {prevWeek && (
-                                            <span
-                                              className={`text-xs ${
-                                                profileViewsChange > 0
-                                                  ? 'text-green-600'
-                                                  : profileViewsChange < 0
-                                                  ? 'text-red-600'
-                                                  : 'text-gray-500'
-                                              }`}
-                                            >
-                                              {profileViewsChange > 0 ? '▲' : profileViewsChange < 0 ? '▼' : '─'}{' '}
-                                              {Math.abs(profileViewsChange).toFixed(0)}%
-                                            </span>
-                                          )}
-                                        </div>
-                                      </td>
-                                      <td className="py-3 px-2 text-right">
-                                        <div className="flex items-center justify-end gap-2">
-                                          <span>{week.website_clicks?.toLocaleString() || '0'}</span>
-                                          {prevWeek && (
-                                            <span
-                                              className={`text-xs ${
-                                                clicksChange > 0
-                                                  ? 'text-green-600'
-                                                  : clicksChange < 0
-                                                  ? 'text-red-600'
-                                                  : 'text-gray-500'
-                                              }`}
-                                            >
-                                              {clicksChange > 0 ? '▲' : clicksChange < 0 ? '▼' : '─'}{' '}
-                                              {Math.abs(clicksChange).toFixed(0)}%
                                             </span>
                                           )}
                                         </div>
@@ -2287,6 +2223,12 @@ export default function BriefPage() {
             </Card>
           )}
 
+          {/* 🔵 PAGADO — campañas con inversión (Meta Ads + Refugio cross-canal) */}
+          <div className="flex items-center gap-2 pt-4">
+            <span className="h-2.5 w-2.5 rounded-full bg-blue-500" />
+            <h2 className="text-base font-semibold text-blue-700">Pagado · Meta Ads + Refugio</h2>
+            <span className="text-xs text-muted-foreground">campañas con inversión</span>
+          </div>
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center">
