@@ -339,7 +339,9 @@ func NewOpenRouterClient(apiKey, baseURL, model string) *OpenRouterClient {
 		BaseURL: baseURL,
 		Model:   model,
 		Client: &http.Client{
-			Timeout: 120 * time.Second,
+			// 240s para dar margen a modelos de alta calidad/lentos (ej.
+			// deepseek-v4-pro, gemini-2.5-pro) que generan análisis largos.
+			Timeout: 240 * time.Second,
 		},
 	}
 }
