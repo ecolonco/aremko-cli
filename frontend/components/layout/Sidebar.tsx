@@ -3,9 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
-  HomeIcon,
   ChartBarIcon,
-  MegaphoneIcon,
   DocumentTextIcon,
   CogIcon,
   UsersIcon,
@@ -16,6 +14,7 @@ import {
   TrophyIcon,
 } from '@heroicons/react/24/outline';
 import { UserRole } from '@/lib/types/user';
+import { allowedItems } from '@/lib/permissions';
 import { signOut } from 'next-auth/react';
 import clsx from 'clsx';
 
@@ -27,42 +26,26 @@ interface SidebarProps {
   onClose: () => void;
 }
 
-const navigation = {
-  jorge: [
-    { name: 'Informes', href: '/dashboard/jorge/brief', icon: DocumentTextIcon },
-    { name: 'Perfiles', href: '/dashboard/jorge/perfiles', icon: UsersIcon },
-    { name: 'Bandeja WhatsApp', href: '/dashboard/jorge/perfiles/bandeja', icon: ChatBubbleLeftRightIcon },
-    { name: 'Mensajes WhatsApp', href: '/dashboard/jorge/perfiles/whatsapp', icon: ChatBubbleLeftRightIcon },
-    { name: 'Tableros Bandeja', href: '/dashboard/jorge/perfiles/tableros', icon: ChartBarIcon },
-    { name: 'Métricas Operadores', href: '/dashboard/jorge/perfiles/metricas-operadores', icon: TrophyIcon },
-    { name: 'Aremko-CLI Sistema', href: '/dashboard/jorge/sistema', icon: BookOpenIcon },
-    { name: 'Configuración', href: '/dashboard/jorge/settings', icon: CogIcon },
-  ],
-  deborah: [
-    { name: 'Dashboard', href: '/dashboard/deborah', icon: HomeIcon },
-    { name: 'Bandeja WhatsApp', href: '/dashboard/jorge/perfiles/bandeja', icon: ChatBubbleLeftRightIcon },
-    { name: 'Mensajes WhatsApp', href: '/dashboard/jorge/perfiles/whatsapp', icon: ChatBubbleLeftRightIcon },
-    { name: 'Ventas', href: '/dashboard/deborah/sales', icon: ChartBarIcon },
-    { name: 'Campañas', href: '/dashboard/deborah/campaigns', icon: MegaphoneIcon },
-  ],
-  angelica: [
-    { name: 'Dashboard', href: '/dashboard/angelica', icon: HomeIcon },
-    { name: 'Bandeja WhatsApp', href: '/dashboard/jorge/perfiles/bandeja', icon: ChatBubbleLeftRightIcon },
-    { name: 'Contenido', href: '/dashboard/angelica/content', icon: DocumentTextIcon },
-    { name: 'Campañas', href: '/dashboard/angelica/campaigns', icon: MegaphoneIcon },
-    { name: 'Analytics', href: '/dashboard/angelica/analytics', icon: ChartBarIcon },
-  ],
-  ernesto: [
-    { name: 'Dashboard', href: '/dashboard/ernesto', icon: HomeIcon },
-    { name: 'Bandeja WhatsApp', href: '/dashboard/jorge/perfiles/bandeja', icon: ChatBubbleLeftRightIcon },
-    { name: 'Operaciones', href: '/dashboard/ernesto/operations', icon: CogIcon },
-    { name: 'Reservas', href: '/dashboard/ernesto/bookings', icon: DocumentTextIcon },
-  ],
+// Ícono por sección. Las secciones y los permisos por usuario viven en
+// lib/permissions.ts (fuente única, compartida con el middleware).
+const ICONS: Record<string, typeof DocumentTextIcon> = {
+  informes: DocumentTextIcon,
+  perfiles: UsersIcon,
+  bandeja: ChatBubbleLeftRightIcon,
+  mensajes: ChatBubbleLeftRightIcon,
+  tableros: ChartBarIcon,
+  metricas: TrophyIcon,
+  sistema: BookOpenIcon,
+  configuracion: CogIcon,
 };
 
 export default function Sidebar({ userRole, userName, userFullName, open, onClose }: SidebarProps) {
   const pathname = usePathname();
-  const userNavigation = navigation[userRole] || [];
+  const userNavigation = allowedItems(userRole).map((item) => ({
+    name: item.name,
+    href: item.href,
+    icon: ICONS[item.key] ?? DocumentTextIcon,
+  }));
 
   const handleLogout = async () => {
     await signOut({ callbackUrl: '/login' });

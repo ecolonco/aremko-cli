@@ -1,86 +1,47 @@
 import { auth } from '@/lib/auth';
 import { NextResponse } from 'next/server';
+import { canAccess, homeHref } from '@/lib/permissions';
 
 export default auth((req) => {
   const { nextUrl } = req;
   const isLoggedIn = !!req.auth;
+  const user = req.auth?.user;
+  const path = nextUrl.pathname;
+  const isProtectedRoute = path.startsWith('/dashboard');
 
-  // Rutas que requieren autenticación
-  const isProtectedRoute = nextUrl.pathname.startsWith('/dashboard');
-
-  // Si no está logueado e intenta acceder a una ruta protegida
+  // No logueado intentando una ruta protegida → login (guardando a dónde iba)
   if (!isLoggedIn && isProtectedRoute) {
     const loginUrl = new URL('/login', nextUrl.origin);
-    loginUrl.searchParams.set('callbackUrl', nextUrl.pathname);
+    loginUrl.searchParams.set('callbackUrl', path);
     return NextResponse.redirect(loginUrl);
   }
 
-  // Si está logueado y está en login, redirigir a dashboard
-  if (isLoggedIn && nextUrl.pathname === '/login') {
-    const user = req.auth?.user;
-    let dashboardPath = '/dashboard/jorge';
-
-    if (user?.username === 'deborah') {
-      dashboardPath = '/dashboard/deborah';
-    } else if (user?.username === 'angelica') {
-      dashboardPath = '/dashboard/angelica';
-    } else if (user?.username === 'ernesto') {
-      dashboardPath = '/dashboard/ernesto';
-    }
-
-    return NextResponse.redirect(new URL(dashboardPath, nextUrl.origin));
+  // Logueado en /login o en la raíz → a su sección de inicio (según permisos)
+  if (isLoggedIn && user && (path === '/login' || path === '/')) {
+    return NextResponse.redirect(new URL(homeHref(user.username), nextUrl.origin));
   }
 
-  // Si está logueado y está en la raíz, redirigir a dashboard
-  if (isLoggedIn && nextUrl.pathname === '/') {
-    const user = req.auth?.user;
-    let dashboardPath = '/dashboard/jorge';
-
-    if (user?.username === 'deborah') {
-      dashboardPath = '/dashboard/deborah';
-    } else if (user?.username === 'angelica') {
-      dashboardPath = '/dashboard/angelica';
-    } else if (user?.username === 'ernesto') {
-      dashboardPath = '/dashboard/ernesto';
-    }
-
-    return NextResponse.redirect(new URL(dashboardPath, nextUrl.origin));
-  }
-
-  // Si no está logueado y está en la raíz, redirigir a login
-  if (!isLoggedIn && nextUrl.pathname === '/') {
+  // No logueado en la raíz → login
+  if (!isLoggedIn && path === '/') {
     return NextResponse.redirect(new URL('/login', nextUrl.origin));
   }
 
-  // Excepción: la Bandeja WhatsApp de Operación Vuelta a Casa es compartida —
-  // cualquier operador autenticado (Deborah, Angélica, Ernesto, Jorge) puede
-  // trabajarla. El backend registra el username de quien actúa, así medimos
-  // desempeño por persona.
-  if (
-    isLoggedIn &&
-    nextUrl.pathname.startsWith('/dashboard/jorge/perfiles/bandeja')
-  ) {
-    return NextResponse.next();
-  }
-
-  // Verificar permisos de acceso a dashboards específicos
-  if (isProtectedRoute && isLoggedIn) {
-    const user = req.auth?.user;
-    const dashboardUser = nextUrl.pathname.split('/dashboard/')[1]?.split('/')[0];
-
-    if (dashboardUser && user) {
-      // Superadmins tienen acceso a todo
-      if (user.role === 'superadmin') {
-        return NextResponse.next();
-      }
-
-      // Admins solo tienen acceso a su propio dashboard
-      if (user.role === 'admin' && user.username !== dashboardUser) {
-        return NextResponse.redirect(
-          new URL(`/dashboard/${user.username}`, nextUrl.origin)
-        );
-      }
+  // Control de acceso por permisos a las secciones del dashboard.
+  // Los permisos por usuario (qué secciones puede ver/abrir) viven en
+  // lib/permissions.ts, que también alimenta el Sidebar (una sola fuente).
+  if (isProtectedRoute && isLoggedIn && user) {
+    // La página "Sin acceso" siempre está disponible (evita loops para usuarios
+    // que aún no tienen secciones asignadas, ej. Ernesto).
+    if (path.startsWith('/dashboard/sin-acceso')) {
+      return NextResponse.next();
     }
+
+    if (canAccess(user.username, path)) {
+      return NextResponse.next();
+    }
+
+    // Sin permiso para esta sección → a su sección de inicio (o "Sin acceso")
+    return NextResponse.redirect(new URL(homeHref(user.username), nextUrl.origin));
   }
 
   return NextResponse.next();
