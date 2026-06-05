@@ -204,47 +204,12 @@ Exactamente 3 cifras. Cada una con este formato (mínimo 4 líneas por cifra):
 - **Implicación:** [qué decisión cambia si esta cifra empeora/mejora]
 `
 
-const executiveOutputStructureTail = `## ⚡ Movida de la Semana
-UNA SOLA recomendación, la de mayor impacto × menor esfuerzo. Formato completo:
-- **Acción:** [verbo + objeto específico]
-- **Por qué:** [cita explícita de datos del payload, mínimo 2 cifras]
-- **Es nueva o refina existente?** [si refina, citar nombre EXACTO del trigger/pack del contexto operativo y qué se cambia]
-- **Impacto estimado:** [fórmula explícita con números del payload mostrando supuestos]
-- **Esfuerzo:** [horas o días, honesto]
-- **Cuándo se ejecuta:** [día específico]
-- **Quién la ejecuta:** [equipo/rol]
-- **Métrica de éxito:** [qué número se moverá, umbral, plazo]
-- **Riesgos:** [qué puede salir mal y cómo mitigarlo]
-
-## 🎯 3 Apuestas del Mes
-Tres recomendaciones más, ordenadas DESC por (impacto estimado / esfuerzo en días). Numerar 1, 2, 3. **Cada una con el formato completo de Movida de la Semana** (no condensado).
-
-## ⏸️ Qué Pausar o Refinar
-2-3 procesos que el contexto operativo dice que están corriendo pero los datos sugieren no mueven la aguja. Cada item (mínimo 5 líneas):
-- **Proceso actual:** [nombre exacto del trigger/pack/campaña del contexto operativo]
-- **Hipótesis de bajo rendimiento:** [datos del payload que lo respaldan, mínimo 2]
-- **Evidencia indirecta:** [si no hay dato directo, qué proxy podría confirmar]
-- **Decisión propuesta:** [pausar / refinar copy / refinar segmento / cambiar timing / cambiar incentivo]
-- **Cómo medir si la decisión fue correcta**
-
-Si no encuentras nada que pausar honestamente: "no detecté nada que claramente convenga pausar — recomiendo agregar instrumentación para medir efectividad antes de tocar".
-
-## ⚠️ Riesgos y Escenarios
-Identificar 2-3 riesgos para las próximas 4-8 semanas. Cada riesgo:
-- **Riesgo:** [descripción concreta basada en datos actuales]
-- **Probabilidad estimada:** [baja/media/alta justificada con señales del payload]
-- **Plan de contingencia:** [acción concreta para mitigarlo]
-- **Indicador temprano:** [qué métrica vigilar semana a semana para detectar antes]
-
-## 💡 Bonus
-Uno o dos hallazgos no obvios. Algo que solo aparece al cruzar 3+ áreas de datos. Desarrollado en 2-3 párrafos.
-
-# CIERRE
-Sin párrafo de despedida, sin "espero que sea útil", sin meta-comentarios. Termina en el Bonus.
+const executiveOutputStructureTail = `## 💡 Bonus
+UN hallazgo no obvio (máximo 2), de esos que solo aparecen al cruzar 3+ áreas de datos. Conciso: 1-2 párrafos. Es un INSIGHT, no una recomendación — las recomendaciones van TODAS en el Plan de acción final, no aquí.
 
 # IMPORTANTE FINAL
-- Densidad analítica > brevedad. Si los datos justifican un reporte de 4-6 páginas, escríbelo así.
-- Cada afirmación con datos del payload. Cada número con su contexto histórico.
+- Las secciones de arriba (Veredicto, 3 Cifras, análisis por área, Estado por Dimensión, Bonus) son la EVIDENCIA: describen con números QUÉ está pasando. NO metas en ellas listas de recomendaciones, "movidas", "apuestas", "qué pausar" ni "riesgos" sueltos — TODA recomendación se consolida, sin repetirse, en la sección final "Acciones priorizadas".
+- Densidad analítica > brevedad en la evidencia. Cada afirmación anclada a datos del payload, cada número con su contexto histórico.
 - El reporte debe ser legible de corrido, no como bullets sueltos.`
 
 // OpenRouterClient maneja la comunicación con OpenRouter API
@@ -295,14 +260,24 @@ const actionsClosingInstruction = `
 
 ---
 
-## 🎯 CIERRE OBLIGATORIO — Plan de acción
-Termina SIEMPRE con una sección final titulada exactamente "## 🎯 Acciones priorizadas", con una lista NUMERADA de **entre 7 y 10** acciones concretas y ejecutables, derivadas de los NÚMEROS de este análisis (nada genérico). Ordénalas de mayor a menor impacto. Formato por acción (una por línea):
+## 🎯 CIERRE OBLIGATORIO — Plan de acción (la sección MÁS importante del informe)
+Esta es la sección central del informe: TODA recomendación del análisis se consolida AQUÍ, sin haberse repetido antes. Titúlala exactamente "## 🎯 Acciones priorizadas". Lista NUMERADA de **entre 7 y 10** acciones, derivadas de los NÚMEROS de este análisis (nada genérico), ordenadas de MAYOR a MENOR impacto.
 
-**N. [Acción concreta]** — _Por qué:_ (el dato/número que la justifica) · _Impacto:_ (alto/medio/bajo) · _Esfuerzo:_ (alto/medio/bajo)
+Cada acción va DESARROLLADA A FONDO (un bloque, no una línea), con este formato exacto:
+
+**N. [Acción concreta — verbo + objeto específico]**
+- _Por qué:_ el dato/número del payload que la justifica (mínimo 2 cifras concretas).
+- _Qué hacer exactamente:_ los pasos concretos para ejecutarla (específicos, no "mejorar el contenido").
+- _Impacto estimado:_ fórmula explícita con números del payload mostrando los supuestos (ahorro / leads / ingresos / % que se mueve).
+- _Esfuerzo:_ horas o días, honesto.
+- _Cuándo y quién:_ día específico + rol que la ejecuta.
+- _Métrica de éxito:_ qué número se moverá, con umbral y plazo.
+- _Riesgo y mitigación:_ qué puede salir mal y cómo cubrirlo.
 
 Reglas estrictas:
-- Entre 7 y 10 acciones, ni más ni menos.
-- Cada acción debe poder ejecutarse esta semana (específica, no "mejorar el contenido").
+- Entre 7 y 10 acciones, ni más ni menos. Numéralas 1, 2, 3… UNA sola vez (no dupliques el número, no escribas "1. 1.").
+- NO repitas recomendaciones que ya hubieras dado arriba: TODA recomendación vive SOLO aquí.
+- Cada acción debe poder ejecutarse o arrancar esta semana.
 - Si una métrica clave falta o viene en cero, una de las acciones debe ser arreglar esa medición.
 - No propongas acciones que ya estén implementadas según el contexto operativo.`
 
@@ -1011,31 +986,6 @@ Productos con slope < -10% y revenue total relevante (no SKUs marginales). Míni
 ### Productos con potencial subexplotado
 Productos con revenue chico pero slope positivo (>10%) y ad_count consistente (no solo 1 venta). Estos son los próximos hits si se les empuja: bundles, vitrina, recomendación post-servicio.
 
-## ⚡ Movida de la Semana
-UNA SOLA recomendación, la de mayor impacto × menor esfuerzo. Formato completo:
-- **Acción:** [verbo + objeto específico]
-- **Por qué:** [cita explícita de datos del payload, mínimo 2 cifras]
-- **Es nueva o refina existente?** [si refina, citar nombre EXACTO del trigger/pack del contexto operativo y qué se cambia respecto a la versión actual]
-- **Impacto estimado:** [fórmula explícita con números del payload, mostrando todos los supuestos]
-- **Esfuerzo:** [horas o días, lo más honesto posible]
-- **Cuándo se ejecuta:** [día específico]
-- **Quién la ejecuta:** [equipo/rol]
-- **Métrica de éxito:** [qué número se moverá, umbral, plazo de medición]
-- **Riesgos:** [qué puede salir mal y cómo mitigarlo]
-
-## 🎯 3 Apuestas del Mes
-Tres recomendaciones más, ordenadas DESC por (impacto estimado / esfuerzo en días). Numerar 1, 2, 3. **CADA UNA con el formato completo de Movida de la Semana** (no condensado — el mismo nivel de detalle).
-
-## ⏸️ Qué Pausar o Refinar
-2-3 procesos que el contexto operativo dice que están corriendo pero los datos sugieren que no mueven la aguja. Cada item desarrollado (mínimo 5 líneas):
-- **Proceso actual:** [nombre exacto del trigger/pack del contexto operativo]
-- **Hipótesis de bajo rendimiento:** [datos del payload que lo respaldan, mínimo 2]
-- **Evidencia indirecta:** [si no hay dato directo, qué proxy podría confirmar]
-- **Decisión propuesta:** [pausar / refinar copy / refinar segmento / cambiar timing / cambiar incentivo]
-- **Cómo medir si la decisión fue correcta**
-
-Si NO encuentras nada que pausar honestamente: "no detecté nada que claramente convenga pausar — recomiendo agregar instrumentación para medir efectividad de las automatizaciones existentes antes de tocar".
-
 ## 📊 Estado por Dimensión
 Una sección por dimensión (no una línea — un párrafo de 3-5 frases por dimensión, con bullets de sub-datos cuando aplique). Las 6 dimensiones obligatorias:
 
@@ -1057,22 +1007,12 @@ Mix de métodos de pago. Discontinuidades (método que pasó de 0 a $X — revis
 ### 🟢/🟡/🔴 Estacionalidad
 Mes en curso vs mismo mes año anterior (monthly_trends.data). Si está bajo, ¿es estructural o es un mes raro? Si está sobre, ¿qué impulsó el cambio?
 
-## ⚠️ Riesgos y Escenarios
-Sección nueva. Identificar 2-3 riesgos para las próximas 4-8 semanas y describir cómo se prepararía el negocio si se materializa. Cada riesgo:
-- **Riesgo:** [descripción concreta, ej: "Si Solo Tinas sigue cayendo en share como en los últimos 4 meses, perderemos $X en revenue en T2"]
-- **Probabilidad estimada:** [baja/media/alta basada en señales actuales]
-- **Plan de contingencia:** [acción concreta para mitigarlo]
-- **Indicador temprano:** [qué métrica vigilar semana a semana para detectar antes]
-
 ## 💡 Bonus
-Uno o dos insights no obvios. Algo que solo aparece al cruzar 3+ datasets. Desarrollado (2-3 párrafos), no una frase suelta.
-
-# CIERRE
-Sin párrafo de despedida, sin "espero que sea útil", sin meta-comentarios. Termina en el Bonus.
+UN insight no obvio (máximo 2). Algo que solo aparece al cruzar 3+ datasets. Conciso: 1-2 párrafos. Es un INSIGHT, no una recomendación — las recomendaciones van TODAS en el Plan de acción final.
 
 # IMPORTANTE
-- Densidad analítica > brevedad. Si los datos lo justifican, escribe largo. No hay penalización por extensión.
-- Cada afirmación con datos. Cada número con su contexto histórico.
+- Las secciones de arriba (Veredicto, 3 Cifras, análisis por área, Estado por Dimensión, Bonus) son la EVIDENCIA: describen con números QUÉ está pasando. NO metas en ellas "movidas", "apuestas", "qué pausar" ni "riesgos" sueltos — TODA recomendación se consolida, sin repetirse, en la sección final "Acciones priorizadas".
+- Densidad analítica > brevedad en la evidencia. Cada afirmación con datos, cada número con su contexto histórico.
 - El reporte debe ser legible de corrido, no como una lista de bullets sueltos.`
 
 	dataJSON, err := json.MarshalIndent(salesData, "", "  ")
