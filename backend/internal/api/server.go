@@ -94,6 +94,9 @@ func (s *Server) setupRoutes() {
 		// Meta Ads AI Analysis
 		r.Post("/analytics/meta-ads/analyze", handlers.AnalyzeMetaAds(s.config))
 
+		// Social unificado (Orgánico + Pagado, lectura cruzada) — botón "todo el bloque"
+		r.Post("/analytics/social/analyze", handlers.AnalyzeSocial(s.config))
+
 		// Sales AI Analysis
 		r.Post("/analytics/sales/analyze", handlers.AnalyzeSales(s.config))
 

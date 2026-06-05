@@ -75,6 +75,10 @@ export default function BriefPage() {
   const [generatingMetaAdsAnalysis, setGeneratingMetaAdsAnalysis] = useState(false);
   const [metaAdsAnalysisError, setMetaAdsAnalysisError] = useState<string | null>(null);
   const [instagramAnalysisError, setInstagramAnalysisError] = useState<string | null>(null);
+  // Social unificado (Orgánico + Pagado, lectura cruzada) — botón "todo el bloque"
+  const [socialAnalysisAI, setSocialAnalysisAI] = useState<any>(null);
+  const [generatingSocialAnalysis, setGeneratingSocialAnalysis] = useState(false);
+  const [socialAnalysisError, setSocialAnalysisError] = useState<string | null>(null);
   const [salesAnalysisAI, setSalesAnalysisAI] = useState<any>(null);
   const [generatingSalesAnalysis, setGeneratingSalesAnalysis] = useState(false);
   const [salesAnalysisError, setSalesAnalysisError] = useState<string | null>(null);
@@ -352,11 +356,9 @@ export default function BriefPage() {
           await handleGenerateWebAnalysis();
           break;
         case 'social':
-          // Bloque completo de Social: Instagram orgánico + Meta Ads (en paralelo).
-          await Promise.all([
-            handleGenerateInstagramAnalysis(),
-            handleGenerateMetaAdsAnalysis(),
-          ]);
+          // Bloque completo de Social en UN informe unificado: orgánico (IG+FB) +
+          // pagado (Meta Ads) + lectura cruzada orgánico-vs-pagado.
+          await handleGenerateSocialAnalysis();
           break;
         case 'sales':
           await handleGenerateSalesAnalysis();
@@ -738,6 +740,35 @@ export default function BriefPage() {
       setInstagramAnalysisError(msg);
     } finally {
       setGeneratingInstagramAnalysis(false);
+    }
+  };
+
+  // Análisis unificado de TODO el bloque Social: orgánico (IG+FB) + pagado (Meta Ads),
+  // con lectura cruzada orgánico-vs-pagado. Es lo que dispara el botón "Generar con IA"
+  // de arriba cuando la pestaña activa es Social.
+  const handleGenerateSocialAnalysis = async () => {
+    setGeneratingSocialAnalysis(true);
+    setSocialAnalysisError(null);
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+      const response = await fetch(`${apiUrl}/api/v1/analytics/social/analyze`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      const data = await response.json();
+      if (data.success && data.analysis) {
+        setSocialAnalysisAI(data.analysis);
+      } else {
+        const msg = data.error || `HTTP ${response.status}`;
+        console.error('Error generating Social analysis:', msg);
+        setSocialAnalysisError(msg);
+      }
+    } catch (error: any) {
+      const msg = error?.message || 'Error de red al generar el análisis';
+      console.error('Error generating Social analysis:', error);
+      setSocialAnalysisError(msg);
+    } finally {
+      setGeneratingSocialAnalysis(false);
     }
   };
 
@@ -1845,6 +1876,83 @@ export default function BriefPage() {
 
         {/* REDES SOCIALES */}
         <TabsContent value="social" className="space-y-4" data-tab-export="social">
+          {/* 🧠 ANÁLISIS UNIFICADO — orgánico + pagado + lectura cruzada (botón de arriba) */}
+          <Card className="border-violet-200 bg-gradient-to-br from-violet-50 to-indigo-50">
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center">
+                <Sparkles className="h-5 w-5 mr-2 text-violet-600" />
+                Análisis de Social con IA — Orgánico + Pagado
+              </CardTitle>
+              <CardDescription>
+                Un solo informe de todo el bloque: Instagram + Facebook orgánico y Meta Ads pagado, con lectura cruzada (¿rinde más lo orgánico gratis o lo pagado?). Es lo que genera el botón &quot;Generar con IA&quot; de arriba.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button
+                onClick={handleGenerateSocialAnalysis}
+                disabled={generatingSocialAnalysis}
+                className="w-full bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700"
+              >
+                {generatingSocialAnalysis ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Generando análisis…
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="mr-2 h-4 w-4" />
+                    Generar Análisis IA
+                  </>
+                )}
+              </Button>
+              {socialAnalysisError && (
+                <div className="mt-3 p-3 rounded-md bg-red-50 border border-red-200 text-sm text-red-700 flex items-start gap-2">
+                  <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
+                  <div>
+                    <p className="font-medium">No se pudo generar el análisis</p>
+                    <p className="text-xs mt-1">{socialAnalysisError}</p>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Resultado del análisis unificado de Social */}
+          {socialAnalysisAI && (
+            <Card className="bg-gradient-to-br from-violet-50 to-indigo-50 border-violet-200">
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center">
+                  <Sparkles className="h-5 w-5 mr-2 text-violet-600" />
+                  Resultados del Análisis IA
+                </CardTitle>
+                <CardDescription>
+                  Análisis generado por {socialAnalysisAI.model || 'IA'}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="prose prose-sm max-w-none">
+                  <div className="whitespace-pre-wrap" dangerouslySetInnerHTML={{
+                    __html: socialAnalysisAI.content
+                      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                      .replace(/^## (.*$)/gim, '<h2 class="text-xl font-bold mt-6 mb-3">$1</h2>')
+                      .replace(/^### (.*$)/gim, '<h3 class="text-lg font-semibold mt-4 mb-2">$1</h3>')
+                      .replace(/^• (.*$)/gim, '<li class="ml-4">$1</li>')
+                      .replace(/\n\n/g, '</p><p class="mt-2">')
+                  }} />
+                </div>
+                {socialAnalysisAI.input_tokens && (
+                  <div className="mt-4 pt-4 border-t text-xs text-muted-foreground">
+                    <p>
+                      Tokens: {socialAnalysisAI.input_tokens.toLocaleString()} entrada,{' '}
+                      {socialAnalysisAI.output_tokens.toLocaleString()} salida
+                      {socialAnalysisAI.latency_ms && ` • ${(socialAnalysisAI.latency_ms / 1000).toFixed(1)}s`}
+                    </p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
           {/* 🟢 ORGÁNICO — sin inversión (Instagram + Facebook) */}
           <div className="flex items-center gap-2 pt-1">
             <span className="h-2.5 w-2.5 rounded-full bg-green-500" />

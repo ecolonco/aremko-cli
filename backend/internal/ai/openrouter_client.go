@@ -855,6 +855,81 @@ Genera un análisis EJECUTIVO PROFUNDO siguiendo EXACTAMENTE la estructura del s
 	return c.Generate(ctx, c.wrapAnalysisPrompt(systemPrompt), userPrompt, "google/gemini-2.5-pro", 0.5, 12000)
 }
 
+// GenerateSocialAnalysis genera UN informe unificado de TODO el bloque Social:
+// orgánico (Instagram @aremkospa + Página de Facebook) y pagado (Meta Ads, incl.
+// Refugio, y Google Ads Refugio si existe). Analiza cada parte y, sobre todo, las
+// CRUZA. El payload trae "organic" {instagram, facebook} y "paid" {meta_ads, google_ads}.
+func (c *OpenRouterClient) GenerateSocialAnalysis(ctx context.Context, socialData map[string]interface{}) (*LLMResult, error) {
+	roleIntro := `Eres el analista ejecutivo de Aremko Spa Boutique (Puerto Varas, Chile) a cargo de TODO el canal social: lo ORGÁNICO (Instagram @aremkospa + Página de Facebook) y lo PAGADO (Meta Ads en Facebook/Instagram, incluida la campaña Refugio, y Google Ads Refugio si está presente). Tu trabajo es producir UN solo informe que (1) analice el orgánico, (2) analice el pagado, y sobre todo (3) los CRUCE: qué rinde mejor por peso invertido, qué temas/ganchos ganadores del orgánico conviene amplificar con pago, y cuáles ya cubre el orgánico gratis. El payload trae "organic" {instagram, facebook} y "paid" {meta_ads, google_ads}. Si alguna parte viene null/vacía, decláralo como brecha de medición pero analiza el resto a fondo.`
+
+	domainStructure := `## 🟢 ORGÁNICO (Instagram + Facebook)
+
+Para CADA canal presente en organic.instagram y organic.facebook:
+- **Tamaño y alcance:** seguidores/fans, alcance promedio por post, % de la audiencia alcanzada.
+- **Interacción:** reacciones/me gusta, comentarios, guardados/compartidos, ER (engagement rate / tasa de interacción) vs referencia spa/bienestar (3-5%).
+- **Mejores publicaciones:** las 2-3 top del canal con su tema (pie de foto corto) + métricas + lección replicable.
+- **Lectura ejecutiva del canal:** ¿vale la pena empujar este canal? ¿está vivo o dormido?
+
+### 🔀 Orgánico: Instagram vs Facebook
+- ¿Qué canal rinde mejor (alcance, ER, intención) y por qué?
+- ¿Los mismos temas/formatos funcionan igual o cada audiencia es distinta?
+- Reparto sugerido de esfuerzo (ej. 80% IG / 20% FB) con justificación numérica.
+- Si Facebook viene sin alcance/impresiones, señalar como instrumentación faltante.
+
+## 🔵 PAGADO (Meta Ads)
+
+### Campaña Refugio — SOLO si paid.meta_ads.refugio existe
+- **Métrica primaria = Leads y CPL** (NO clics). Si leads=0 y el soft launch lleva <4 días, ES ESPERADO. CPL verde <$10K CLP, rojo >$15K.
+- **Por adset** (paid.meta_ads.refugio.adsets): CTR, CPC, frequency (>2 satura), CPL. Decisión por adset: escalar/mantener/replantear.
+- **Variantes de copy** (paid.meta_ads.refugio.variants): ranking por leads; CTR solo desempata cuando no hay leads.
+- **Plataforma/placement** (platforms/positions) si existen: dónde se concentra el gasto vs dónde llegan los leads; proponer excluir lo ineficiente.
+- **Cross-channel Meta vs Google** — SOLO si paid.google_ads.refugio existe: inversión y leads por canal, CPL decisor, recomendación de rebalanceo. Meta = push, Google Search = pull.
+
+### Campañas históricas (Engagement/Messages)
+EXCLUIR Refugio aquí. Para las 3 con mayor inversión (paid.meta_ads.campaigns):
+- Inversión, impresiones, clics, alcance; CTR/CPC/CPM vs referencia spa/turismo (CTR 1-2%, CPC $300-800, CPM $5K-15K CLP).
+- Ganadoras vs perdedoras: qué funciona, dónde se desperdicia gasto.
+- Fatiga: campañas >14 días con CTR cayendo.
+
+## 🔀 LECTURA CRUZADA — Orgánico vs Pagado (sección central)
+Esta es la razón de tener un informe unificado. Cruza EXPLÍCITAMENTE:
+- **Resultado por peso invertido:** el orgánico es "gratis" (costo = tiempo/producción), el pagado tiene costo directo. Compara el alcance/interacción que logra el orgánico vs el alcance/leads que compra el pagado. ¿El pagado supera lo que el orgánico ya consigue solo, o se solapan?
+- **Temas y ganchos:** ¿los formatos que explotan en orgánico (concursos, packs, estacional) se están usando en pago? ¿Y al revés, lo que se paga resuena orgánicamente? Nombrar publicaciones/campañas concretas del payload.
+- **Amplificación:** ¿qué post orgánico ganador (alto en guardados/compartidos) conviene promocionar con presupuesto? ¿Qué se puede dejar de pagar porque el orgánico ya lo cubre?
+- **Mezcla sugerida:** un reparto orgánico/pagado para las próximas semanas con justificación numérica.
+
+## 📊 Estado por Dimensión (Social completo)
+
+### 🟢/🟡/🔴 Alcance total (orgánico + pagado)
+Suma y compara el alcance que aporta cada vía. ¿De dónde viene la visibilidad de Aremko?
+
+### 🟢/🟡/🔴 Eficiencia
+ER del orgánico vs CTR/CPC/CPL del pagado. ¿Dónde está el peso bien gastado?
+
+### 🟢/🟡/🔴 Intención y conversión
+Guardados/compartidos (orgánico) y Leads (pagado) como señales de intención. ¿Cuál convierte mejor?
+
+### 🟢/🟡/🔴 Cobertura de medición
+Brechas: Facebook sin alcance, ROAS sin cruzar con ventas, atribución WhatsApp pendiente.
+
+`
+
+	systemPrompt := roleIntro + "\n\n" + executiveAnalystCore + "\n\n" + executiveOutputStructureBase + "\n" + domainStructure + "\n" + executiveOutputStructureTail
+
+	dataJSON, err := json.MarshalIndent(socialData, "", "  ")
+	if err != nil {
+		return &LLMResult{Error: fmt.Sprintf("error marshaling data: %v", err)}, err
+	}
+
+	userPrompt := fmt.Sprintf(`Analiza TODO el canal social de Aremko Spa Boutique (Puerto Varas, Chile). El payload trae "organic" (instagram @aremkospa + facebook Página) y "paid" (meta_ads, y google_ads para Refugio si existe):
+
+%s
+
+Genera UN informe EJECUTIVO PROFUNDO y UNIFICADO siguiendo EXACTAMENTE la estructura del system prompt: primero orgánico, luego pagado, y la LECTURA CRUZADA orgánico-vs-pagado como sección central. Sin restricción de extensión. Cada afirmación anclada a números concretos del payload. Si una parte (ej. facebook o google_ads) viene null/vacía, decláralo como brecha pero analiza el resto a fondo.`, string(dataJSON))
+
+	return c.Generate(ctx, c.wrapAnalysisPrompt(systemPrompt), userPrompt, "google/gemini-2.5-pro", 0.5, 14000)
+}
+
 // GenerateSalesAnalysis genera un análisis completo de las ventas y reservas del sistema
 func (c *OpenRouterClient) GenerateSalesAnalysis(ctx context.Context, salesData map[string]interface{}) (*LLMResult, error) {
 	systemPrompt := `Eres el analista ejecutivo de Aremko Spa Boutique (Puerto Varas, Chile). Tu audiencia es el DUEÑO del negocio, que toma decisiones de presupuesto, contratación y campañas. NO es un resumen rápido — es el documento de análisis profundo que él lee con un café el lunes a la mañana para entender qué está pasando y decidir el rumbo de las próximas semanas. Cuanto más densidad analítica y más cruces de datos, mejor.

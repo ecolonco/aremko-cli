@@ -1325,6 +1325,109 @@ func AnalyzeMetaAds(cfg *config.Config) http.HandlerFunc {
 	}
 }
 
+// AnalyzeSocial genera UN informe unificado de TODO el bloque Social: orgánico
+// (Instagram + Facebook) + pagado (Meta Ads + Google Ads Refugio), con lectura
+// cruzada orgánico-vs-pagado. Reemplaza el doble análisis (orgánico y Meta por
+// separado) cuando el usuario pide "todo el bloque" desde el botón de arriba.
+func AnalyzeSocial(cfg *config.Config) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if !cfg.EnableAI || cfg.OpenRouterAPIKey == "" {
+			respondJSON(w, http.StatusServiceUnavailable, map[string]interface{}{
+				"success": false,
+				"error":   "AI analysis is not enabled",
+			})
+			return
+		}
+		if !cfg.EnableMetaAds || cfg.MetaAccessToken == "" {
+			respondJSON(w, http.StatusServiceUnavailable, map[string]interface{}{
+				"success": false,
+				"error":   "Social integration is not enabled",
+			})
+			return
+		}
+
+		ctx := context.Background()
+
+		// --- ORGÁNICO: Instagram + Facebook ---
+		var instagramData map[string]interface{}
+		igClient := social.NewInstagramClient(cfg.MetaAccessToken)
+		if accountInfo, err := igClient.GetAccountInfo(ctx); err == nil {
+			accountID := accountInfo["account_id"].(string)
+			weeklyInsights, _ := igClient.GetWeeklyInsights(ctx, accountID)
+			topPosts, _ := igClient.GetTopPosts(ctx, accountID, 10)
+			instagramData = map[string]interface{}{
+				"account_info":    accountInfo,
+				"weekly_insights": weeklyInsights,
+				"top_posts":       topPosts,
+			}
+		}
+
+		var facebookData map[string]interface{}
+		fbClient := social.NewFacebookClient(cfg.MetaAccessToken)
+		if fbInsights, fbErr := fbClient.GetPageInsights(ctx, 10); fbErr == nil {
+			facebookData = map[string]interface{}{
+				"page_info": map[string]interface{}{
+					"name":            fbInsights.Name,
+					"fan_count":       fbInsights.FanCount,
+					"followers_count": fbInsights.FollowersCount,
+				},
+				"top_posts": fbInsights.TopPosts,
+			}
+		}
+
+		// --- PAGADO: Meta Ads (+ Google Ads Refugio si está configurado) ---
+		dateStop := time.Now().AddDate(0, 0, -1).Format("2006-01-02")
+		dateStart := time.Now().AddDate(0, 0, -8).Format("2006-01-02")
+
+		paidData := map[string]interface{}{}
+		if metaData, err := getMetaAdsData(cfg, dateStart, dateStop); err == nil {
+			paidData["meta_ads"] = metaData
+		}
+		if cfg.EnableGoogleAds {
+			if gaData, err := getGoogleAdsData(cfg, dateStart, dateStop); err == nil {
+				paidData["google_ads"] = gaData
+			}
+		}
+
+		socialData := map[string]interface{}{
+			"organic": map[string]interface{}{
+				"instagram": instagramData,
+				"facebook":  facebookData,
+			},
+			"paid": paidData,
+		}
+
+		aiClient := newAIClientWithOperatingContext(cfg)
+		fmt.Println("[AI] Generando análisis unificado de Social (Orgánico + Pagado)...")
+		analysis, err := aiClient.GenerateSocialAnalysis(ctx, socialData)
+		if err != nil {
+			respondJSON(w, http.StatusInternalServerError, map[string]interface{}{
+				"success": false,
+				"error":   fmt.Sprintf("Failed to generate analysis: %v", err),
+			})
+			return
+		}
+		if analysis.Error != "" {
+			respondJSON(w, http.StatusInternalServerError, map[string]interface{}{
+				"success": false,
+				"error":   analysis.Error,
+			})
+			return
+		}
+
+		respondJSON(w, http.StatusOK, map[string]interface{}{
+			"success": true,
+			"analysis": map[string]interface{}{
+				"content":       analysis.Text,
+				"model":         analysis.Model,
+				"input_tokens":  analysis.InputTokens,
+				"output_tokens": analysis.OutputTokens,
+				"latency_ms":    analysis.LatencyMs,
+			},
+		})
+	}
+}
+
 // AnalyzeSales genera un análisis completo con IA de los datos de ventas y reservas
 func AnalyzeSales(cfg *config.Config) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
