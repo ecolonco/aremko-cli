@@ -289,6 +289,30 @@ IMPORTANTE — usar el contexto operativo al recomendar:
 - Tus mejores recomendaciones son las que combinan los datos del payload con lo que ya hay en el contexto operativo para proponer algo concreto y no obvio.`, base, c.OperatingContext)
 }
 
+// actionsClosingInstruction obliga a que cada análisis ejecutivo cierre en una
+// lista FINITA (7-10) de acciones concretas y priorizadas (Etapa 1 de informes).
+const actionsClosingInstruction = `
+
+---
+
+## 🎯 CIERRE OBLIGATORIO — Plan de acción
+Termina SIEMPRE con una sección final titulada exactamente "## 🎯 Acciones priorizadas", con una lista NUMERADA de **entre 7 y 10** acciones concretas y ejecutables, derivadas de los NÚMEROS de este análisis (nada genérico). Ordénalas de mayor a menor impacto. Formato por acción (una por línea):
+
+**N. [Acción concreta]** — _Por qué:_ (el dato/número que la justifica) · _Impacto:_ (alto/medio/bajo) · _Esfuerzo:_ (alto/medio/bajo)
+
+Reglas estrictas:
+- Entre 7 y 10 acciones, ni más ni menos.
+- Cada acción debe poder ejecutarse esta semana (específica, no "mejorar el contenido").
+- Si una métrica clave falta o viene en cero, una de las acciones debe ser arreglar esa medición.
+- No propongas acciones que ya estén implementadas según el contexto operativo.`
+
+// wrapAnalysisPrompt es como wrapSystemPrompt pero además obliga a cerrar el
+// análisis con la lista finita de acciones priorizadas. Se usa solo en los
+// análisis ejecutivos (no en NL query / brief legacy / calendario de contenido).
+func (c *OpenRouterClient) wrapAnalysisPrompt(base string) string {
+	return c.wrapSystemPrompt(base) + actionsClosingInstruction
+}
+
 // LLMResult encapsula la respuesta del modelo
 type LLMResult struct {
 	Text         string `json:"text"`
@@ -585,7 +609,7 @@ Recomendación accionable: listar los eventos que el negocio "debería" estar mi
 
 Genera un análisis EJECUTIVO PROFUNDO siguiendo EXACTAMENTE la estructura del system prompt. Sin restricción de extensión: si los datos justifican 4-6 páginas, escríbelo. Prioriza cruzar múltiples datasets en cada sección sobre brevedad. Cada afirmación debe anclarse a números concretos del payload.`, string(dataJSON))
 
-	return c.Generate(ctx, c.wrapSystemPrompt(systemPrompt), userPrompt, "google/gemini-2.5-pro", 0.5, 12000)
+	return c.Generate(ctx, c.wrapAnalysisPrompt(systemPrompt), userPrompt, "google/gemini-2.5-pro", 0.5, 12000)
 }
 
 // GenerateInstagramAnalysis genera un análisis completo con IA de los datos de Instagram Orgánico
@@ -642,7 +666,7 @@ Crecimiento o decadencia. ¿Hay un pico o valle reciente? ¿Qué lo explica (pie
 
 Genera un análisis EJECUTIVO PROFUNDO siguiendo EXACTAMENTE la estructura del system prompt. Sin restricción de extensión: si los datos justifican 4-6 páginas, escríbelo. Prioriza cruzar múltiples datasets en cada sección sobre brevedad. Cada afirmación debe anclarse a números concretos del payload.`, string(dataJSON))
 
-	return c.Generate(ctx, c.wrapSystemPrompt(systemPrompt), userPrompt, "google/gemini-2.5-pro", 0.5, 12000)
+	return c.Generate(ctx, c.wrapAnalysisPrompt(systemPrompt), userPrompt, "google/gemini-2.5-pro", 0.5, 12000)
 }
 
 // GenerateMetaAdsAnalysis genera un análisis completo de los datos de Meta Ads (Facebook/Instagram)
@@ -775,7 +799,7 @@ Si los datos de reservas/ventas cruzados están disponibles, estimar ingresos at
 
 Genera un análisis EJECUTIVO PROFUNDO siguiendo EXACTAMENTE la estructura del system prompt. Sin restricción de extensión: si los datos justifican 4-6 páginas, escríbelo. Prioriza cruzar múltiples datasets en cada sección sobre brevedad. Cada afirmación debe anclarse a números concretos del payload.`, string(dataJSON))
 
-	return c.Generate(ctx, c.wrapSystemPrompt(systemPrompt), userPrompt, "google/gemini-2.5-pro", 0.5, 12000)
+	return c.Generate(ctx, c.wrapAnalysisPrompt(systemPrompt), userPrompt, "google/gemini-2.5-pro", 0.5, 12000)
 }
 
 // GenerateSalesAnalysis genera un análisis completo de las ventas y reservas del sistema
@@ -934,7 +958,7 @@ Sin párrafo de despedida, sin "espero que sea útil", sin meta-comentarios. Ter
 
 Genera un análisis EJECUTIVO PROFUNDO siguiendo EXACTAMENTE la estructura especificada en el system prompt. Sin restricción de extensión: si los datos justifican un análisis de 4-6 páginas, escríbelo así. Prioriza cruzar múltiples datasets en cada sección sobre brevedad. Recuerda anclar cada afirmación a números concretos del payload.`, string(dataJSON))
 
-	return c.Generate(ctx, c.wrapSystemPrompt(systemPrompt), userPrompt, "google/gemini-2.5-pro", 0.5, 12000)
+	return c.Generate(ctx, c.wrapAnalysisPrompt(systemPrompt), userPrompt, "google/gemini-2.5-pro", 0.5, 12000)
 }
 
 // GenerateReviewsAnalysis genera un análisis completo de reputación online y encuestas
@@ -1002,7 +1026,7 @@ Cuántos detractores. ¿Hay un patrón (mismo servicio, mismo masajista, misma c
 
 Genera un análisis EJECUTIVO PROFUNDO siguiendo EXACTAMENTE la estructura del system prompt. Sin restricción de extensión: si los datos justifican 4-6 páginas, escríbelo. Prioriza cruzar múltiples datasets en cada sección sobre brevedad. Cada afirmación debe anclarse a números concretos del payload.`, string(dataJSON))
 
-	return c.Generate(ctx, c.wrapSystemPrompt(systemPrompt), userPrompt, "google/gemini-2.5-pro", 0.5, 12000)
+	return c.Generate(ctx, c.wrapAnalysisPrompt(systemPrompt), userPrompt, "google/gemini-2.5-pro", 0.5, 12000)
 }
 
 // GenerateOverviewAnalysis genera un análisis integral cruzando todas las secciones
@@ -1103,7 +1127,7 @@ por reserva (bundling), opiniones con NPS y 12 dimensiones de calidad, y compete
 
 Genera el análisis EJECUTIVO PROFUNDO siguiendo EXACTAMENTE la estructura del system prompt. La sección "Hallazgos Cruzados" es la más importante del reporte — es lo que el dueño no puede ver leyendo cada pestaña por separado. Cada hallazgo cruzado debe involucrar 2+ áreas distintas (no solo datasets de una misma área).`, string(dataJSON))
 
-	return c.Generate(ctx, c.wrapSystemPrompt(systemPrompt), userPrompt, "google/gemini-2.5-pro", 0.5, 12000)
+	return c.Generate(ctx, c.wrapAnalysisPrompt(systemPrompt), userPrompt, "google/gemini-2.5-pro", 0.5, 12000)
 }
 
 // GenerateProfilesAnalysis genera un análisis IA profundo sobre la taxonomía
@@ -1161,7 +1185,7 @@ Comentar sobre n_pre_sistema vs n_sistema_actual. ¿Cuántos clientes del CSV hi
 
 Genera el análisis EJECUTIVO PROFUNDO siguiendo EXACTAMENTE la estructura del system prompt. La sección "Análisis Profundo por Cohorte" es la más valiosa — debe entregar estrategia accionable POR cohorte, no generalidades. La sección "Cohortes en riesgo crítico" debe identificar específicamente los Campeones/Leales que están a un paso de fuga (En Riesgo) y proponer su retención. Cita números concretos del payload en cada afirmación.`, string(dataJSON))
 
-	return c.Generate(ctx, c.wrapSystemPrompt(systemPrompt), userPrompt, "google/gemini-2.5-pro", 0.5, 12000)
+	return c.Generate(ctx, c.wrapAnalysisPrompt(systemPrompt), userPrompt, "google/gemini-2.5-pro", 0.5, 12000)
 }
 
 // VentasDetalleQuery is the structured shape the LLM must return when parsing
