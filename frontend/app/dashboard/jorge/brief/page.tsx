@@ -2140,51 +2140,46 @@ export default function BriefPage() {
                         <CardDescription>Publicaciones con mejor interacción</CardDescription>
                       </CardHeader>
                       <CardContent>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                          {data.instagram_organic.top_posts.slice(0, 9).map((post: any) => (
-                            <Card key={post.id} className="overflow-hidden">
-                              {post.media_url && (
-                                <div className="aspect-square relative bg-gray-100">
-                                  <img
-                                    src={post.media_url}
-                                    alt={post.caption?.substring(0, 50) || 'Instagram post'}
-                                    className="object-cover w-full h-full"
-                                  />
-                                </div>
-                              )}
-                              <CardContent className="p-4">
-                                {post.caption && (
-                                  <p className="text-xs text-muted-foreground mb-3 line-clamp-2">
-                                    {post.caption}
-                                  </p>
-                                )}
-                                <div className="grid grid-cols-3 gap-2 text-xs">
-                                  <div className="text-center">
-                                    <div className="font-semibold">{post.like_count?.toLocaleString() || '0'}</div>
-                                    <div className="text-muted-foreground">Me gusta</div>
-                                  </div>
-                                  <div className="text-center">
-                                    <div className="font-semibold">
-                                      {post.comments_count?.toLocaleString() || '0'}
-                                    </div>
-                                    <div className="text-muted-foreground">Comentarios</div>
-                                  </div>
-                                  <div className="text-center">
-                                    <div className="font-semibold">{post.saved_count?.toLocaleString() || '0'}</div>
-                                    <div className="text-muted-foreground">Guardado</div>
-                                  </div>
-                                </div>
-                                {post.engagement_rate !== undefined && (
-                                  <div className="mt-3 pt-3 border-t text-center">
-                                    <div className="text-sm font-semibold text-pink-600">
-                                      {post.engagement_rate.toFixed(2)}%
-                                    </div>
-                                    <div className="text-xs text-muted-foreground">Interacción</div>
-                                  </div>
-                                )}
-                              </CardContent>
-                            </Card>
-                          ))}
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-sm">
+                            <thead>
+                              <tr className="border-b text-left text-muted-foreground">
+                                <th className="py-2 px-2 font-medium">Publicación</th>
+                                <th className="py-2 px-2 font-medium text-right">Alcance</th>
+                                <th className="py-2 px-2 font-medium text-right">Me gusta</th>
+                                <th className="py-2 px-2 font-medium text-right">Coment.</th>
+                                <th className="py-2 px-2 font-medium text-right">Guardados</th>
+                                <th className="py-2 px-2 font-medium text-right">Interacción</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {[...data.instagram_organic.top_posts]
+                                .sort((a: any, b: any) => (b.engagement_rate || 0) - (a.engagement_rate || 0))
+                                .slice(0, 10)
+                                .map((post: any) => (
+                                  <tr key={post.id} className="border-b last:border-0 hover:bg-gray-50">
+                                    <td className="py-2 px-2 max-w-[320px]">
+                                      <a
+                                        href={post.permalink}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="line-clamp-1 text-gray-700 hover:text-pink-600 hover:underline"
+                                        title={post.caption}
+                                      >
+                                        {post.caption?.replace(/\s+/g, ' ').trim().substring(0, 80) || 'Publicación'}
+                                      </a>
+                                    </td>
+                                    <td className="py-2 px-2 text-right">{post.reach?.toLocaleString() || '0'}</td>
+                                    <td className="py-2 px-2 text-right">{post.like_count?.toLocaleString() || '0'}</td>
+                                    <td className="py-2 px-2 text-right">{post.comments_count?.toLocaleString() || '0'}</td>
+                                    <td className="py-2 px-2 text-right">{post.saves_count?.toLocaleString() || '0'}</td>
+                                    <td className="py-2 px-2 text-right font-semibold text-pink-600">
+                                      {post.engagement_rate !== undefined ? `${post.engagement_rate.toFixed(2)}%` : '—'}
+                                    </td>
+                                  </tr>
+                                ))}
+                            </tbody>
+                          </table>
                         </div>
                       </CardContent>
                     </Card>
