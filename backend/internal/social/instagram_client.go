@@ -336,6 +336,9 @@ func (c *InstagramClient) GetTopPosts(ctx context.Context, accountID string, lim
 					if post.Reach > 0 {
 						post.EngagementRate = float64(engagement+post.SavesCount) / float64(post.Reach) * 100
 					}
+					// Diagnóstico Etapa 2: ver el alcance orgánico real por post.
+					fmt.Printf("[IG] post %s reach=%d likes=%d comments=%d saved=%d er=%.1f%%\n",
+						p.ID, post.Reach, p.LikeCount, p.CommentsCount, post.SavesCount, post.EngagementRate)
 				}
 			}
 		}
