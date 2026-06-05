@@ -621,6 +621,87 @@ func (c *GA4Client) GetConversionsBySource(ctx context.Context, startDate, endDa
 	return out, nil
 }
 
+// EventSourceCount es el conteo de un evento (cualquiera, no solo key events)
+// desglosado por fuente/medio.
+type EventSourceCount struct {
+	Source     string `json:"source"`
+	Medium     string `json:"medium"`
+	EventCount int64  `json:"event_count"`
+	Users      int64  `json:"users"`
+}
+
+// EventCountResult agrega un evento por nombre: total + desglose por fuente.
+type EventCountResult struct {
+	EventName  string             `json:"event_name"`
+	Total      int64              `json:"total"`
+	TotalUsers int64              `json:"total_users"`
+	BySource   []EventSourceCount `json:"by_source"`
+}
+
+// GetEventCountBySource cuenta un evento por nombre (eventCount, NO conversions)
+// desglosado por source/medium. A diferencia de GetConversionsByEvent, captura
+// eventos que NO están marcados como key event en GA4 — ideal para medir
+// "intención" como refugio_whatsapp_click (clic al botón WhatsApp de la landing).
+func (c *GA4Client) GetEventCountBySource(ctx context.Context, eventName, startDate, endDate string) (*EventCountResult, error) {
+	if startDate == "" {
+		startDate = time.Now().AddDate(0, 0, -30).Format("2006-01-02")
+	}
+	if endDate == "" {
+		endDate = time.Now().Format("2006-01-02")
+	}
+
+	req := &analyticsdata.RunReportRequest{
+		DateRanges: []*analyticsdata.DateRange{
+			{StartDate: startDate, EndDate: endDate},
+		},
+		Dimensions: []*analyticsdata.Dimension{
+			{Name: "sessionSource"},
+			{Name: "sessionMedium"},
+		},
+		Metrics: []*analyticsdata.Metric{
+			{Name: "eventCount"},
+			{Name: "totalUsers"},
+		},
+		DimensionFilter: &analyticsdata.FilterExpression{
+			Filter: &analyticsdata.Filter{
+				FieldName: "eventName",
+				StringFilter: &analyticsdata.StringFilter{
+					MatchType: "EXACT",
+					Value:     eventName,
+				},
+			},
+		},
+		OrderBys: []*analyticsdata.OrderBy{
+			{Metric: &analyticsdata.MetricOrderBy{MetricName: "eventCount"}, Desc: true},
+		},
+		Limit: 50,
+	}
+
+	resp, err := c.service.Properties.RunReport(c.propertyID, req).Context(ctx).Do()
+	if err != nil {
+		return nil, fmt.Errorf("error fetching event count for %s: %w", eventName, err)
+	}
+
+	result := &EventCountResult{EventName: eventName}
+	for _, row := range resp.Rows {
+		if len(row.DimensionValues) < 2 || len(row.MetricValues) < 2 {
+			continue
+		}
+		var count, users int64
+		fmt.Sscanf(row.MetricValues[0].Value, "%d", &count)
+		fmt.Sscanf(row.MetricValues[1].Value, "%d", &users)
+		result.BySource = append(result.BySource, EventSourceCount{
+			Source:     row.DimensionValues[0].Value,
+			Medium:     row.DimensionValues[1].Value,
+			EventCount: count,
+			Users:      users,
+		})
+		result.Total += count
+		result.TotalUsers += users
+	}
+	return result, nil
+}
+
 // GetTrafficSourcesForPage devuelve las fuentes de tráfico (source/medium)
 // que llevaron a una página específica. Útil para saber si /refugio recibe
 // principalmente tráfico orgánico, directo, Meta Ads, etc.

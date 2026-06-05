@@ -133,6 +133,12 @@ export interface RefugioSummary {
   leads_reales_total?: number; // total real del formulario en el período (todos los canales)
   leads_by_canal?: Record<string, number>; // { facebook, instagram, google, "directo/organico" }
   leads_source?: 'bd_formulario' | 'pixel'; // de dónde salió "leads"
+  // Intención WhatsApp (Etapa 4a) — evento GA4 refugio_whatsapp_click (clic al botón wa.me)
+  whatsapp_clicks?: number;             // total de clics al botón WhatsApp de la landing
+  whatsapp_clicks_meta?: number;        // porción atribuible a Meta (facebook/instagram)
+  whatsapp_clicks_by_source?: { source: string; medium: string; event_count: number; users: number }[];
+  cost_per_whatsapp_click?: number;     // gasto Meta / clics WhatsApp
+  whatsapp_to_lead_rate?: number;       // % de clics WhatsApp que dejaron datos en el form (ya en %)
 }
 
 export interface RefugioAdset {

@@ -133,6 +133,46 @@ export default function RefugioCampaignSection({ data }: Props) {
           </p>
         )}
 
+        {/* Embudo de conversión Refugio — Etapa 4a: Inversión → Intención WhatsApp → Leads → Ventas */}
+        <div className="rounded-lg border border-purple-200 bg-white/60 p-4">
+          <p className="text-sm font-semibold text-purple-800 mb-3">🔻 Embudo de conversión Refugio</p>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            <div className="rounded-md border bg-white p-3">
+              <p className="text-xs text-muted-foreground">💰 Inversión</p>
+              <p className="text-lg font-bold">{formatCLP(summary.spend)}</p>
+              <p className="text-xs text-gray-500">{formatNumber(summary.clicks)} clics en anuncios</p>
+            </div>
+            <div className="rounded-md border-2 border-green-300 bg-green-50 p-3">
+              <p className="text-xs text-muted-foreground">📲 Clics WhatsApp</p>
+              <p className="text-lg font-bold text-green-700">
+                {summary.whatsapp_clicks != null ? formatNumber(summary.whatsapp_clicks) : '—'}
+              </p>
+              <p className="text-xs text-gray-500">
+                {summary.whatsapp_clicks != null
+                  ? `${formatCLP(summary.cost_per_whatsapp_click ?? 0)}/clic · ${formatNumber(summary.whatsapp_clicks_meta ?? 0)} de Meta`
+                  : 'evento refugio_whatsapp_click'}
+              </p>
+            </div>
+            <div className="rounded-md border bg-white p-3">
+              <p className="text-xs text-muted-foreground">📝 Leads (form)</p>
+              <p className="text-lg font-bold">{formatNumber(summary.leads_reales_total ?? summary.leads)}</p>
+              <p className="text-xs text-gray-500">
+                {summary.whatsapp_to_lead_rate != null
+                  ? `${formatPct(summary.whatsapp_to_lead_rate, 1)} de los clics WhatsApp`
+                  : 'formulario real (BD)'}
+              </p>
+            </div>
+            <div className="rounded-md border border-dashed bg-gray-50 p-3">
+              <p className="text-xs text-muted-foreground">🛒 Reservas / Ventas</p>
+              <p className="text-lg font-bold text-gray-400">—</p>
+              <p className="text-xs text-gray-500">Etapa 4b · cruce BD pendiente</p>
+            </div>
+          </div>
+          <p className="text-xs text-gray-500 mt-3">
+            La landing <code>/refugio/</code> convierte por dos vías: <strong>formulario</strong> (→BD) y <strong>WhatsApp</strong> (clic al botón wa.me, evento GA4). El informe antes solo veía la primera. El cierre a <strong>ventas reales</strong> (match teléfono → reservas) llega en la Etapa 4b.
+          </p>
+        </div>
+
         {/* Sección 2 — Comparativo por Adset (Fría vs Retargeting) */}
         {adsets.length > 0 && (
           <div>

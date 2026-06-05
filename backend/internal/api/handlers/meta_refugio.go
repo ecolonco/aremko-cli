@@ -1,11 +1,13 @@
 package handlers
 
 import (
+	"context"
 	"net/http"
 	"sort"
 	"strings"
 	"time"
 
+	"github.com/aremko/aremko-cli/internal/analytics"
 	"github.com/aremko/aremko-cli/internal/bookings"
 	"github.com/aremko/aremko-cli/internal/config"
 	"github.com/aremko/aremko-cli/internal/meta"
@@ -96,6 +98,10 @@ func GetRefugioCampaign(cfg *config.Config) http.HandlerFunc {
 		// formulario desde la BD. El Pixel queda como leads_pixel para referencia.
 		applyRealRefugioLeads(cfg, summary, dateStart, dateStop)
 
+		// Añade la "intención WhatsApp" (clic al botón wa.me de la landing) — la
+		// segunda vía de conversión que el informe ignoraba. Etapa 4a del embudo.
+		applyRefugioWhatsAppClicks(cfg, summary, dateStart, dateStop)
+
 		// Comparativo por adset
 		adsetRows := make([]map[string]interface{}, 0, len(adsets))
 		for i := range adsets {
@@ -170,6 +176,53 @@ func applyRealRefugioLeads(cfg *config.Config, summary map[string]interface{}, d
 		summary["cpl"] = spend / float64(leadsMeta)
 	} else {
 		summary["cpl"] = 0.0
+	}
+}
+
+// applyRefugioWhatsAppClicks añade al summary la "intención WhatsApp": el conteo
+// del evento GA4 refugio_whatsapp_click (clic al botón wa.me de la landing) total +
+// por canal + el atribuible a Meta, más el costo por clic y la tasa clic→lead.
+// Es la pieza que faltaba (Etapa 4a): la landing /refugio/ convierte por DOS vías
+// —form→BD y WhatsApp→chat— y el informe solo veía la primera. No es key event en
+// GA4, así que se cuenta por eventCount (no conversions).
+func applyRefugioWhatsAppClicks(cfg *config.Config, summary map[string]interface{}, dateStart, dateStop string) {
+	if !cfg.EnableGA4 {
+		return
+	}
+	ga4Client, err := analytics.NewGA4Client(cfg.GA4CredentialsPath, cfg.GA4PropertyID)
+	if err != nil {
+		return
+	}
+	res, err := ga4Client.GetEventCountBySource(context.Background(), "refugio_whatsapp_click", dateStart, dateStop)
+	if err != nil || res == nil {
+		return
+	}
+
+	summary["whatsapp_clicks"] = res.Total
+	summary["whatsapp_clicks_by_source"] = res.BySource
+
+	// Porción atribuible a Meta (facebook/instagram, pagado u orgánico).
+	var metaClicks int64
+	for _, s := range res.BySource {
+		src := strings.ToLower(s.Source)
+		if strings.Contains(src, "facebook") || strings.Contains(src, "instagram") || src == "fb" || src == "ig" {
+			metaClicks += s.EventCount
+		}
+	}
+	summary["whatsapp_clicks_meta"] = metaClicks
+
+	spend, _ := summary["spend"].(float64)
+	if res.Total > 0 {
+		summary["cost_per_whatsapp_click"] = spend / float64(res.Total)
+	} else {
+		summary["cost_per_whatsapp_click"] = 0.0
+	}
+
+	// Tasa clic WhatsApp → lead del formulario (leads_reales_total lo dejó
+	// applyRealRefugioLeads). Mide cuántos de los que mostraron intención dejaron datos.
+	leadsTotal, _ := summary["leads_reales_total"].(int)
+	if res.Total > 0 && leadsTotal > 0 {
+		summary["whatsapp_to_lead_rate"] = float64(leadsTotal) / float64(res.Total) * 100
 	}
 }
 
