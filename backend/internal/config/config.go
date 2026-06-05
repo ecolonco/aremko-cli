@@ -48,6 +48,10 @@ type Config struct {
 	// OpenRouter (AI)
 	OpenRouterAPIKey string
 	OpenRouterBaseURL string
+	// OpenRouterModel: si está seteado, sobreescribe el modelo de TODAS las
+	// llamadas de IA (un solo knob para cambiar de modelo desde Render, sin tocar
+	// código). Ej: "google/gemini-2.5-pro". Vacío = usa los modelos por defecto del código.
+	OpenRouterModel string
 
 	// Booking System (Django)
 	BookingSystemURL string
@@ -106,6 +110,7 @@ func LoadConfig() (*Config, error) {
 		GA4CredentialsPath: getEnvOrDefault("GA4_CREDENTIALS_PATH", "ga4-credentials.json"),
 		OpenRouterAPIKey:   getEnvOrDefault("OPENROUTER_API_KEY", ""),
 		OpenRouterBaseURL:  getEnvOrDefault("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1"),
+		OpenRouterModel:    getEnvOrDefault("OPENROUTER_MODEL", ""),
 		BookingSystemURL:   getEnvOrDefault("BOOKING_SYSTEM_URL", "http://localhost:8002"),
 		AutomationAPIKey:   getEnvOrDefault("AUTOMATION_API_KEY", ""),
 		LunaAPIKey:         getEnvOrDefault("LUNA_API_KEY", ""),

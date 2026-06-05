@@ -252,6 +252,10 @@ type OpenRouterClient struct {
 	APIKey  string
 	BaseURL string
 	Client  *http.Client
+	// Model: si != "", sobreescribe el modelo de TODA llamada a Generate
+	// (viene de la env OPENROUTER_MODEL). Un solo knob para cambiar el modelo
+	// de IA desde Render sin tocar código. Vacío = cada caller usa el suyo.
+	Model string
 	// OperatingContext, si está set, se inyecta al final del system prompt de
 	// cada análisis para que la IA evite recomendar acciones que Aremko ya
 	// implementa. Se llena desde el handler con bookings.Client.GetOperatingContext().
@@ -325,7 +329,7 @@ type OpenRouterResponse struct {
 }
 
 // NewOpenRouterClient crea una nueva instancia del cliente
-func NewOpenRouterClient(apiKey, baseURL string) *OpenRouterClient {
+func NewOpenRouterClient(apiKey, baseURL, model string) *OpenRouterClient {
 	if baseURL == "" {
 		baseURL = "https://openrouter.ai/api/v1"
 	}
@@ -333,6 +337,7 @@ func NewOpenRouterClient(apiKey, baseURL string) *OpenRouterClient {
 	return &OpenRouterClient{
 		APIKey:  apiKey,
 		BaseURL: baseURL,
+		Model:   model,
 		Client: &http.Client{
 			Timeout: 120 * time.Second,
 		},
@@ -343,7 +348,12 @@ func NewOpenRouterClient(apiKey, baseURL string) *OpenRouterClient {
 func (c *OpenRouterClient) Generate(ctx context.Context, systemPrompt, userPrompt, model string, temperature float64, maxTokens int) (*LLMResult, error) {
 	startTime := time.Now()
 
-	// Usar DeepSeek V4 Pro por defecto
+	// Knob global: si OPENROUTER_MODEL está seteada (c.Model), sobreescribe el
+	// modelo que pidió el caller. Así se cambia de modelo desde Render sin tocar código.
+	if c.Model != "" {
+		model = c.Model
+	}
+	// Fallback si nadie especificó modelo.
 	if model == "" {
 		model = "google/gemini-3.1-flash-lite"
 	}

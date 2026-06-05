@@ -813,7 +813,7 @@ func buildRefugioBlock(cfg *config.Config, token string, accounts []config.MetaA
 // Aremko's current operating context. Best-effort: if the fetch from Django
 // fails, the analysis still runs (just without the context-aware prompt).
 func newAIClientWithOperatingContext(cfg *config.Config) *ai.OpenRouterClient {
-	client := ai.NewOpenRouterClient(cfg.OpenRouterAPIKey, cfg.OpenRouterBaseURL)
+	client := ai.NewOpenRouterClient(cfg.OpenRouterAPIKey, cfg.OpenRouterBaseURL, cfg.OpenRouterModel)
 	if cfg.EnableBookings && cfg.BookingSystemURL != "" {
 		bClient := bookings.NewClient(cfg.BookingSystemURL)
 		if opCtx, err := bClient.GetOperatingContext(); err == nil && opCtx != "" {
