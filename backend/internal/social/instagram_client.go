@@ -64,7 +64,7 @@ func NewInstagramClient(accessToken string) *InstagramClient {
 // GetAccountInfo obtiene información básica de la cuenta de Instagram
 func (c *InstagramClient) GetAccountInfo(ctx context.Context) (map[string]interface{}, error) {
 	// Primero necesitamos obtener el Instagram Business Account ID desde las páginas de Facebook
-	pagesURL := fmt.Sprintf("https://graph.facebook.com/v18.0/me/accounts?fields=instagram_business_account&access_token=%s", c.accessToken)
+	pagesURL := fmt.Sprintf("https://graph.facebook.com/v21.0/me/accounts?fields=instagram_business_account&access_token=%s", c.accessToken)
 
 	req, err := http.NewRequestWithContext(ctx, "GET", pagesURL, nil)
 	if err != nil {
@@ -105,7 +105,7 @@ func (c *InstagramClient) GetAccountInfo(ctx context.Context) (map[string]interf
 	igAccountID := pagesResp.Data[0].InstagramBusinessAccount.ID
 
 	// Ahora obtenemos la información de la cuenta de Instagram
-	igURL := fmt.Sprintf("https://graph.facebook.com/v18.0/%s?fields=username,followers_count,follows_count,media_count,profile_picture_url&access_token=%s", igAccountID, c.accessToken)
+	igURL := fmt.Sprintf("https://graph.facebook.com/v21.0/%s?fields=username,followers_count,follows_count,media_count,profile_picture_url&access_token=%s", igAccountID, c.accessToken)
 
 	req, err = http.NewRequestWithContext(ctx, "GET", igURL, nil)
 	if err != nil {
@@ -150,7 +150,9 @@ func (c *InstagramClient) GetWeeklyInsights(ctx context.Context, accountID strin
 		endDate := weekEnd.Unix()
 
 		// Obtener insights de la cuenta para este período
-		metricsURL := fmt.Sprintf("https://graph.facebook.com/v18.0/%s/insights?metric=reach,impressions,profile_views,website_clicks&period=day&since=%d&until=%d&access_token=%s",
+		// profile_views, website_clicks e impressions (cuenta) fueron deprecados por
+		// Meta (8-ene-2025, v21). Solo pedimos reach para no romper toda la llamada.
+		metricsURL := fmt.Sprintf("https://graph.facebook.com/v21.0/%s/insights?metric=reach&period=day&since=%d&until=%d&access_token=%s",
 			accountID, startDate, endDate, c.accessToken)
 
 		req, err := http.NewRequestWithContext(ctx, "GET", metricsURL, nil)
@@ -167,6 +169,7 @@ func (c *InstagramClient) GetWeeklyInsights(ctx context.Context, accountID strin
 		resp.Body.Close()
 
 		if resp.StatusCode != http.StatusOK {
+			fmt.Printf("[IG] weekly insights error (status %d): %s\n", resp.StatusCode, string(body))
 			continue
 		}
 
@@ -234,7 +237,7 @@ func (c *InstagramClient) GetWeeklyInsights(ctx context.Context, accountID strin
 // GetTopPosts obtiene los posts más recientes con mejor engagement
 func (c *InstagramClient) GetTopPosts(ctx context.Context, accountID string, limit int) ([]InstagramPost, error) {
 	// Obtener posts recientes
-	postsURL := fmt.Sprintf("https://graph.facebook.com/v18.0/%s/media?fields=id,caption,media_type,media_url,permalink,timestamp,like_count,comments_count&limit=%d&access_token=%s",
+	postsURL := fmt.Sprintf("https://graph.facebook.com/v21.0/%s/media?fields=id,caption,media_type,media_url,permalink,timestamp,like_count,comments_count&limit=%d&access_token=%s",
 		accountID, limit*2, c.accessToken) // Pedimos el doble para tener margen
 
 	req, err := http.NewRequestWithContext(ctx, "GET", postsURL, nil)
@@ -292,14 +295,19 @@ func (c *InstagramClient) GetTopPosts(ctx context.Context, accountID string, lim
 			Engagement:    engagement,
 		}
 
-		// Intentar obtener insights del post (reach, impressions)
-		insightsURL := fmt.Sprintf("https://graph.facebook.com/v18.0/%s/insights?metric=reach,impressions,saved&access_token=%s",
+		// Insights del post. impressions fue reemplazado por views en media; pedimos
+		// reach (clave para la interacción%) + saved, que son válidos para todo tipo de media.
+		insightsURL := fmt.Sprintf("https://graph.facebook.com/v21.0/%s/insights?metric=reach,saved&access_token=%s",
 			p.ID, c.accessToken)
 
 		if insightsReq, err := http.NewRequestWithContext(ctx, "GET", insightsURL, nil); err == nil {
 			if insightsResp, err := c.httpClient.Do(insightsReq); err == nil {
 				insightsBody, _ := io.ReadAll(insightsResp.Body)
 				insightsResp.Body.Close()
+
+				if insightsResp.StatusCode != http.StatusOK {
+					fmt.Printf("[IG] insights error post %s (status %d): %s\n", p.ID, insightsResp.StatusCode, string(insightsBody))
+				}
 
 				var insights struct {
 					Data []struct {
