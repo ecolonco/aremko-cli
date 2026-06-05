@@ -2177,7 +2177,7 @@ export default function BriefPage() {
                                 {post.engagement_rate !== undefined && (
                                   <div className="mt-3 pt-3 border-t text-center">
                                     <div className="text-sm font-semibold text-pink-600">
-                                      {(post.engagement_rate * 100).toFixed(2)}%
+                                      {post.engagement_rate.toFixed(2)}%
                                     </div>
                                     <div className="text-xs text-muted-foreground">Interacción</div>
                                   </div>
