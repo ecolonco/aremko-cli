@@ -47,6 +47,7 @@ interface BriefData {
     reviews?: any;
     competitors?: any;
     instagram_organic?: any;
+    facebook_organic?: any;
   };
   ai_analysis?: {
     content: string;
@@ -2202,6 +2203,89 @@ export default function BriefPage() {
               )}
             </CardContent>
           </Card>
+
+          {/* Facebook Orgánico */}
+          {data?.facebook_organic && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Share2 className="h-5 w-5 mr-2 text-blue-700" />
+                  Facebook Orgánico
+                </CardTitle>
+                <CardDescription>Alcance e interacción orgánica en la Página</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {data.facebook_organic.status === 'real_data' ? (
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                      <div className="rounded-lg border p-4">
+                        <div className="text-sm text-muted-foreground">Página</div>
+                        <div className="text-lg font-bold truncate">{data.facebook_organic.page_info?.name || '—'}</div>
+                      </div>
+                      <div className="rounded-lg border p-4">
+                        <div className="text-sm text-muted-foreground">Fans</div>
+                        <div className="text-2xl font-bold">{(data.facebook_organic.page_info?.fan_count || 0).toLocaleString()}</div>
+                      </div>
+                      <div className="rounded-lg border p-4">
+                        <div className="text-sm text-muted-foreground">Seguidores</div>
+                        <div className="text-2xl font-bold">{(data.facebook_organic.page_info?.followers_count || 0).toLocaleString()}</div>
+                      </div>
+                    </div>
+                    {data.facebook_organic.top_posts && data.facebook_organic.top_posts.length > 0 ? (
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr className="border-b text-left text-muted-foreground">
+                              <th className="py-2 px-2 font-medium">Publicación</th>
+                              <th className="py-2 px-2 font-medium text-right">Alcance</th>
+                              <th className="py-2 px-2 font-medium text-right">Reacciones</th>
+                              <th className="py-2 px-2 font-medium text-right">Coment.</th>
+                              <th className="py-2 px-2 font-medium text-right">Compartidos</th>
+                              <th className="py-2 px-2 font-medium text-right">Interacción</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {data.facebook_organic.top_posts.map((post: any) => (
+                              <tr key={post.id} className="border-b last:border-0 hover:bg-gray-50">
+                                <td className="py-2 px-2 max-w-[320px]">
+                                  <a
+                                    href={post.permalink}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="line-clamp-1 text-gray-700 hover:text-blue-700 hover:underline"
+                                    title={post.message}
+                                  >
+                                    {post.message?.replace(/\s+/g, ' ').trim().substring(0, 80) || 'Publicación'}
+                                  </a>
+                                </td>
+                                <td className="py-2 px-2 text-right">{post.reach ? post.reach.toLocaleString() : '—'}</td>
+                                <td className="py-2 px-2 text-right">{(post.reactions || 0).toLocaleString()}</td>
+                                <td className="py-2 px-2 text-right">{(post.comments_count || 0).toLocaleString()}</td>
+                                <td className="py-2 px-2 text-right">{(post.shares || 0).toLocaleString()}</td>
+                                <td className="py-2 px-2 text-right font-semibold text-blue-700">
+                                  {post.engagement_rate ? `${post.engagement_rate.toFixed(2)}%` : '—'}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground text-center py-4">
+                        No hay publicaciones recientes en la Página de Facebook.
+                      </p>
+                    )}
+                  </div>
+                ) : (
+                  <div className="p-6 text-center border-2 border-dashed border-red-200 rounded-lg bg-red-50">
+                    <AlertCircle className="h-10 w-10 mx-auto mb-3 text-red-500" />
+                    <p className="text-sm text-red-600 mb-1">No se pudo cargar Facebook orgánico</p>
+                    <p className="text-xs text-red-500">{data.facebook_organic.error}</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
 
           <Card>
             <CardHeader>

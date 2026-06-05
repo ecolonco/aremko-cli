@@ -191,6 +191,28 @@ func GetWeeklyBrief(cfg *config.Config) http.HandlerFunc {
 		}
 	}
 
+	// Facebook Organic section
+	if cfg.EnableMetaAds && cfg.MetaAccessToken != "" {
+		fbClient := social.NewFacebookClient(cfg.MetaAccessToken)
+		fbInsights, err := fbClient.GetPageInsights(context.Background(), 10)
+		if err == nil {
+			brief["facebook_organic"] = map[string]interface{}{
+				"page_info": map[string]interface{}{
+					"name":            fbInsights.Name,
+					"fan_count":       fbInsights.FanCount,
+					"followers_count": fbInsights.FollowersCount,
+				},
+				"top_posts": fbInsights.TopPosts,
+				"status":    "real_data",
+			}
+		} else {
+			brief["facebook_organic"] = map[string]interface{}{
+				"status": "error",
+				"error":  err.Error(),
+			}
+		}
+	}
+
 		if cfg.EnableBookings {
 			reviewsClient := reviews.NewClient(cfg.BookingSystemURL)
 			reviewsSummary, err := reviewsClient.GetReviewsSummary()
