@@ -63,10 +63,11 @@ export function canAccess(username: string, pathname: string): boolean {
 }
 
 // Sección de inicio (a dónde cae el usuario al loguearse / entrar a la raíz).
+// Por defecto TODOS entran a "Mensajes WhatsApp" si tienen acceso; si no, a su
+// primera sección permitida; y si no tiene ninguna, a "Sin acceso".
 export function homeHref(username: string): string {
-  const perm = USER_PERMISSIONS[username];
-  // jorge: /dashboard/jorge (su page redirige a "Mensajes WhatsApp").
-  if (perm === 'all') return '/dashboard/jorge';
+  const mensajesHref = '/dashboard/jorge/perfiles/whatsapp';
+  if (canAccess(username, mensajesHref)) return mensajesHref;
   const items = allowedItems(username);
   return items.length ? items[0].href : '/dashboard/sin-acceso';
 }
