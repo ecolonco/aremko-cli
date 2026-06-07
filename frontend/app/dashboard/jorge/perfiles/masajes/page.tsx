@@ -21,6 +21,7 @@ import {
   Clock,
   X,
   CheckCircle2,
+  Copy,
 } from 'lucide-react';
 import {
   fetchOutbox,
@@ -154,6 +155,15 @@ export default function BandejaMasajesPage() {
     }
   };
 
+  const onCopiar = async (texto: string, etiqueta: string) => {
+    try {
+      await navigator.clipboard.writeText(texto);
+      setAviso(`📋 ${etiqueta} copiado al portapapeles.`);
+    } catch {
+      setAviso('⚠️ No se pudo copiar (el navegador bloqueó el portapapeles).');
+    }
+  };
+
   const paraEnviar = data?.para_enviar ?? [];
   const programados = data?.programados ?? [];
 
@@ -252,13 +262,32 @@ export default function BandejaMasajesPage() {
                       </span>
                       <EstadoBadge estado={item.estado} />
                     </div>
-                    <div className="truncate text-xs text-slate-500">{item.destinatario_email}</div>
+                    <div className="flex items-center gap-1 text-xs text-slate-500">
+                      <span className="truncate">{item.destinatario_email}</span>
+                      <button
+                        type="button"
+                        onClick={() => onCopiar(item.destinatario_email, 'Email')}
+                        title="Copiar email"
+                        aria-label="Copiar email"
+                        className="flex-shrink-0 text-slate-400 hover:text-slate-700"
+                      >
+                        <Copy className="h-3 w-3" />
+                      </button>
+                    </div>
                     <div className="mt-0.5 text-xs text-slate-600">
                       {item.tipo_label} · <Clock className="inline h-3 w-3" />{' '}
                       {fmtFechaCL(item.fecha_programada)}
                     </div>
                   </div>
                   <div className="flex flex-shrink-0 flex-wrap gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => onCopiar(item.cuerpo, 'Mensaje')}
+                      title="Copiar el texto del mensaje para pegarlo en WhatsApp"
+                    >
+                      <Copy className="mr-1 h-4 w-4" /> Copiar
+                    </Button>
                     <Button variant="outline" size="sm" onClick={() => setDetalle(item)}>
                       <Eye className="mr-1 h-4 w-4" /> Ver
                     </Button>
@@ -345,6 +374,7 @@ export default function BandejaMasajesPage() {
             await cargar(true);
           }}
           onAviso={setAviso}
+          onCopiar={onCopiar}
         />
       )}
     </div>
@@ -360,6 +390,7 @@ function DetalleModal({
   onCancelar,
   onGuardado,
   onAviso,
+  onCopiar,
 }: {
   item: MasajeOutboxItem;
   operador: OperadorMasaje;
@@ -369,6 +400,7 @@ function DetalleModal({
   onCancelar: () => void;
   onGuardado: (actualizado: MasajeOutboxItem) => void;
   onAviso: (msg: string) => void;
+  onCopiar: (texto: string, etiqueta: string) => void;
 }) {
   const [editando, setEditando] = useState(false);
   const [asunto, setAsunto] = useState(item.asunto);
@@ -411,6 +443,23 @@ function DetalleModal({
             <p className="truncate text-xs text-slate-500">
               {item.destinatario_email} · {item.tipo_label}
             </p>
+            <div className="mt-1 flex flex-wrap gap-1">
+              <button
+                type="button"
+                onClick={() => onCopiar(item.destinatario_email, 'Email')}
+                className="inline-flex items-center gap-1 rounded border border-slate-200 px-1.5 py-0.5 text-[11px] text-slate-600 hover:bg-slate-50"
+              >
+                <Copy className="h-3 w-3" /> Copiar email
+              </button>
+              <button
+                type="button"
+                onClick={() => onCopiar(item.cuerpo, 'Mensaje')}
+                title="Para pegarlo en WhatsApp"
+                className="inline-flex items-center gap-1 rounded border border-slate-200 px-1.5 py-0.5 text-[11px] text-slate-600 hover:bg-slate-50"
+              >
+                <Copy className="h-3 w-3" /> Copiar mensaje
+              </button>
+            </div>
           </div>
           <button onClick={onClose} aria-label="Cerrar" className="text-slate-400 hover:text-slate-700">
             <X className="h-5 w-5" />
