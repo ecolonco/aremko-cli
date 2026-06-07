@@ -133,13 +133,17 @@ export default function BandejaMasajesPage() {
   };
 
   const onCancelar = async (item: MasajeOutboxItem) => {
-    if (!window.confirm(`¿Quitar de la lista el email a ${item.destinatario_nombre}? No se enviará.`))
+    if (
+      !window.confirm(
+        `Este email a ${item.destinatario_nombre} quedará descartado y NO se enviará.\n\n(No se borra el registro; queda en el historial como descartado.) ¿Continuar?`
+      )
+    )
       return;
     setAccionando(item.id);
     setAviso(null);
     try {
       const r = await cancelarItem(item.id, operador);
-      if (r.ok) setAviso(`🗑️ Email a ${item.destinatario_nombre} quitado de la lista.`);
+      if (r.ok) setAviso(`🗑️ Email a ${item.destinatario_nombre} descartado (no se enviará).`);
       else setAviso(`⚠️ ${mapError(r.status, r.error)}`);
       setDetalle(null);
       await cargar(true);
@@ -277,7 +281,7 @@ export default function BandejaMasajesPage() {
                       disabled={accionando === item.id || item.estado !== 'pendiente'}
                       onClick={() => onCancelar(item)}
                     >
-                      <Trash2 className="mr-1 h-4 w-4" /> Quitar
+                      <Trash2 className="mr-1 h-4 w-4" /> Descartar
                     </Button>
                   </div>
                 </li>
@@ -506,7 +510,7 @@ function DetalleModal({
                 <Pencil className="mr-1 h-4 w-4" /> Editar
               </Button>
               <Button variant="destructive" size="sm" onClick={onCancelar} disabled={accionando}>
-                <Trash2 className="mr-1 h-4 w-4" /> Quitar
+                <Trash2 className="mr-1 h-4 w-4" /> Descartar
               </Button>
               <Button
                 size="sm"
