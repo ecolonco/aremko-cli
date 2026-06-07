@@ -22,6 +22,9 @@ import {
   X,
   CheckCircle2,
   Copy,
+  MapPin,
+  Phone,
+  MessageCircle,
 } from 'lucide-react';
 import {
   fetchOutbox,
@@ -48,6 +51,19 @@ const fmtFechaCL = (iso: string | null): string => {
   });
 };
 
+const fmtFechaVisita = (d?: string | null): string => {
+  if (!d) return '';
+  const m = d.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  return m ? `${m[3]}/${m[2]}/${m[1]}` : d;
+};
+
+// wa.me requiere el número sin "+" ni separadores.
+const waLink = (tel?: string): string | null => {
+  if (!tel) return null;
+  const num = tel.replace(/[^0-9]/g, '');
+  return num ? `https://wa.me/${num}` : null;
+};
+
 const ESTADO_STYLE: Record<string, string> = {
   pendiente: 'bg-amber-100 text-amber-800',
   enviado: 'bg-emerald-100 text-emerald-800',
@@ -61,6 +77,104 @@ function EstadoBadge({ estado }: { estado: string }) {
     <span className={`inline-block rounded-full px-2 py-0.5 text-[11px] font-semibold capitalize ${cls}`}>
       {estado}
     </span>
+  );
+}
+
+const GEO_STYLE: Record<string, { cls: string; icon: string }> = {
+  sur: { cls: 'bg-emerald-100 text-emerald-800', icon: '✅' },
+  nacional: { cls: 'bg-amber-100 text-amber-800', icon: '⚠️' },
+  extranjero: { cls: 'bg-amber-100 text-amber-800', icon: '⚠️' },
+  sin_clasificar: { cls: 'bg-slate-200 text-slate-600', icon: '❓' },
+};
+
+// Badge de elegibilidad geográfica: solo 'sur' es apto para ofrecer visita.
+function BadgeGeo({ item }: { item: MasajeOutboxItem }) {
+  const region = (item.region as string) ?? 'sin_clasificar';
+  const label = item.region_label ?? region;
+  const s = GEO_STYLE[region] ?? GEO_STYLE.sin_clasificar;
+  return (
+    <span
+      className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold ${s.cls}`}
+      title={
+        region === 'sur'
+          ? 'Cliente del sur: puede recibir visita'
+          : region === 'sin_clasificar'
+            ? 'Sin ciudad reconocida: revisar antes de ofrecer visita'
+            : 'Fuera de zona: no ofrecer visita presencial'
+      }
+    >
+      {s.icon} {label}
+    </span>
+  );
+}
+
+// Ficha de contacto del cliente: email/teléfono copiables + WhatsApp + ciudad +
+// contexto de la última visita. Reutilizada en la lista y en el modal.
+function FichaCliente({
+  item,
+  onCopiar,
+}: {
+  item: MasajeOutboxItem;
+  onCopiar: (texto: string, etiqueta: string) => void;
+}) {
+  const wa = waLink(item.destinatario_telefono);
+  const tieneReserva = !!item.servicio || item.num_visitas != null;
+  return (
+    <div className="space-y-0.5">
+      <div className="flex items-center gap-1 text-xs text-slate-500">
+        <span className="truncate">{item.destinatario_email}</span>
+        <button
+          type="button"
+          onClick={() => onCopiar(item.destinatario_email, 'Email')}
+          title="Copiar email"
+          aria-label="Copiar email"
+          className="flex-shrink-0 text-slate-400 hover:text-slate-700"
+        >
+          <Copy className="h-3 w-3" />
+        </button>
+      </div>
+      {item.destinatario_telefono && (
+        <div className="flex items-center gap-1.5 text-xs text-slate-500">
+          <span className="inline-flex items-center gap-1">
+            <Phone className="h-3 w-3" />
+            {item.destinatario_telefono}
+          </span>
+          <button
+            type="button"
+            onClick={() => onCopiar(item.destinatario_telefono as string, 'Teléfono')}
+            title="Copiar teléfono"
+            aria-label="Copiar teléfono"
+            className="flex-shrink-0 text-slate-400 hover:text-slate-700"
+          >
+            <Copy className="h-3 w-3" />
+          </button>
+          {wa && (
+            <a
+              href={wa}
+              target="_blank"
+              rel="noopener noreferrer"
+              title="Abrir chat de WhatsApp"
+              className="inline-flex items-center gap-0.5 font-medium text-emerald-600 hover:text-emerald-700"
+            >
+              <MessageCircle className="h-3 w-3" /> WhatsApp
+            </a>
+          )}
+        </div>
+      )}
+      <div className="flex items-center gap-1 text-xs text-slate-600">
+        <MapPin className="h-3 w-3 flex-shrink-0 text-slate-400" />
+        <span>{item.ciudad || (item.region_label ?? 'Ciudad no registrada')}</span>
+      </div>
+      {tieneReserva && (
+        <div className="text-xs text-slate-500">
+          {item.servicio ? `💆 ${item.servicio}` : ''}
+          {item.fecha_visita ? ` · visitó ${fmtFechaVisita(item.fecha_visita)}` : ''}
+          {item.num_visitas != null
+            ? ` · ${item.cliente_nuevo ? 'cliente nuevo' : `${item.num_visitas} visitas`}`
+            : ''}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -255,26 +369,16 @@ export default function BandejaMasajesPage() {
                   key={item.id}
                   className="flex flex-col gap-2 py-3 md:flex-row md:items-center md:justify-between"
                 >
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2">
+                  <div className="min-w-0 space-y-1">
+                    <div className="flex flex-wrap items-center gap-2">
                       <span className="truncate font-medium text-slate-900">
                         {item.destinatario_nombre}
                       </span>
                       <EstadoBadge estado={item.estado} />
+                      <BadgeGeo item={item} />
                     </div>
-                    <div className="flex items-center gap-1 text-xs text-slate-500">
-                      <span className="truncate">{item.destinatario_email}</span>
-                      <button
-                        type="button"
-                        onClick={() => onCopiar(item.destinatario_email, 'Email')}
-                        title="Copiar email"
-                        aria-label="Copiar email"
-                        className="flex-shrink-0 text-slate-400 hover:text-slate-700"
-                      >
-                        <Copy className="h-3 w-3" />
-                      </button>
-                    </div>
-                    <div className="mt-0.5 text-xs text-slate-600">
+                    <FichaCliente item={item} onCopiar={onCopiar} />
+                    <div className="text-xs text-slate-600">
                       {item.tipo_label} · <Clock className="inline h-3 w-3" />{' '}
                       {fmtFechaCL(item.fecha_programada)}
                     </div>
@@ -343,10 +447,14 @@ export default function BandejaMasajesPage() {
               {programados.map((item) => (
                 <li key={item.id} className="flex items-center justify-between gap-2 py-2.5">
                   <div className="min-w-0">
-                    <div className="truncate text-sm font-medium text-slate-800">
-                      {item.destinatario_nombre}
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="truncate text-sm font-medium text-slate-800">
+                        {item.destinatario_nombre}
+                      </span>
+                      <BadgeGeo item={item} />
                     </div>
                     <div className="truncate text-xs text-slate-500">
+                      {item.ciudad ? `${item.ciudad} · ` : ''}
                       {item.tipo_label} · {fmtFechaCL(item.fecha_programada)}
                     </div>
                   </div>
@@ -436,21 +544,19 @@ function DetalleModal({
         {/* Header */}
         <div className="flex items-start justify-between gap-2 border-b p-4">
           <div className="min-w-0">
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <h3 className="truncate text-lg font-semibold">{item.destinatario_nombre}</h3>
               <EstadoBadge estado={item.estado} />
+              <BadgeGeo item={item} />
             </div>
-            <p className="truncate text-xs text-slate-500">
-              {item.destinatario_email} · {item.tipo_label}
+            <p className="text-xs text-slate-500">
+              {item.tipo_label}
+              {item.fecha_visita ? ` · visitó ${fmtFechaVisita(item.fecha_visita)}` : ''}
             </p>
-            <div className="mt-1 flex flex-wrap gap-1">
-              <button
-                type="button"
-                onClick={() => onCopiar(item.destinatario_email, 'Email')}
-                className="inline-flex items-center gap-1 rounded border border-slate-200 px-1.5 py-0.5 text-[11px] text-slate-600 hover:bg-slate-50"
-              >
-                <Copy className="h-3 w-3" /> Copiar email
-              </button>
+            <div className="mt-1.5">
+              <FichaCliente item={item} onCopiar={onCopiar} />
+            </div>
+            <div className="mt-1.5">
               <button
                 type="button"
                 onClick={() => onCopiar(item.cuerpo, 'Mensaje')}

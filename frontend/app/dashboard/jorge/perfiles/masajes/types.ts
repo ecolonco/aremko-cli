@@ -14,6 +14,8 @@ export type TipoEmailMasaje =
 
 export type OperadorMasaje = 'debora' | 'angelica' | 'jorge';
 
+export type RegionMasaje = 'sur' | 'nacional' | 'extranjero' | 'sin_clasificar';
+
 export interface MasajeOutboxItem {
   id: number;
   tipo_email: TipoEmailMasaje | string;
@@ -30,6 +32,16 @@ export interface MasajeOutboxItem {
   editado_por: string;
   editado_at: string | null;
   error_log: string;
+  // Datos enriquecidos del cliente (agregados por Django 2026-06-07).
+  destinatario_telefono?: string;
+  ciudad?: string | null;
+  region?: RegionMasaje | string;
+  region_label?: string;
+  apto_visita?: boolean;
+  servicio?: string | null;
+  fecha_visita?: string | null; // YYYY-MM-DD
+  num_visitas?: number;
+  cliente_nuevo?: boolean;
   // Solo presente en "para_enviar" (vencidos). En "programados" no viene.
   preview_html?: string | null;
 }
