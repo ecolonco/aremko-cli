@@ -281,6 +281,14 @@ export default function BandejaMasajesPage() {
   const paraEnviar = data?.para_enviar ?? [];
   const programados = data?.programados ?? [];
 
+  // Cuántos correos pendientes tiene cada cliente (por email) en "Para enviar",
+  // para avisar cuando un mismo cliente aparece más de una vez y no contactarlo de más.
+  const conteoPorCliente: Record<string, number> = {};
+  for (const it of paraEnviar) {
+    const k = (it.destinatario_email || '').toLowerCase();
+    if (k) conteoPorCliente[k] = (conteoPorCliente[k] || 0) + 1;
+  }
+
   return (
     <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
       {/* Encabezado */}
@@ -364,7 +372,10 @@ export default function BandejaMasajesPage() {
             </p>
           ) : (
             <ul className="divide-y divide-slate-100">
-              {paraEnviar.map((item) => (
+              {paraEnviar.map((item) => {
+                const nCliente =
+                  conteoPorCliente[(item.destinatario_email || '').toLowerCase()] || 0;
+                return (
                 <li
                   key={item.id}
                   className="flex flex-col gap-2 py-3 md:flex-row md:items-center md:justify-between"
@@ -376,6 +387,14 @@ export default function BandejaMasajesPage() {
                       </span>
                       <EstadoBadge estado={item.estado} />
                       <BadgeGeo item={item} />
+                      {nCliente > 1 && (
+                        <span
+                          className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-800"
+                          title="Este cliente tiene más de un correo pendiente en esta lista. Revísalos antes de enviar para no contactarlo de más."
+                        >
+                          ⚠️ {nCliente} correos para este cliente
+                        </span>
+                      )}
                     </div>
                     <FichaCliente item={item} onCopiar={onCopiar} />
                     <div className="text-xs text-slate-600">
@@ -418,7 +437,8 @@ export default function BandejaMasajesPage() {
                     </Button>
                   </div>
                 </li>
-              ))}
+                );
+              })}
             </ul>
           )}
         </CardContent>
