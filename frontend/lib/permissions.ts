@@ -23,6 +23,7 @@ export const MENU_ITEMS: MenuItemDef[] = [
   { key: 'perfiles', name: 'Perfiles', href: '/dashboard/jorge/perfiles' },
   { key: 'bandeja', name: 'Bandeja WhatsApp', href: '/dashboard/jorge/perfiles/bandeja' },
   { key: 'mensajes', name: 'Mensajes WhatsApp', href: '/dashboard/jorge/perfiles/whatsapp' },
+  { key: 'masajes', name: 'Conexión-Masajes', href: '/dashboard/jorge/perfiles/masajes' },
   { key: 'tableros', name: 'Tableros Bandeja', href: '/dashboard/jorge/perfiles/tableros' },
   { key: 'metricas', name: 'Métricas Operadores', href: '/dashboard/jorge/perfiles/metricas-operadores' },
   { key: 'sistema', name: 'Aremko-CLI Sistema', href: '/dashboard/jorge/sistema' },
@@ -37,7 +38,7 @@ const ALL_KEYS = MENU_ITEMS.map((i) => i.key);
 export const USER_PERMISSIONS: Record<string, 'all' | string[]> = {
   jorge: 'all',
   angelica: ALL_KEYS.filter((k) => k !== 'sistema'), // todo menos "Aremko-CLI Sistema"
-  deborah: ['bandeja', 'mensajes', 'tableros', 'metricas'],
+  deborah: ['bandeja', 'mensajes', 'masajes', 'tableros', 'metricas'],
   ernesto: [], // por ahora, ninguna
 };
 

@@ -42,7 +42,7 @@ func (s *Server) setupMiddleware() {
 	// CORS para permitir requests desde el frontend
 	s.router.Use(cors.Handler(cors.Options{
 		AllowedOrigins:   []string{"http://localhost:3000", "http://localhost:8080", "https://*.vercel.app", "https://*.onrender.com"},
-		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowedMethods:   []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
 		ExposedHeaders:   []string{"Link"},
 		AllowCredentials: true,
@@ -154,6 +154,16 @@ func (s *Server) setupRoutes() {
 		r.Post("/whatsapp/conversations/{phone}/marcar-atendido", handlers.WhatsAppMarcarAtendido(s.config))
 		r.Post("/whatsapp/run-template-campaign", handlers.WhatsAppRunTemplateCampaign(s.config))
 		r.Post("/whatsapp/create-templates", handlers.WhatsAppCreateTemplates(s.config))
+
+		// Bandeja de salida "Conexión-Masajes" — proxy a Django (emails de
+		// seguimiento post-masaje que se revisan/editan/envían uno por uno).
+		// El backend Go agrega la X-API-Key; el navegador no la conoce (igual
+		// que WhatsApp). Reenvía status+body de Django tal cual (409/422/401).
+		r.Get("/masaje/outbox", handlers.MasajeOutboxList(s.config))
+		r.Get("/masaje/outbox/{id}/preview", handlers.MasajeOutboxPreview(s.config))
+		r.Patch("/masaje/outbox/{id}", handlers.MasajeOutboxEdit(s.config))
+		r.Post("/masaje/outbox/{id}/send", handlers.MasajeOutboxSend(s.config))
+		r.Post("/masaje/outbox/{id}/cancel", handlers.MasajeOutboxCancel(s.config))
 
 		// Stats endpoints (próximamente)
 		r.Get("/stats/overview", handlers.GetStatsOverview(s.config))

@@ -12,6 +12,7 @@ import {
   BookOpenIcon,
   ChatBubbleLeftRightIcon,
   TrophyIcon,
+  EnvelopeIcon,
 } from '@heroicons/react/24/outline';
 import { UserRole } from '@/lib/types/user';
 import { allowedItems } from '@/lib/permissions';
@@ -33,6 +34,7 @@ const ICONS: Record<string, typeof DocumentTextIcon> = {
   perfiles: UsersIcon,
   bandeja: ChatBubbleLeftRightIcon,
   mensajes: ChatBubbleLeftRightIcon,
+  masajes: EnvelopeIcon,
   tableros: ChartBarIcon,
   metricas: TrophyIcon,
   sistema: BookOpenIcon,
