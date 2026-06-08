@@ -20,6 +20,7 @@ export interface MenuItemDef {
 // Orden canónico del menú (el Sidebar respeta este orden al filtrar).
 export const MENU_ITEMS: MenuItemDef[] = [
   { key: 'informes', name: 'Informes', href: '/dashboard/jorge/brief' },
+  { key: 'meta-ads', name: 'Campañas Meta', href: '/dashboard/jorge/meta-ads' },
   { key: 'perfiles', name: 'Perfiles', href: '/dashboard/jorge/perfiles' },
   { key: 'bandeja', name: 'Bandeja WhatsApp', href: '/dashboard/jorge/perfiles/bandeja' },
   { key: 'mensajes', name: 'Mensajes WhatsApp', href: '/dashboard/jorge/perfiles/whatsapp' },

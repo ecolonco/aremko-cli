@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { apiClient } from '@/lib/api/client';
 import type { MetaAdsSummary, RefugioCampaign } from '@/lib/types/api';
 import RefugioCampaignSection from '@/components/refugio/RefugioCampaignSection';
+import GestionCampana from './GestionCampana';
 
 // Tipo extendido para campañas con métricas
 interface CampaignWithMetrics {
@@ -55,46 +56,52 @@ export default function MetaAdsPage() {
   const [campaigns, setCampaigns] = useState<CampaignWithMetrics[]>([]);
   const [refugio, setRefugio] = useState<RefugioCampaign | null>(null);
   const [mounted, setMounted] = useState(false);
+  const [aviso, setAviso] = useState<string | null>(null);
+
+  const cargar = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const [summaryResponse, campaignsResponse, refugioResponse] = await Promise.all([
+        apiClient.getMetaAccountSummary(),
+        apiClient.getCampaignsWithInsights(),
+        apiClient.getRefugioCampaign(),
+      ]);
+
+      if (summaryResponse.success) {
+        setSummary(summaryResponse.data);
+      } else {
+        setError(summaryResponse.error || 'Error al cargar datos de Meta Ads');
+      }
+
+      if (campaignsResponse.success && campaignsResponse.data) {
+        const campaignsData = Array.isArray(campaignsResponse.data)
+          ? campaignsResponse.data
+          : (campaignsResponse.data as any).data || [];
+        setCampaigns(campaignsData);
+      }
+
+      if (refugioResponse.success && refugioResponse.data) {
+        setRefugio(refugioResponse.data);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error desconocido');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     setMounted(true);
+    cargar();
+  }, [cargar]);
 
-    async function fetchData() {
-      try {
-        setLoading(true);
-        setError(null);
-
-        const [summaryResponse, campaignsResponse, refugioResponse] = await Promise.all([
-          apiClient.getMetaAccountSummary(),
-          apiClient.getCampaignsWithInsights(),
-          apiClient.getRefugioCampaign(),
-        ]);
-
-        if (summaryResponse.success) {
-          setSummary(summaryResponse.data);
-        } else {
-          setError(summaryResponse.error || 'Error al cargar datos de Meta Ads');
-        }
-
-        if (campaignsResponse.success && campaignsResponse.data) {
-          const campaignsData = Array.isArray(campaignsResponse.data)
-            ? campaignsResponse.data
-            : (campaignsResponse.data as any).data || [];
-          setCampaigns(campaignsData);
-        }
-
-        if (refugioResponse.success && refugioResponse.data) {
-          setRefugio(refugioResponse.data);
-        }
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Error desconocido');
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    fetchData();
-  }, []);
+  // Tras una acción de gestión (pausar/activar/presupuesto): muestra aviso y recarga.
+  const onCampaignAction = (msg: string, recargar: boolean) => {
+    setAviso(msg);
+    if (recargar) cargar();
+  };
 
   // Datos por defecto
   const defaultSummary = {
@@ -126,6 +133,18 @@ export default function MetaAdsPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {aviso && (
+          <div className="mb-4 flex items-start justify-between gap-2 rounded-md border border-slate-200 bg-white p-3 text-sm text-slate-800 shadow-sm">
+            <span>{aviso}</span>
+            <button
+              onClick={() => setAviso(null)}
+              aria-label="Cerrar aviso"
+              className="text-slate-400 hover:text-slate-600"
+            >
+              ✕
+            </button>
+          </div>
+        )}
         {/* Header */}
         <div className="mb-8">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -355,14 +374,17 @@ export default function MetaAdsPage() {
                           {formatCurrencyDetailed(campaign.cpc)}
                         </td>
                         <td className="px-6 py-4 text-sm text-right">
-                          <a
-                            href={`https://business.facebook.com/adsmanager/manage/campaigns?act=${campaign.id.split('_')[0]}&selected_campaign_ids=${campaign.id}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-blue-600 hover:text-blue-800 font-medium"
-                          >
-                            Ver detalles
-                          </a>
+                          <div className="flex flex-col items-end gap-1.5">
+                            <a
+                              href={`https://business.facebook.com/adsmanager/manage/campaigns?act=${campaign.id.split('_')[0]}&selected_campaign_ids=${campaign.id}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-blue-600 hover:text-blue-800 font-medium"
+                            >
+                              Ver detalles
+                            </a>
+                            <GestionCampana campaign={campaign} onResult={onCampaignAction} />
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -421,6 +443,9 @@ export default function MetaAdsPage() {
                       >
                         Ver detalles en Meta →
                       </a>
+                      <div className="mt-2">
+                        <GestionCampana campaign={campaign} onResult={onCampaignAction} />
+                      </div>
                     </div>
                   </div>
                 ))}

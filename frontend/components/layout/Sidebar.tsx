@@ -13,6 +13,7 @@ import {
   ChatBubbleLeftRightIcon,
   TrophyIcon,
   EnvelopeIcon,
+  MegaphoneIcon,
 } from '@heroicons/react/24/outline';
 import { UserRole } from '@/lib/types/user';
 import { allowedItems } from '@/lib/permissions';
@@ -31,6 +32,7 @@ interface SidebarProps {
 // lib/permissions.ts (fuente única, compartida con el middleware).
 const ICONS: Record<string, typeof DocumentTextIcon> = {
   informes: DocumentTextIcon,
+  'meta-ads': MegaphoneIcon,
   perfiles: UsersIcon,
   bandeja: ChatBubbleLeftRightIcon,
   mensajes: ChatBubbleLeftRightIcon,

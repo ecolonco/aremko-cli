@@ -67,6 +67,12 @@ func (s *Server) setupRoutes() {
 		r.Get("/meta-ads/campaigns-with-insights", handlers.GetCampaignsWithInsights(s.config))
 		r.Get("/meta-ads/refugio", handlers.GetRefugioCampaign(s.config))
 
+		// Meta Ads — gestión (write). Requiere token con ads_management.
+		// Mueven dinero real → el frontend confirma antes de llamarlos.
+		r.Post("/meta-ads/campaigns/{campaign_id}/pause", handlers.PauseCampaign(s.config))
+		r.Post("/meta-ads/campaigns/{campaign_id}/activate", handlers.ActivateCampaign(s.config))
+		r.Post("/meta-ads/campaigns/{campaign_id}/budget", handlers.UpdateCampaignBudget(s.config))
+
 		// Google Ads endpoints
 		r.Get("/google-ads/summary", handlers.GetGoogleAdsSummary(s.config))
 		r.Get("/google-ads/refugio", handlers.GetGoogleAdsRefugio(s.config))

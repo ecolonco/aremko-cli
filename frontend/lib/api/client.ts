@@ -85,6 +85,28 @@ class APIClient {
     return this.fetch<RefugioCampaign>(`/api/v1/meta-ads/refugio${query ? `?${query}` : ''}`);
   }
 
+  // Meta Ads — gestión (write). Requieren token con ads_management server-side.
+  async pauseCampaign(campaignId: string) {
+    return this.fetch<{ campaign_id: string; status: string }>(
+      `/api/v1/meta-ads/campaigns/${encodeURIComponent(campaignId)}/pause`,
+      { method: 'POST' }
+    );
+  }
+
+  async activateCampaign(campaignId: string) {
+    return this.fetch<{ campaign_id: string; status: string }>(
+      `/api/v1/meta-ads/campaigns/${encodeURIComponent(campaignId)}/activate`,
+      { method: 'POST' }
+    );
+  }
+
+  async updateCampaignBudget(campaignId: string, dailyBudget: number) {
+    return this.fetch<{ campaign_id: string; daily_budget: number }>(
+      `/api/v1/meta-ads/campaigns/${encodeURIComponent(campaignId)}/budget`,
+      { method: 'POST', body: JSON.stringify({ daily_budget: dailyBudget }) }
+    );
+  }
+
   // Brief endpoints
   async getWeeklyBrief() {
     return this.fetch<WeeklyBrief>('/api/v1/brief/weekly');
