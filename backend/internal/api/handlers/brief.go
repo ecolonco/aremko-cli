@@ -798,6 +798,11 @@ func buildRefugioBlock(cfg *config.Config, token string, accounts []config.MetaA
 	// Leads reales del formulario (BD) en lugar del Pixel contaminado.
 	applyRealRefugioLeads(cfg, summary, dateStart, dateStop)
 
+	// Intención WhatsApp (Etapa 4a): clics al botón wa.me de la landing (GA4).
+	// Este es el path (getMetaAdsData → buildRefugioBlock) que alimenta el bloque
+	// "Embudo Refugio" del dashboard; sin esto el frontend muestra "Clics WhatsApp = —".
+	applyRefugioWhatsAppClicks(cfg, summary, dateStart, dateStop)
+
 	adsetRows := make([]map[string]interface{}, 0, len(adsets))
 	for i := range adsets {
 		a := &adsets[i]
