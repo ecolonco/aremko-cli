@@ -25,6 +25,7 @@ import {
   MapPin,
   Phone,
   MessageCircle,
+  Ban,
 } from 'lucide-react';
 import {
   fetchOutbox,
@@ -105,6 +106,85 @@ function BadgeGeo({ item }: { item: MasajeOutboxItem }) {
     >
       {s.icon} {label}
     </span>
+  );
+}
+
+// Motivos por defecto si Django no manda bloqueo_motivo (no debería pasar).
+const MOTIVO_ORDEN = "Primero envía el 'Gracias por la visita' a este cliente.";
+const MOTIVO_SATURACION = 'Este cliente recibió otro correo comercial hace menos de 48 h.';
+
+// Aviso inline de bloqueo (anti-saturación u orden de cadencia).
+function AvisoBloqueo({ item }: { item: MasajeOutboxItem }) {
+  if (!item.bloqueado_por_orden && !item.bloqueado_por_saturacion) return null;
+  const motivo =
+    item.bloqueo_motivo || (item.bloqueado_por_orden ? MOTIVO_ORDEN : MOTIVO_SATURACION);
+  return (
+    <div className="flex items-start gap-1 text-xs font-medium text-amber-700">
+      <Ban className="mt-0.5 h-3 w-3 flex-shrink-0" />
+      <span>
+        {motivo}
+        {item.bloqueado_por_saturacion && item.desbloquea_en
+          ? ` Se desbloquea el ${fmtFechaCL(item.desbloquea_en)}.`
+          : ''}
+      </span>
+    </div>
+  );
+}
+
+// Botón de envío según bloqueos:
+// - bloqueado_por_orden: deshabilitado, sin forzar (bloqueo duro).
+// - bloqueado_por_saturacion: "Enviar igual…" → confirma y reenvía con forzar=true.
+// - sin bloqueo: Enviar normal.
+function BotonEnviar({
+  item,
+  accionando,
+  onEnviar,
+}: {
+  item: MasajeOutboxItem;
+  accionando: boolean;
+  onEnviar: (forzar: boolean) => void;
+}) {
+  const deshabilitado = accionando || item.estado !== 'pendiente';
+  if (item.bloqueado_por_orden) {
+    return (
+      <Button size="sm" disabled title={item.bloqueo_motivo || MOTIVO_ORDEN}>
+        <Ban className="mr-1 h-4 w-4" /> Enviar
+      </Button>
+    );
+  }
+  if (item.bloqueado_por_saturacion) {
+    return (
+      <Button
+        variant="outline"
+        size="sm"
+        className="border-amber-400 text-amber-800 hover:bg-amber-50 hover:text-amber-900"
+        disabled={deshabilitado}
+        onClick={() => onEnviar(true)}
+        title={item.bloqueo_motivo || MOTIVO_SATURACION}
+      >
+        {accionando ? (
+          <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+        ) : (
+          <AlertTriangle className="mr-1 h-4 w-4" />
+        )}
+        Enviar igual…
+      </Button>
+    );
+  }
+  return (
+    <Button
+      size="sm"
+      className="bg-emerald-600 text-white hover:bg-emerald-700"
+      disabled={deshabilitado}
+      onClick={() => onEnviar(false)}
+    >
+      {accionando ? (
+        <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+      ) : (
+        <Send className="mr-1 h-4 w-4" />
+      )}
+      Enviar
+    </Button>
   );
 }
 
@@ -220,21 +300,28 @@ export default function BandejaMasajesPage() {
     return msg || `Error (HTTP ${status})`;
   };
 
-  const onEnviar = async (item: MasajeOutboxItem) => {
-    if (
-      !window.confirm(
-        `¿Enviar ahora el email a ${item.destinatario_nombre} (${item.destinatario_email})?\n\nEs definitivo: una vez enviado no se puede deshacer.`
-      )
-    )
-      return;
+  const onEnviar = async (item: MasajeOutboxItem, forzar = false) => {
+    const confirmacion = forzar
+      ? `${item.bloqueo_motivo || MOTIVO_SATURACION}` +
+        (item.desbloquea_en ? `\nSe desbloquea solo el ${fmtFechaCL(item.desbloquea_en)}.` : '') +
+        `\n\n¿Enviar IGUAL ahora a ${item.destinatario_nombre} (${item.destinatario_email})?\nEl envío forzado queda registrado.`
+      : `¿Enviar ahora el email a ${item.destinatario_nombre} (${item.destinatario_email})?\n\nEs definitivo: una vez enviado no se puede deshacer.`;
+    if (!window.confirm(confirmacion)) return;
     setAccionando(item.id);
     setAviso(null);
     try {
-      const r = await enviarItem(item.id, operador);
+      const r = await enviarItem(item.id, operador, forzar);
       if (r.ok) {
         setAviso(`✅ Email enviado a ${item.destinatario_nombre}.`);
       } else if (r.status === 422 && r.estado === 'cancelado') {
         setAviso(`⚠️ ${item.destinatario_nombre} se dio de baja; no se envió.`);
+      } else if (r.status === 409 && r.motivo === 'anti_saturacion') {
+        // El bloqueo apareció después de cargar la lista (flag desactualizado).
+        setAviso(
+          `⛔ ${r.detalle || MOTIVO_SATURACION} Tras refrescar, puedes usar "Enviar igual…" si corresponde.`
+        );
+      } else if (r.status === 409 && r.motivo === 'orden_cadencia') {
+        setAviso(`⛔ ${r.detalle || MOTIVO_ORDEN}`);
       } else {
         setAviso(`⚠️ ${mapError(r.status, r.error)}`);
       }
@@ -401,6 +488,7 @@ export default function BandejaMasajesPage() {
                       {item.tipo_label} · <Clock className="inline h-3 w-3" />{' '}
                       {fmtFechaCL(item.fecha_programada)}
                     </div>
+                    <AvisoBloqueo item={item} />
                   </div>
                   <div className="flex flex-shrink-0 flex-wrap gap-2">
                     <Button
@@ -414,19 +502,11 @@ export default function BandejaMasajesPage() {
                     <Button variant="outline" size="sm" onClick={() => setDetalle(item)}>
                       <Eye className="mr-1 h-4 w-4" /> Ver
                     </Button>
-                    <Button
-                      size="sm"
-                      className="bg-emerald-600 text-white hover:bg-emerald-700"
-                      disabled={accionando === item.id || item.estado !== 'pendiente'}
-                      onClick={() => onEnviar(item)}
-                    >
-                      {accionando === item.id ? (
-                        <Loader2 className="mr-1 h-4 w-4 animate-spin" />
-                      ) : (
-                        <Send className="mr-1 h-4 w-4" />
-                      )}
-                      Enviar
-                    </Button>
+                    <BotonEnviar
+                      item={item}
+                      accionando={accionando === item.id}
+                      onEnviar={(forzar) => onEnviar(item, forzar)}
+                    />
                     <Button
                       variant="destructive"
                       size="sm"
@@ -477,6 +557,7 @@ export default function BandejaMasajesPage() {
                       {item.ciudad ? `${item.ciudad} · ` : ''}
                       {item.tipo_label} · {fmtFechaCL(item.fecha_programada)}
                     </div>
+                    <AvisoBloqueo item={item} />
                   </div>
                   <Button variant="ghost" size="sm" onClick={() => setDetalle(item)}>
                     <Eye className="mr-1 h-4 w-4" /> Ver
@@ -495,7 +576,7 @@ export default function BandejaMasajesPage() {
           operador={operador}
           accionando={accionando === detalle.id}
           onClose={() => setDetalle(null)}
-          onEnviar={() => onEnviar(detalle)}
+          onEnviar={(forzar) => onEnviar(detalle, forzar)}
           onCancelar={() => onCancelar(detalle)}
           onGuardado={async (actualizado) => {
             setDetalle(actualizado);
@@ -524,7 +605,7 @@ function DetalleModal({
   operador: OperadorMasaje;
   accionando: boolean;
   onClose: () => void;
-  onEnviar: () => void;
+  onEnviar: (forzar: boolean) => void;
   onCancelar: () => void;
   onGuardado: (actualizado: MasajeOutboxItem) => void;
   onAviso: (msg: string) => void;
@@ -575,6 +656,9 @@ function DetalleModal({
             </p>
             <div className="mt-1.5">
               <FichaCliente item={item} onCopiar={onCopiar} />
+            </div>
+            <div className="mt-1.5">
+              <AvisoBloqueo item={item} />
             </div>
             <div className="mt-1.5">
               <button
@@ -687,19 +771,7 @@ function DetalleModal({
               <Button variant="destructive" size="sm" onClick={onCancelar} disabled={accionando}>
                 <Trash2 className="mr-1 h-4 w-4" /> Descartar
               </Button>
-              <Button
-                size="sm"
-                className="bg-emerald-600 text-white hover:bg-emerald-700"
-                onClick={onEnviar}
-                disabled={accionando}
-              >
-                {accionando ? (
-                  <Loader2 className="mr-1 h-4 w-4 animate-spin" />
-                ) : (
-                  <Send className="mr-1 h-4 w-4" />
-                )}
-                Enviar
-              </Button>
+              <BotonEnviar item={item} accionando={accionando} onEnviar={onEnviar} />
             </>
           ) : (
             <span className="text-xs text-slate-400">

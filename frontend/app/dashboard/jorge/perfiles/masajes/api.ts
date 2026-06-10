@@ -32,6 +32,11 @@ export interface AccionResult {
   item?: MasajeOutboxItem;
   estado?: string;
   error?: string | null;
+  // 409 estructurados del send (anti-duplicado, Django 2026-06-10). El 409
+  // antiguo de "ya no está pendiente" viene sin motivo.
+  motivo?: 'anti_saturacion' | 'orden_cadencia' | string | null;
+  detalle?: string | null;
+  desbloquea_en?: string | null;
 }
 
 const accion = async (
@@ -51,14 +56,19 @@ const accion = async (
     item: json.item as MasajeOutboxItem | undefined,
     estado: json.estado as string | undefined,
     error: (json.error as string | undefined) ?? null,
+    motivo: (json.motivo as string | undefined) ?? null,
+    detalle: (json.detalle as string | undefined) ?? null,
+    desbloquea_en: (json.desbloquea_en as string | undefined) ?? null,
   };
 };
 
 export const editarItem = (id: number, asunto: string, cuerpo: string, operador: string) =>
   accion('PATCH', `/${id}`, { asunto, cuerpo, operador });
 
-export const enviarItem = (id: number, operador: string) =>
-  accion('POST', `/${id}/send`, { operador });
+// forzar=true salta la anti-saturación (confirmar con el operador antes).
+// No aplica al bloqueo por orden de cadencia, que es duro.
+export const enviarItem = (id: number, operador: string, forzar = false) =>
+  accion('POST', `/${id}/send`, forzar ? { operador, forzar: true } : { operador });
 
 export const cancelarItem = (id: number, operador: string) =>
   accion('POST', `/${id}/cancel`, { operador });

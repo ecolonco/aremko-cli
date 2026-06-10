@@ -44,6 +44,15 @@ export interface MasajeOutboxItem {
   cliente_nuevo?: boolean;
   // Solo presente en "para_enviar" (vencidos). En "programados" no viene.
   preview_html?: string | null;
+  // Anti-duplicado + orden de cadencia (Django 2026-06-10). Vienen en ambas listas.
+  // - bloqueado_por_saturacion: comercial y el cliente recibió otro comercial
+  //   hace <48 h. Se puede forzar (forzar=true en el send, previa confirmación).
+  // - bloqueado_por_orden: resumen_bienestar cuyo gracias_visita sigue pendiente.
+  //   Bloqueo duro, sin forzar.
+  bloqueado_por_saturacion?: boolean;
+  desbloquea_en?: string | null; // ISO 8601 con TZ
+  bloqueado_por_orden?: boolean;
+  bloqueo_motivo?: string | null; // texto listo para mostrar al operador
 }
 
 export interface MasajeOutboxResponse {
