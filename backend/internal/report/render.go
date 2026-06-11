@@ -135,26 +135,37 @@ func stripOrdinal(s string) string {
 // mismo nivel/emoji del encabezado. Si no encuentra la estructura, degrada
 // devolviendo todo como ejecutivo y detalle vacío (sin duplicar).
 func SplitReport(md string) (ejecutivo, detalle string) {
-	deep := lineStartOf(md, "Análisis Profundo")
-	if deep < 0 {
-		deep = lineStartOf(md, "Estado por Dimensión")
+	// Fin del INTRO = primer header de campaña/análisis tras "3 Cifras".
+	// El ejecutivo tight = solo Veredicto + 3 Cifras (intro) + Acciones priorizadas.
+	// Todo lo del medio (detalle Refugio, GiftCard, Análisis Profundo, Estado,
+	// Bonus) baja al bloque "detalle".
+	// Fin del intro = el siguiente header "## " DESPUÉS de "3 Cifras". Anclamos
+	// en "3 Cifras" (solo aparece como header) en vez de en nombres de campaña,
+	// que el modelo también usa en la prosa del veredicto.
+	introEnd := -1
+	if cifras := strings.Index(md, "3 Cifras"); cifras >= 0 {
+		if rel := strings.Index(md[cifras:], "\n## "); rel >= 0 {
+			introEnd = cifras + rel + 1 // +1 = inicio de la línea "## "
+		}
+	}
+	if introEnd < 0 {
+		introEnd = lineStartOf(md, "Análisis Profundo") // degradación
 	}
 	act := lineStartOf(md, "Acciones priorizadas")
 
-	if deep < 0 {
+	if introEnd < 0 {
 		return md, "" // estructura inesperada → todo al cuerpo, sin detalle
 	}
-	head := strings.TrimRight(md[:deep], "\n ")
+	intro := strings.TrimRight(md[:introEnd], "\n ")
 
-	if act > deep {
-		// detalle = desde el inicio del bloque profundo hasta antes de Acciones
-		detalle = strings.TrimSpace(md[deep:act])
-		ejecutivo = head + "\n\n" + md[act:]
+	if act > introEnd {
+		detalle = strings.TrimSpace(md[introEnd:act])
+		ejecutivo = intro + "\n\n" + md[act:]
 		return ejecutivo, detalle
 	}
-	// No hay sección de Acciones separada → todo lo profundo va a detalle
-	detalle = strings.TrimSpace(md[deep:])
-	return head, detalle
+	// No hay sección de Acciones separada → todo lo del medio va a detalle
+	detalle = strings.TrimSpace(md[introEnd:])
+	return intro, detalle
 }
 
 // lineStartOf devuelve el índice del INICIO de la línea que contiene needle
