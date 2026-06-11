@@ -701,6 +701,52 @@ func (c *Client) GetRefugioLeadsSummary(desde, hasta, apiKey string) (*RefugioLe
 	return &out, nil
 }
 
+// RefugioLeadItem es un lead del formulario (o un contacto WhatsApp) devuelto por
+// /api/refugio-leads/. Solo mapeamos los campos que usa el cruce de reservas.
+type RefugioLeadItem struct {
+	TelefonoE164 string `json:"telefono_e164"`
+	Nombre       string `json:"nombre"`
+	Canal        string `json:"canal"`
+}
+
+// RefugioLeadsList es la respuesta de /api/refugio-leads/ (listado, no conteos).
+type RefugioLeadsList struct {
+	OK              bool              `json:"ok"`
+	LeadsFormulario []RefugioLeadItem `json:"leads_formulario"`
+	WhatsappLeads   []RefugioLeadItem `json:"whatsapp_leads"`
+	Totales         struct {
+		FormularioTotal      int `json:"formulario_total"`
+		WhatsappInboundTotal int `json:"whatsapp_inbound_total"`
+	} `json:"totales"`
+}
+
+// GetRefugioLeads consulta /api/refugio-leads/ (H-002): lista los leads del
+// formulario con teléfono normalizado (+569XXXXXXXX) + canal, y los contactos
+// WhatsApp entrantes con marcador [Refugio]. Requiere header X-API-Key.
+func (c *Client) GetRefugioLeads(desde, hasta, apiKey string) (*RefugioLeadsList, error) {
+	url := fmt.Sprintf("%s/api/refugio-leads/?desde=%s&hasta=%s", c.BaseURL, desde, hasta)
+	req, err := http.NewRequest(http.MethodGet, url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("error creando request refugio-leads: %w", err)
+	}
+	req.Header.Set("X-API-Key", apiKey)
+
+	resp, err := c.HTTPClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("error fetching refugio-leads: %w", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("refugio-leads status %d", resp.StatusCode)
+	}
+
+	var out RefugioLeadsList
+	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
+		return nil, fmt.Errorf("error decoding refugio-leads: %w", err)
+	}
+	return &out, nil
+}
+
 // GetWeeklyBreakdown fetches the 12-week matrix of bookings by family and clients
 func (c *Client) GetWeeklyBreakdown(weeks int) (*WeeklyBreakdown, error) {
 	if weeks <= 0 {

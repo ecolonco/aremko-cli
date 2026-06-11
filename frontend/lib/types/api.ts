@@ -139,6 +139,12 @@ export interface RefugioSummary {
   whatsapp_clicks_by_source?: { source: string; medium: string; event_count: number; users: number }[];
   cost_per_whatsapp_click?: number;     // gasto Meta / clics WhatsApp
   whatsapp_to_lead_rate?: number;       // % de clics WhatsApp que dejaron datos en el form (ya en %)
+  // Etapa 4b (H-002) — cruce teléfono de lead → reservas reales del booking system
+  reservas_count?: number;     // leads (form + WhatsApp) que terminaron con ≥1 reserva
+  reservas_revenue?: number;   // CLP facturados por esos clientes desde el inicio de campaña
+  roas?: number;               // reservas_revenue / spend
+  whatsapp_inbound?: number;   // contactos WhatsApp entrantes con marcador [Refugio]
+  cpl_intencion?: number;      // gasto / (formulario + WhatsApp entrante)
 }
 
 export interface RefugioAdset {

@@ -810,6 +810,9 @@ func buildRefugioBlock(cfg *config.Config, token string, accounts []config.MetaA
 	// "Embudo Refugio" del dashboard; sin esto el frontend muestra "Clics WhatsApp = —".
 	applyRefugioWhatsAppClicks(cfg, summary, dateStart, dateStop)
 
+	// Ventas y ROAS reales (Etapa 4b, H-002): cruce teléfono de lead → reservas.
+	applyRefugioSalesAndROAS(cfg, summary, dateStart, dateStop)
+
 	adsetRows := adsetInsightRows(adsets)
 
 	// Ventana RECIENTE (últimos 3 días): separa el efecto de las optimizaciones

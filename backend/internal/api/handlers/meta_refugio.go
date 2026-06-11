@@ -226,6 +226,70 @@ func applyRefugioWhatsAppClicks(cfg *config.Config, summary map[string]interface
 	}
 }
 
+// applyRefugioSalesAndROAS cierra la Etapa 4b (H-002): cruza el teléfono de cada
+// lead de Refugio (formulario + WhatsApp entrante, vía /api/refugio-leads/) contra
+// las reservas reales del booking system, y agrega al summary las reservas, los
+// ingresos atribuidos y el ROAS, más el CPL de intención (form + WhatsApp).
+// Falla suave: si algo no responde, deja el summary como estaba (sin reservas).
+func applyRefugioSalesAndROAS(cfg *config.Config, summary map[string]interface{}, dateStart, dateStop string) {
+	if cfg.LunaAPIKey == "" || cfg.BookingSystemURL == "" {
+		return
+	}
+	client := bookings.NewClient(cfg.BookingSystemURL)
+	leads, err := client.GetRefugioLeads(dateStart, dateStop, cfg.LunaAPIKey)
+	if err != nil || leads == nil {
+		return
+	}
+
+	// Teléfonos únicos de quienes mostraron intención real (form + WhatsApp).
+	telefonos := make(map[string]bool)
+	for _, l := range leads.LeadsFormulario {
+		if l.TelefonoE164 != "" {
+			telefonos[l.TelefonoE164] = true
+		}
+	}
+	for _, l := range leads.WhatsappLeads {
+		if l.TelefonoE164 != "" {
+			telefonos[l.TelefonoE164] = true
+		}
+	}
+
+	// Cruce contra reservas: por cada teléfono, sus reservas desde el inicio de
+	// campaña (incluye reservas futuras como la del 20-jun). Volumen bajo → serie.
+	var reservasRevenue float64
+	var clientesConReserva int
+	for tel := range telefonos {
+		det, err := client.GetVentasDetalle(dateStart, "", "", "", "", tel)
+		if err != nil || det == nil {
+			continue
+		}
+		if det.TotalRevenue > 0 {
+			reservasRevenue += det.TotalRevenue
+			clientesConReserva++
+		}
+	}
+
+	summary["reservas_count"] = clientesConReserva
+	summary["reservas_revenue"] = reservasRevenue
+	summary["whatsapp_inbound"] = leads.Totales.WhatsappInboundTotal
+
+	spend, _ := summary["spend"].(float64)
+	if spend > 0 {
+		summary["roas"] = reservasRevenue / spend
+	} else {
+		summary["roas"] = 0.0
+	}
+
+	// CPL de intención = gasto ÷ (formulario + WhatsApp entrante). El CPL de
+	// formulario ya lo dejó applyRealRefugioLeads en summary["cpl"].
+	intencion := leads.Totales.FormularioTotal + leads.Totales.WhatsappInboundTotal
+	if intencion > 0 {
+		summary["cpl_intencion"] = spend / float64(intencion)
+	} else {
+		summary["cpl_intencion"] = 0.0
+	}
+}
+
 // resolveCampaignAccount pregunta a Meta a qué cuenta pertenece realmente la
 // campaña y matchea contra las cuentas configuradas para devolver el label
 // humano. Si no se puede resolver, cae a la primera cuenta como fallback.

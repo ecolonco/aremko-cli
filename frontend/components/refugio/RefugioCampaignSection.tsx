@@ -162,14 +162,27 @@ export default function RefugioCampaignSection({ data }: Props) {
                   : 'formulario real (BD)'}
               </p>
             </div>
-            <div className="rounded-md border border-dashed bg-gray-50 p-3">
+            <div className={`rounded-md border p-3 ${(summary.reservas_revenue ?? 0) > 0 ? 'border-2 border-emerald-300 bg-emerald-50' : 'bg-white'}`}>
               <p className="text-xs text-muted-foreground">🛒 Reservas / Ventas</p>
-              <p className="text-lg font-bold text-gray-400">—</p>
-              <p className="text-xs text-gray-500">Etapa 4b · cruce BD pendiente</p>
+              <p className={`text-lg font-bold ${(summary.reservas_revenue ?? 0) > 0 ? 'text-emerald-700' : 'text-gray-400'}`}>
+                {summary.reservas_revenue != null && summary.reservas_revenue > 0
+                  ? formatCLP(summary.reservas_revenue)
+                  : summary.reservas_count != null
+                    ? '$0'
+                    : '—'}
+              </p>
+              <p className="text-xs text-gray-500">
+                {summary.reservas_count != null
+                  ? `${formatNumber(summary.reservas_count)} con reserva · ROAS ${summary.roas != null && summary.roas > 0 ? `${summary.roas.toFixed(2)}×` : '—'}`
+                  : 'cruce teléfono → reservas'}
+              </p>
             </div>
           </div>
           <p className="text-xs text-gray-500 mt-3">
-            La landing <code>/refugio/</code> convierte por dos vías: <strong>formulario</strong> (→BD) y <strong>WhatsApp</strong> (clic al botón wa.me, evento GA4). El informe antes solo veía la primera. El cierre a <strong>ventas reales</strong> (match teléfono → reservas) llega en la Etapa 4b.
+            La landing <code>/refugio/</code> convierte por dos vías: <strong>formulario</strong> (→BD) y <strong>WhatsApp</strong> (clic al botón wa.me, evento GA4). El cierre a <strong>ventas reales</strong> cruza el teléfono de cada lead (formulario + WhatsApp) contra las reservas del booking system.
+            {summary.cpl_intencion != null && summary.cpl_intencion > 0 && (
+              <> CPL formulario <strong>{formatCLP(summary.cpl)}</strong> · CPL intención (form + WhatsApp) <strong>{formatCLP(summary.cpl_intencion)}</strong>.</>
+            )}
           </p>
         </div>
 
