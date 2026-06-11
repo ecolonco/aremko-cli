@@ -701,11 +701,13 @@ Genera un análisis EJECUTIVO PROFUNDO siguiendo EXACTAMENTE la estructura del s
 func (c *OpenRouterClient) GenerateMetaAdsAnalysis(ctx context.Context, metaAdsData map[string]interface{}) (*LLMResult, error) {
 	roleIntro := `Eres el analista ejecutivo de Aremko Spa Boutique especializado en publicidad pagada en Meta Ads (Facebook + Instagram). Tu trabajo es transformar las métricas de campañas en decisiones concretas sobre distribución de presupuesto, escalamiento de campañas ganadoras, pausa de perdedoras y prevención de fatiga creativa.
 
-Atiende DOS tipos de campañas distintos y NO los mezcles:
+Atiende TRES tipos de campañas distintos y NO los mezcles:
 
 1. **Campañas históricas (objetivo Engagement/Messages):** métricas primarias = CTR, CPC, CPM, alcance. Referencias spa/turismo en Chile: CTR 1-2%, CPC $300-800 CLP, CPM $5.000-15.000 CLP.
 
-2. **Campaña Refugio (objetivo OUTCOME_LEADS, soft launch 28-may a 7-jun):** métrica primaria = CPL (costo por Lead) y volumen de Leads. CTR sirve como proxy de interés pero NO decide ganadores. Si el payload trae el bloque "refugio", trátala APARTE con su propia sección. Umbrales del operativo: CTR verde >2%, CPL verde <$10K CLP, frequency verde <2.`
+2. **Campaña Refugio (objetivo OUTCOME_LEADS, soft launch 28-may a 7-jun):** métrica primaria = CPL (costo por Lead) y volumen de Leads. CTR sirve como proxy de interés pero NO decide ganadores. Si el payload trae el bloque "refugio", trátala APARTE con su propia sección. Umbrales del operativo: CTR verde >2%, CPL verde <$10K CLP, frequency verde <2.
+
+3. **Campaña GiftCard Día del Padre (objetivo OUTCOME_SALES, 11-jun a 21-jun-2026):** métrica primaria = COMPRAS del píxel (evento Purchase), costo por compra y ROAS (purchase_value/spend). Es una campaña estacional CORTA con deadline duro (el Día del Padre es el domingo 21-jun; se apaga sola el 22). Si el payload trae el bloque "giftcard", trátala APARTE con su propia sección. NO la midas con métricas de engagement ni la mezcles con las históricas.`
 
 	domainStructure := `## 🌿 Campaña Refugio (Soft Launch) — SOLO SI EL PAYLOAD TRAE EL BLOQUE refugio
 
@@ -769,10 +771,34 @@ Una única decisión para ESTA semana sobre Refugio, con formato Movida (acción
 
 ---
 
+## 🎁 Campaña GiftCard Día del Padre — SOLO SI EL PAYLOAD TRAE EL BLOQUE giftcard
+
+Si meta_ads.giftcard existe, esta sección va después de Refugio (o primero si refugio no existe). Si no existe, omitirla por completo.
+
+### Reloj estacional (lo más importante de esta campaña)
+- end_date es el Día del Padre (21-jun). Calcula los DÍAS RESTANTES desde hoy: la compra de regalos se concentra en los últimos 5-7 días, así que el gasto y las compras DEBEN acelerar hacia el final, no ser parejos.
+- % presupuesto usado (summary.budget_pct_used) vs % del tiempo transcurrido del período 11-jun→21-jun. Sub-ejecución temprana es aceptable; sub-ejecución después del 15-jun es pérdida de la ventana.
+- Después del 21-jun NO recomendar extender ni escalar: la campaña muere sola el 22-jun. Si ya pasó, la sección es solo post-mortem.
+
+### Métrica primaria — Compras y ROAS
+- summary.purchases (evento Purchase del píxel = compra de gift card en aremko.cl/ventas/giftcards/). Si purchases=0 en los primeros 2-3 días, ES ESPERADO (campaña nueva + ventana de atribución); decirlo sin alarmar. Si purchases=0 después del 16-jun con >$25K gastados, hay fuga en la página de compra — recomendar revisión del checkout, no más presupuesto.
+- summary.cost_per_purchase: una gift card típica vale $50-140K CLP, así que costo por compra verde <$15K, amarillo $15-30K, rojo >$30K.
+- summary.roas (ingresos atribuidos/gasto): verde >3, amarillo 1-3, rojo <1. Si purchase_value=0 con compras>0, el píxel no está mandando value — señalarlo como instrumentación, no como fracaso.
+- El píxel ATRIBUYE, no contabiliza: el total oficial vive en la BD del booking system. Recordarlo si los números parecen bajos.
+
+### Soporte — tráfico y plataformas
+- CTR/CPC como diagnóstico del creativo (reel "Feliz día PAPÁ"), no como objetivo. CTR verde >2%.
+- Si giftcard.platforms existe: ¿qué plataforma trae los clics más baratos? ¿coincide con la que compra? Gracias a los UTM dinámicos el cruce con GA4 es por plataforma real (fb/ig).
+
+### Recomendación accionable GiftCard (UNA sola)
+Una única decisión con deadline explícito (ej. "antes del viernes 19"), anclada a números. Opciones típicas: subir presupuesto los días 18-21 si ROAS>3, ajustar creativo si CTR<1.5%, revisar checkout si hay clics sin compras. NO mezclar con Refugio ni con históricas.
+
+---
+
 ## 🔍 Análisis Profundo por Campaña
 
 ### Mejores 3 Campañas por Inversión
-EXCLUIR la campaña Refugio si ya fue analizada arriba; este bloque cubre las históricas de Engagement/Messages. Para cada una de las 3 campañas con mayor inversión del período (de campaigns o recent_campaigns):
+EXCLUIR las campañas Refugio y GiftCard si ya fueron analizadas arriba; este bloque cubre las históricas de Engagement/Messages. Para cada una de las 3 campañas con mayor inversión del período (de campaigns o recent_campaigns):
 - **Inversión y volumen:** gasto, impresiones, clics, alcance
 - **Eficiencia:** CTR + CPC + CPM vs referencia spa/turismo
 - **Antigüedad y fatiga:** días activa; si >14d con CTR cayendo, riesgo de fatiga creativa
@@ -835,7 +861,7 @@ Genera un análisis EJECUTIVO PROFUNDO siguiendo EXACTAMENTE la estructura del s
 // Refugio, y Google Ads Refugio si existe). Analiza cada parte y, sobre todo, las
 // CRUZA. El payload trae "organic" {instagram, facebook} y "paid" {meta_ads, google_ads}.
 func (c *OpenRouterClient) GenerateSocialAnalysis(ctx context.Context, socialData map[string]interface{}) (*LLMResult, error) {
-	roleIntro := `Eres el analista ejecutivo de Aremko Spa Boutique (Puerto Varas, Chile) a cargo de TODO el canal social: lo ORGÁNICO (Instagram @aremkospa + Página de Facebook) y lo PAGADO (Meta Ads en Facebook/Instagram, incluida la campaña Refugio, y Google Ads Refugio si está presente). Tu trabajo es producir UN solo informe que (1) analice el orgánico, (2) analice el pagado, y sobre todo (3) los CRUCE: qué rinde mejor por peso invertido, qué temas/ganchos ganadores del orgánico conviene amplificar con pago, y cuáles ya cubre el orgánico gratis. El payload trae "organic" {instagram, facebook} y "paid" {meta_ads, google_ads}. Si alguna parte viene null/vacía, decláralo como brecha de medición pero analiza el resto a fondo.`
+	roleIntro := `Eres el analista ejecutivo de Aremko Spa Boutique (Puerto Varas, Chile) a cargo de TODO el canal social: lo ORGÁNICO (Instagram @aremkospa + Página de Facebook) y lo PAGADO (Meta Ads en Facebook/Instagram, incluidas las campañas Refugio y GiftCard Día del Padre, y Google Ads Refugio si está presente). Tu trabajo es producir UN solo informe que (1) analice el orgánico, (2) analice el pagado, y sobre todo (3) los CRUCE: qué rinde mejor por peso invertido, qué temas/ganchos ganadores del orgánico conviene amplificar con pago, y cuáles ya cubre el orgánico gratis. El payload trae "organic" {instagram, facebook} y "paid" {meta_ads, google_ads}. Si alguna parte viene null/vacía, decláralo como brecha de medición pero analiza el resto a fondo.`
 
 	domainStructure := `## 🟢 ORGÁNICO (Instagram + Facebook)
 
@@ -860,8 +886,13 @@ Para CADA canal presente en organic.instagram y organic.facebook:
 - **Plataforma/placement** (platforms/positions) si existen: dónde se concentra el gasto vs dónde llegan los leads; proponer excluir lo ineficiente.
 - **Cross-channel Meta vs Google** — SOLO si paid.google_ads.refugio existe: inversión y leads por canal, CPL decisor, recomendación de rebalanceo. Meta = push, Google Search = pull.
 
+### Campaña GiftCard Día del Padre — SOLO si paid.meta_ads.giftcard existe
+- **Métrica primaria = COMPRAS del píxel y ROAS** (NO clics ni interacción). Costo por compra verde <$15K CLP; ROAS verde >3. purchases=0 los primeros 2-3 días es esperado.
+- **Reloj estacional:** termina el 21-jun (Día del Padre); el gasto debe acelerar hacia los días 18-21, no ser parejo. Después del 21 es solo post-mortem, no recomendar extender.
+- **Cruce con orgánico:** los reels orgánicos del Día del Padre alimentan la misma intención — ¿el orgánico está empujando el tema para que el pagado cierre la compra?
+
 ### Campañas históricas (Engagement/Messages)
-EXCLUIR Refugio aquí. Para las 3 con mayor inversión (paid.meta_ads.campaigns):
+EXCLUIR Refugio y GiftCard aquí. Para las 3 con mayor inversión (paid.meta_ads.campaigns):
 - Inversión, impresiones, clics, alcance; CTR/CPC/CPM vs referencia spa/turismo (CTR 1-2%, CPC $300-800, CPM $5K-15K CLP).
 - Ganadoras vs perdedoras: qué funciona, dónde se desperdicia gasto.
 - Fatiga: campañas >14 días con CTR cayendo.
