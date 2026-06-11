@@ -71,6 +71,13 @@ type Config struct {
 	// Usado para traer leads reales del formulario Refugio (ventas_refugiolead).
 	LunaAPIKey string
 
+	// Reporte diario por email (cron-job.org → /api/v1/cron/reporte-diario)
+	SendGridAPIKey       string   // envío de email (mismo SendGrid de Aremko)
+	ReporteCronToken     string   // protege el endpoint del cron (?token=...)
+	ReporteFromEmail     string   // remitente verificado en SendGrid
+	ReporteFromName      string   // nombre visible del remitente
+	ReporteDestinatarios []string // lista de distribución (coma-separada en la env var)
+
 	// Database
 	DatabaseURL string
 
@@ -127,6 +134,11 @@ func LoadConfig() (*Config, error) {
 		BookingSystemURL:   getEnvOrDefault("BOOKING_SYSTEM_URL", "http://localhost:8002"),
 		AutomationAPIKey:   getEnvOrDefault("AUTOMATION_API_KEY", ""),
 		LunaAPIKey:         getEnvOrDefault("LUNA_API_KEY", ""),
+		SendGridAPIKey:       getEnvOrDefault("SENDGRID_API_KEY", ""),
+		ReporteCronToken:     getEnvOrDefault("REPORTE_CRON_TOKEN", ""),
+		ReporteFromEmail:     getEnvOrDefault("REPORTE_FROM_EMAIL", "noreply@aremko.cl"),
+		ReporteFromName:      getEnvOrDefault("REPORTE_FROM_NAME", "Aremko · Reporte diario"),
+		ReporteDestinatarios: parseCSVEnv("REPORTE_DIARIO_DESTINATARIOS"),
 		DatabaseURL:        getEnvOrDefault("DATABASE_URL", "postgres://localhost/aremko?sslmode=disable"),
 		Port:               getEnvOrDefault("PORT", "8080"),
 		Environment:        getEnvOrDefault("ENVIRONMENT", "development"),
@@ -216,6 +228,23 @@ func parseIntEnv(key string, defaultValue int) int {
 		return defaultValue
 	}
 	return v
+}
+
+// parseCSVEnv devuelve una lista a partir de una env var coma-separada,
+// recortando espacios y descartando vacíos. Ej: "a@x.cl, b@y.cl" → [a@x.cl b@y.cl].
+func parseCSVEnv(key string) []string {
+	raw := strings.TrimSpace(os.Getenv(key))
+	if raw == "" {
+		return nil
+	}
+	parts := strings.Split(raw, ",")
+	out := make([]string, 0, len(parts))
+	for _, p := range parts {
+		if v := strings.TrimSpace(p); v != "" {
+			out = append(out, v)
+		}
+	}
+	return out
 }
 
 // parseMetaAccounts arma la lista de cuentas desde META_AD_ACCOUNT_IDS +

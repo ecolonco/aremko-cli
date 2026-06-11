@@ -103,6 +103,10 @@ func (s *Server) setupRoutes() {
 		// Social unificado (Orgánico + Pagado, lectura cruzada) — botón "todo el bloque"
 		r.Post("/analytics/social/analyze", handlers.AnalyzeSocial(s.config))
 
+		// Reporte diario por email (cron-job.org) — análisis Meta Ads a la lista de distribución
+		r.Get("/cron/reporte-diario", handlers.ReporteDiarioMetaAds(s.config))
+		r.Post("/cron/reporte-diario", handlers.ReporteDiarioMetaAds(s.config))
+
 		// Sales AI Analysis
 		r.Post("/analytics/sales/analyze", handlers.AnalyzeSales(s.config))
 
