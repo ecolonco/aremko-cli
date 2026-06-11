@@ -8,8 +8,9 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import RefugioCampaignSection from '@/components/refugio/RefugioCampaignSection';
 import CrossChannelComparison from '@/components/refugio/CrossChannelComparison';
+import GiftCardCampaignSection from '@/components/giftcard/GiftCardCampaignSection';
 import GoogleAdsRefugioCard from '@/components/google-ads/GoogleAdsRefugioCard';
-import type { RefugioCampaign, GoogleAdsRefugio } from '@/lib/types/api';
+import type { RefugioCampaign, GiftCardCampaign, GoogleAdsRefugio } from '@/lib/types/api';
 import {
   TrendingUp,
   TrendingDown,
@@ -2359,6 +2360,11 @@ export default function BriefPage() {
                   {/* Campaña Refugio — vista dedicada (Leads/CPL como métricas primarias). */}
                   {data.meta_ads.refugio && (
                     <RefugioCampaignSection data={data.meta_ads.refugio as RefugioCampaign} />
+                  )}
+
+                  {/* Campaña GiftCard Día del Padre — vista dedicada (Compras/ROAS como métricas primarias). */}
+                  {data.meta_ads.giftcard && (
+                    <GiftCardCampaignSection data={data.meta_ads.giftcard as GiftCardCampaign} />
                   )}
 
                   {/* Google Ads Refugio — espejo de Meta */}

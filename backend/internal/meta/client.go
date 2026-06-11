@@ -58,6 +58,7 @@ type AdInsights struct {
 	Reach             int64      `json:"reach,string"`
 	Frequency         float64    `json:"frequency,string"`
 	Actions           []AdAction `json:"actions,omitempty"`
+	ActionValues      []AdAction `json:"action_values,omitempty"`
 	DateStart         string     `json:"date_start"`
 	DateStop          string     `json:"date_stop"`
 }
@@ -83,6 +84,51 @@ func (i *AdInsights) CPL() float64 {
 		return 0
 	}
 	return i.Spend / float64(leads)
+}
+
+// Purchases devuelve las compras reportadas por Meta. La misma conversión
+// aparece repetida bajo varios action_type (omni_purchase, purchase,
+// offsite_conversion.fb_pixel_purchase), así que tomamos el MÁXIMO en vez de
+// sumar para no contar doble.
+func (i *AdInsights) Purchases() int64 {
+	var best int64
+	for _, a := range i.Actions {
+		switch a.ActionType {
+		case "omni_purchase", "purchase", "offsite_conversion.fb_pixel_purchase":
+			var v int64
+			_, _ = fmt.Sscanf(a.Value, "%d", &v)
+			if v > best {
+				best = v
+			}
+		}
+	}
+	return best
+}
+
+// CostPerPurchase calcula el costo por compra. Retorna 0 si no hay compras.
+func (i *AdInsights) CostPerPurchase() float64 {
+	p := i.Purchases()
+	if p == 0 {
+		return 0
+	}
+	return i.Spend / float64(p)
+}
+
+// PurchaseValue devuelve el valor (CLP) de las compras según action_values.
+// Mismo criterio de máximo que Purchases() para evitar doble conteo.
+func (i *AdInsights) PurchaseValue() float64 {
+	var best float64
+	for _, a := range i.ActionValues {
+		switch a.ActionType {
+		case "omni_purchase", "purchase", "offsite_conversion.fb_pixel_purchase":
+			var v float64
+			_, _ = fmt.Sscanf(a.Value, "%f", &v)
+			if v > best {
+				best = v
+			}
+		}
+	}
+	return best
 }
 
 // GetCampaigns obtiene todas las campañas de la cuenta
@@ -113,8 +159,9 @@ func (c *Client) GetCampaigns() ([]Campaign, error) {
 }
 
 // GetCampaignInsights obtiene las métricas de una campaña en un rango de fechas
+// (incluye action_values para poder calcular valor de compras / ROAS).
 func (c *Client) GetCampaignInsights(campaignID, dateStart, dateStop string) (*AdInsights, error) {
-	url := fmt.Sprintf("%s/%s/insights?fields=campaign_id,campaign_name,impressions,clicks,spend,reach,frequency,actions&time_range={\"since\":\"%s\",\"until\":\"%s\"}&access_token=%s",
+	url := fmt.Sprintf("%s/%s/insights?fields=campaign_id,campaign_name,impressions,clicks,spend,reach,frequency,actions,action_values&time_range={\"since\":\"%s\",\"until\":\"%s\"}&access_token=%s",
 		graphAPIBaseURL, campaignID, dateStart, dateStop, c.accessToken)
 
 	resp, err := c.httpClient.Get(url)

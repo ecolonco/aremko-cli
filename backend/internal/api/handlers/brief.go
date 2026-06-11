@@ -668,6 +668,13 @@ func getMetaAdsData(cfg *config.Config, dateStart, dateStop string) (map[string]
 		}
 	}
 
+	// Bloque GiftCard Día del Padre (vista dedicada, métricas de compra).
+	if cfg.MetaGiftCardCampaignID != "" {
+		if giftcard := buildGiftCardBlock(cfg, token, accounts); giftcard != nil {
+			result["giftcard"] = giftcard
+		}
+	}
+
 	// Si TODAS las cuentas fallaron y no hay datos, propagar el error original.
 	if len(allCampaigns) == 0 && firstErr != nil {
 		return nil, firstErr
@@ -833,6 +840,69 @@ func buildRefugioBlock(cfg *config.Config, token string, accounts []config.MetaA
 		"platforms":     platformRows(platforms),
 		"positions":     positionRows(positions),
 		"thresholds":    refugioThresholds(),
+	}
+}
+
+// buildGiftCardBlock arma el bloque de la campaña GiftCard Día del Padre.
+// Espejo liviano de buildRefugioBlock: la métrica primaria son las COMPRAS del
+// píxel (evento Purchase) y su valor en CLP (ROAS), no leads. El rango va desde
+// el lanzamiento (11-jun-2026) hasta hoy porque la campaña dura ~11 días y
+// queremos verla completa cada vez. Devuelve nil si no hay cuentas.
+func buildGiftCardBlock(cfg *config.Config, token string, accounts []config.MetaAccount) map[string]interface{} {
+	dateStart := "2026-06-11"
+	dateStop := time.Now().Format("2006-01-02")
+
+	if len(accounts) == 0 {
+		return nil
+	}
+	accountID, accountLabel := resolveCampaignAccount(token, cfg.MetaGiftCardCampaignID, accounts)
+	client := meta.NewClient(token, accountID)
+	campaignInsight, _ := client.GetCampaignInsights(cfg.MetaGiftCardCampaignID, dateStart, dateStop)
+	platforms, _ := client.GetCampaignInsightsByPlatform(cfg.MetaGiftCardCampaignID, dateStart, dateStop)
+
+	summary := map[string]interface{}{
+		"spend":             0.0,
+		"impressions":       int64(0),
+		"clicks":            int64(0),
+		"reach":             int64(0),
+		"frequency":         0.0,
+		"ctr":               0.0,
+		"cpc":               0.0,
+		"purchases":         int64(0),
+		"cost_per_purchase": 0.0,
+		"purchase_value":    0.0,
+		"roas":              0.0,
+		"budget_total_clp":  cfg.MetaGiftCardBudgetCLP,
+		"budget_pct_used":   0.0,
+	}
+	if campaignInsight != nil {
+		summary["spend"] = campaignInsight.Spend
+		summary["impressions"] = campaignInsight.Impressions
+		summary["clicks"] = campaignInsight.Clicks
+		summary["reach"] = campaignInsight.Reach
+		summary["frequency"] = campaignInsight.Frequency
+		summary["ctr"] = campaignInsight.CalculateCTR()
+		summary["cpc"] = campaignInsight.CalculateCPC()
+		summary["purchases"] = campaignInsight.Purchases()
+		summary["cost_per_purchase"] = campaignInsight.CostPerPurchase()
+		summary["purchase_value"] = campaignInsight.PurchaseValue()
+		if campaignInsight.Spend > 0 {
+			summary["roas"] = campaignInsight.PurchaseValue() / campaignInsight.Spend
+		}
+		if cfg.MetaGiftCardBudgetCLP > 0 {
+			summary["budget_pct_used"] = (campaignInsight.Spend / cfg.MetaGiftCardBudgetCLP) * 100
+		}
+	}
+
+	return map[string]interface{}{
+		"campaign_id":   cfg.MetaGiftCardCampaignID,
+		"campaign_name": campaignName(campaignInsight),
+		"account_id":    accountID,
+		"account_label": accountLabel,
+		"period":        map[string]string{"start": dateStart, "end": dateStop},
+		"end_date":      "2026-06-21", // Día del Padre; la campaña se apaga sola el 22-jun 00:00 PDT
+		"summary":       summary,
+		"platforms":     platformRows(platforms),
 	}
 }
 

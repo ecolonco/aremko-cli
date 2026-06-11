@@ -24,6 +24,10 @@ type Config struct {
 	MetaRefugioCampaignID string
 	MetaRefugioBudgetCLP  float64 // presupuesto total declarado para mostrar % usado
 
+	// Campaña GiftCard Día del Padre (vista dedicada en brief, termina 22-jun-2026)
+	MetaGiftCardCampaignID string
+	MetaGiftCardBudgetCLP  float64 // presupuesto total declarado ($5.000/día × 11 días)
+
 	// Google Ads (cuenta nueva 539-975-0827, OAuth2 + refresh token)
 	GoogleAdsDeveloperToken    string
 	GoogleAdsClientID          string
@@ -97,6 +101,10 @@ func LoadConfig() (*Config, error) {
 		MetaAdAccounts:        parseMetaAccounts(),
 		MetaRefugioCampaignID: getEnvOrDefault("META_REFUGIO_CAMPAIGN_ID", ""),
 		MetaRefugioBudgetCLP:  parseFloatEnv("META_REFUGIO_BUDGET_CLP", 100000),
+		// Default = ID real de la campaña creada el 11-jun-2026; la env var permite
+		// apuntar a otra campaña (o vaciarla para ocultar el bloque) sin redeploy de código.
+		MetaGiftCardCampaignID: getEnvOrDefault("META_GIFTCARD_CAMPAIGN_ID", "120249461833490134"),
+		MetaGiftCardBudgetCLP:  parseFloatEnv("META_GIFTCARD_BUDGET_CLP", 55000),
 		GoogleAdsDeveloperToken:    getEnvOrDefault("GOOGLE_ADS_DEVELOPER_TOKEN", ""),
 		GoogleAdsClientID:          getEnvOrDefault("GOOGLE_ADS_CLIENT_ID", ""),
 		GoogleAdsClientSecret:      getEnvOrDefault("GOOGLE_ADS_CLIENT_SECRET", ""),

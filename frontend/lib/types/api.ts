@@ -207,6 +207,35 @@ export interface RefugioCampaign {
   thresholds: RefugioThresholds;
 }
 
+// GiftCard Día del Padre (campaña dedicada de Ventas; métrica primaria = compras del píxel)
+
+export interface GiftCardSummary {
+  spend: number;
+  impressions: number;
+  clicks: number;
+  reach: number;
+  frequency: number;
+  ctr: number;
+  cpc: number;
+  purchases: number; // evento Purchase del píxel (compra de gift card en el sitio)
+  cost_per_purchase: number; // gasto / compras
+  purchase_value: number; // CLP, action_values de Meta
+  roas: number; // purchase_value / spend
+  budget_total_clp: number;
+  budget_pct_used: number;
+}
+
+export interface GiftCardCampaign {
+  campaign_id: string;
+  campaign_name: string;
+  account_id: string;
+  account_label: string;
+  period: { start: string; end: string };
+  end_date: string; // 2026-06-21 (Día del Padre)
+  summary: GiftCardSummary;
+  platforms?: RefugioPlatformRow[];
+}
+
 // Google Ads — Refugio
 export interface GoogleAdsSummary {
   spend: number;
