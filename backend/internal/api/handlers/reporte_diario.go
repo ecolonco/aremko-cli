@@ -67,43 +67,39 @@ func ReporteDiarioMetaAds(cfg *config.Config) http.HandlerFunc {
 			return
 		}
 
-		// 4. Email ejecutivo + cuadros; adjunto = informe completo.
+		// 4. Un solo email: ejecutivo + cuadros arriba; detalle profundo inline
+		//    al final bajo un separador (los adjuntos .html Gmail los muestra como
+		//    código, así que va todo en el cuerpo, que sí renderiza).
 		fecha := time.Now().Format("02-01-2006") // dd-mm-aaaa
-		ejecutivoMD := report.SplitEjecutivo(analysis.Text)
+		ejecutivoMD, detalleMD := report.SplitReport(analysis.Text)
 		cuadros := report.BuildCuadros(metaData)
+
 		bodyContent := report.MarkdownToHTML(ejecutivoMD) +
 			"<div style=\"margin-top:18px\">" + cuadros + "</div>"
 
-		footer := "📎 <strong>Informe completo adjunto</strong> a este correo (análisis profundo por campaña, placements y estado por dimensión).<br>" +
-			"Modelo: " + analysis.Model + " · Período de campañas: " + dateStart + " → " + dateStop + "."
+		if detalleMD != "" {
+			bodyContent += "<div style=\"margin-top:28px;padding-top:8px;border-top:2px dashed #d1d5db\">" +
+				"<p style=\"text-align:center;color:#9ca3af;font-size:12px;letter-spacing:1px;margin:8px 0 4px\">▼ INFORME COMPLETO (DETALLE) ▼</p>" +
+				report.MarkdownToHTML(detalleMD) + "</div>"
+		}
+
+		footer := "Modelo: " + analysis.Model + " · Período de campañas: " + dateStart + " → " + dateStop + ".<br>" +
+			"Reporte automático diario · para sumar o quitar destinatarios, avisar al equipo técnico."
 
 		emailHTML := report.WrapEmail(
 			"Reporte diario · Meta Ads",
-			"Resumen ejecutivo automático de las campañas de Aremko. Generado "+time.Now().Format("02-01-2006 15:04")+".",
+			"Resumen ejecutivo de las campañas de Aremko + informe completo al final. Generado "+time.Now().Format("02-01-2006 15:04")+".",
 			bodyContent,
 			footer,
 		)
 
-		// Adjunto: informe completo (markdown→HTML) + cuadros.
-		fullHTML := report.WrapEmail(
-			"Informe completo · Meta Ads · "+fecha,
-			"Análisis profundo generado por IA.",
-			report.MarkdownToHTML(analysis.Text)+"<div style=\"margin-top:18px\">"+cuadros+"</div>",
-			"Generado por aremko-cli · Modelo "+analysis.Model,
-		)
-
 		subject := "📊 Reporte Aremko · Meta Ads · " + fecha
 
-		// 5. Enviar.
+		// 5. Enviar (sin adjunto).
 		mailer := email.NewClient(cfg.SendGridAPIKey)
 		err = mailer.SendHTML(
 			cfg.ReporteFromEmail, cfg.ReporteFromName, subject, emailHTML,
-			cfg.ReporteDestinatarios,
-			[]email.Attachment{{
-				Filename: "informe_meta_ads_" + fecha + ".html",
-				MIMEType: "text/html",
-				Content:  []byte(fullHTML),
-			}},
+			cfg.ReporteDestinatarios, nil,
 		)
 		if err != nil {
 			respondError(w, http.StatusBadGateway, "no se pudo enviar el correo: "+err.Error())

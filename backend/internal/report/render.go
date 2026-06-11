@@ -126,20 +126,49 @@ func stripOrdinal(s string) string {
 // email tomamos todo MENOS el detalle profundo; el detalle va solo en el adjunto.
 // ---------------------------------------------------------------------------
 
-func SplitEjecutivo(md string) string {
-	const deepMarker = "## 🔍 Análisis Profundo"
-	const actionsMarker = "## 🎯 Acciones priorizadas"
-
-	deep := strings.Index(md, deepMarker)
+// SplitReport separa el análisis en dos piezas para el correo:
+//   - ejecutivo: Veredicto + 3 Cifras + Refugio/GiftCard + Acciones priorizadas
+//   - detalle: el "Análisis Profundo por Campaña" + "Estado por Dimensión"
+//
+// Hace match por TEXTO PLANO ("Análisis Profundo", "Acciones priorizadas") en vez
+// de por el header exacto con emoji, porque el modelo no siempre reproduce el
+// mismo nivel/emoji del encabezado. Si no encuentra la estructura, degrada
+// devolviendo todo como ejecutivo y detalle vacío (sin duplicar).
+func SplitReport(md string) (ejecutivo, detalle string) {
+	deep := lineStartOf(md, "Análisis Profundo")
 	if deep < 0 {
-		return md // estructura inesperada → degradar a informe completo
+		deep = lineStartOf(md, "Estado por Dimensión")
 	}
-	head := md[:deep]
+	act := lineStartOf(md, "Acciones priorizadas")
 
-	if act := strings.Index(md, actionsMarker); act >= 0 {
-		return strings.TrimRight(head, "\n ") + "\n\n" + md[act:]
+	if deep < 0 {
+		return md, "" // estructura inesperada → todo al cuerpo, sin detalle
 	}
-	return head
+	head := strings.TrimRight(md[:deep], "\n ")
+
+	if act > deep {
+		// detalle = desde el inicio del bloque profundo hasta antes de Acciones
+		detalle = strings.TrimSpace(md[deep:act])
+		ejecutivo = head + "\n\n" + md[act:]
+		return ejecutivo, detalle
+	}
+	// No hay sección de Acciones separada → todo lo profundo va a detalle
+	detalle = strings.TrimSpace(md[deep:])
+	return head, detalle
+}
+
+// lineStartOf devuelve el índice del INICIO de la línea que contiene needle
+// (para no cortar a media línea), o -1 si no aparece.
+func lineStartOf(s, needle string) int {
+	i := strings.Index(s, needle)
+	if i < 0 {
+		return -1
+	}
+	ls := strings.LastIndex(s[:i], "\n")
+	if ls < 0 {
+		return 0
+	}
+	return ls + 1
 }
 
 // ---------------------------------------------------------------------------
