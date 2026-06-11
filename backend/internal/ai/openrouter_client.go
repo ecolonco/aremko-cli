@@ -705,7 +705,7 @@ Atiende TRES tipos de campañas distintos y NO los mezcles:
 
 1. **Campañas históricas (objetivo Engagement/Messages):** métricas primarias = CTR, CPC, CPM, alcance. Referencias spa/turismo en Chile: CTR 1-2%, CPC $300-800 CLP, CPM $5.000-15.000 CLP.
 
-2. **Campaña Refugio (objetivo OUTCOME_LEADS, soft launch 28-may a 7-jun):** métrica primaria = CPL (costo por Lead) y volumen de Leads. CTR sirve como proxy de interés pero NO decide ganadores. Si el payload trae el bloque "refugio", trátala APARTE con su propia sección. Umbrales del operativo: CTR verde >2%, CPL verde <$10K CLP, frequency verde <2.
+2. **Campaña Refugio (objetivo OUTCOME_LEADS, lanzada 28-may, extendida hasta el 20-jun-2026):** métrica primaria = CPL (costo por Lead) y volumen de Leads. CTR sirve como proxy de interés pero NO decide ganadores. Si el payload trae el bloque "refugio", trátala APARTE con su propia sección. Umbrales del operativo: CTR verde >2%, CPL verde <$10K CLP, frequency verde <2. OJO: el 10-jun-2026 se aplicaron optimizaciones (variante C "Curiosidad" pausada, Audience Network y Threads excluidos del adset frío, audiencia de retargeting ampliada de 30 a 180 días) — NO las vuelvas a recomendar; evalúa su EFECTO usando la ventana reciente del payload.
 
 3. **Campaña GiftCard Día del Padre (objetivo OUTCOME_SALES, 11-jun a 21-jun-2026):** métrica primaria = COMPRAS del píxel (evento Purchase), costo por compra y ROAS (purchase_value/spend). Es una campaña estacional CORTA con deadline duro (el Día del Padre es el domingo 21-jun; se apaga sola el 22). Si el payload trae el bloque "giftcard", trátala APARTE con su propia sección. NO la midas con métricas de engagement ni la mezcles con las históricas.`
 
@@ -738,11 +738,17 @@ Para cada variante en meta_ads.refugio.variants (key A/B/C):
 - **Sesgo de exposición:** si una variante tiene más ads activos que las otras, su volumen mayor no significa que sea mejor — compara CTR y CPL normalizados.
 - **Decisión:** ¿pausar la perdedora antes del día 4? Solo si CTR<1% Y/O CPL>$15K. Si todas están en verde de CTR, esperar.
 
-### Hitos y próximas decisiones del operativo Refugio
-- Día 1-3: fase de aprendizaje, NO tomar decisiones de pausa salvo CTR<1% o frequency>3.
-- Día 4 (~1-jun-2026): primera lectura accionable con ~20 leads esperados. Identificar variante + audiencia ganadora.
-- Día 7 (~4-jun-2026): consolidar en ganadora, crear lookalike.
-- Día 10 (7-jun-2026): fin de soft launch, análisis completo antes del lanzamiento oficial 15-jun.
+### Acumulado vs ventana reciente — LA REGLA MÁS IMPORTANTE DE ESTA SECCIÓN
+El payload trae DOS ventanas: el acumulado (summary/adsets/variants, desde el 28-may) y la RECIENTE (summary_reciente/adsets_recientes/variants_recientes, últimos 3 días, en period_reciente).
+- **Las DECISIONES se toman con la ventana reciente** — refleja la campaña DESPUÉS de las optimizaciones del 10-jun. El acumulado arrastra la saturación, el gasto de la variante C y los placements ya excluidos: úsalo solo como contexto histórico.
+- Compara explícitamente acumulado vs reciente: ¿bajó la frecuencia del retargeting tras ampliar a 180d? ¿La variante C está efectivamente en $0? ¿Audience Network/Threads desaparecieron del gasto?
+- Si la ventana reciente muestra que una optimización del 10-jun NO surtió efecto (ej. frecuencia sigue >3), eso SÍ es hallazgo accionable.
+
+### Línea de tiempo del operativo Refugio (no recomendar contra estos hechos)
+- 28-may: lanzamiento soft launch (plan original hasta el 7-jun).
+- 7-jun: la campaña TERMINÓ por fecha de fin de adsets (estuvo detenida 7→10 jun).
+- 10-jun: REACTIVADA y extendida hasta el 20-jun con +$100K, junto con las optimizaciones ya descritas.
+- 20-jun: fin programado. Después de esa fecha esta sección es post-mortem.
 
 ### Comparativa cross-channel Meta vs Google Ads (SOLO si google_ads.refugio existe en el payload)
 Si el payload trae también google_ads.refugio (campaña Refugio Search en Google Ads, paralela a la de Meta), analizar cuál canal está ganando para Refugio:
@@ -777,6 +783,7 @@ Si meta_ads.giftcard existe, esta sección va después de Refugio (o primero si 
 
 ### Reloj estacional (lo más importante de esta campaña)
 - end_date es el Día del Padre (21-jun). Calcula los DÍAS RESTANTES desde hoy: la compra de regalos se concentra en los últimos 5-7 días, así que el gasto y las compras DEBEN acelerar hacia el final, no ser parejos.
+- La campaña se LANZÓ el 11-jun. Los días 11-13 son fase de aprendizaje de Meta: gasto bajo, 0 compras y % de presupuesto mínimo son NORMALES y NO son "sub-ejecución crítica". PROHIBIDO recomendar subir el presupuesto antes del 14-jun (resetea el aprendizaje del algoritmo); la primera lectura accionable es el 14-15 jun.
 - % presupuesto usado (summary.budget_pct_used) vs % del tiempo transcurrido del período 11-jun→21-jun. Sub-ejecución temprana es aceptable; sub-ejecución después del 15-jun es pérdida de la ventana.
 - Después del 21-jun NO recomendar extender ni escalar: la campaña muere sola el 22-jun. Si ya pasó, la sección es solo post-mortem.
 
@@ -798,7 +805,11 @@ Una única decisión con deadline explícito (ej. "antes del viernes 19"), ancla
 ## 🔍 Análisis Profundo por Campaña
 
 ### Mejores 3 Campañas por Inversión
-EXCLUIR las campañas Refugio y GiftCard si ya fueron analizadas arriba; este bloque cubre las históricas de Engagement/Messages. Para cada una de las 3 campañas con mayor inversión del período (de campaigns o recent_campaigns):
+EXCLUIR las campañas Refugio y GiftCard si ya fueron analizadas arriba; este bloque cubre las históricas de Engagement/Messages.
+
+REGLA ESTACIONAL (obligatoria antes de recomendar escalar): infiere del NOMBRE de cada campaña si es estacional (Semana Santa, Navidad, Día del Padre/Madre, San Valentín, vacaciones de invierno, fechas específicas). Si su temporada ya pasó respecto de la fecha actual del análisis, NO recomendar escalarla aunque sus métricas sean excelentes — un CTR alto no salva un mensaje vencido. En ese caso la recomendación correcta es "reutilizar el creativo/ángulo en la próxima temporada equivalente".
+
+REGLA DE ESTADO: el payload de insights NO trae el estado actual (activa/pausada) de las campañas históricas — varias ya fueron pausadas por el operativo. Formula las recomendaciones de pausa como condicionales ("si sigue activa, pausar...") y nunca asumas que una campaña con gasto en el período sigue corriendo hoy. Para cada una de las 3 campañas con mayor inversión del período (de campaigns o recent_campaigns):
 - **Inversión y volumen:** gasto, impresiones, clics, alcance
 - **Eficiencia:** CTR + CPC + CPM vs referencia spa/turismo
 - **Antigüedad y fatiga:** días activa; si >14d con CTR cayendo, riesgo de fatiga creativa
@@ -847,11 +858,13 @@ Si los datos de reservas/ventas cruzados están disponibles, estimar ingresos at
 		return &LLMResult{Error: fmt.Sprintf("error marshaling data: %v", err)}, err
 	}
 
-	userPrompt := fmt.Sprintf(`Analiza estos datos de Meta Ads (Facebook/Instagram) de Aremko Spa (spa boutique en Puerto Varas, Chile):
+	userPrompt := fmt.Sprintf(`FECHA ACTUAL DEL ANÁLISIS: %s (úsala para calcular días de campaña, días restantes y vigencia de campañas estacionales).
+
+Analiza estos datos de Meta Ads (Facebook/Instagram) de Aremko Spa (spa boutique en Puerto Varas, Chile):
 
 %s
 
-Genera un análisis EJECUTIVO PROFUNDO siguiendo EXACTAMENTE la estructura del system prompt. Sin restricción de extensión: si los datos justifican 4-6 páginas, escríbelo. Prioriza cruzar múltiples datasets en cada sección sobre brevedad. Cada afirmación debe anclarse a números concretos del payload.`, string(dataJSON))
+Genera un análisis EJECUTIVO PROFUNDO siguiendo EXACTAMENTE la estructura del system prompt. Sin restricción de extensión: si los datos justifican 4-6 páginas, escríbelo. Prioriza cruzar múltiples datasets en cada sección sobre brevedad. Cada afirmación debe anclarse a números concretos del payload.`, time.Now().Format("2006-01-02"), string(dataJSON))
 
 	return c.Generate(ctx, c.wrapAnalysisPrompt(systemPrompt), userPrompt, "google/gemini-2.5-pro", 0.5, 12000)
 }

@@ -810,22 +810,31 @@ func buildRefugioBlock(cfg *config.Config, token string, accounts []config.MetaA
 	// "Embudo Refugio" del dashboard; sin esto el frontend muestra "Clics WhatsApp = —".
 	applyRefugioWhatsAppClicks(cfg, summary, dateStart, dateStop)
 
-	adsetRows := make([]map[string]interface{}, 0, len(adsets))
-	for i := range adsets {
-		a := &adsets[i]
-		adsetRows = append(adsetRows, map[string]interface{}{
-			"adset_id":    a.AdsetID,
-			"adset_name":  a.AdsetName,
-			"spend":       a.Spend,
-			"impressions": a.Impressions,
-			"clicks":      a.Clicks,
-			"reach":       a.Reach,
-			"frequency":   a.Frequency,
-			"ctr":         a.CalculateCTR(),
-			"cpc":         a.CalculateCPC(),
-			"leads":       a.Leads(),
-			"cpl":         a.CPL(),
-		})
+	adsetRows := adsetInsightRows(adsets)
+
+	// Ventana RECIENTE (últimos 3 días): separa el efecto de las optimizaciones
+	// aplicadas el 10-jun (variante C pausada, Audience Network/Threads excluidos,
+	// retargeting ampliado a 180d) del acumulado histórico, que arrastra la
+	// saturación y el gasto previos. La IA decide con esta ventana; el acumulado
+	// queda como contexto.
+	recentStart := time.Now().AddDate(0, 0, -2).Format("2006-01-02")
+	recentInsight, _ := client.GetCampaignInsights(cfg.MetaRefugioCampaignID, recentStart, dateStop)
+	recentAdsets, _ := client.GetCampaignInsightsByAdset(cfg.MetaRefugioCampaignID, recentStart, dateStop)
+	recentAds, _ := client.GetCampaignInsightsByAd(cfg.MetaRefugioCampaignID, recentStart, dateStop)
+
+	summaryReciente := map[string]interface{}{}
+	if recentInsight != nil {
+		summaryReciente = map[string]interface{}{
+			"spend":       recentInsight.Spend,
+			"impressions": recentInsight.Impressions,
+			"clicks":      recentInsight.Clicks,
+			"reach":       recentInsight.Reach,
+			"frequency":   recentInsight.Frequency,
+			"ctr":         recentInsight.CalculateCTR(),
+			"cpc":         recentInsight.CalculateCPC(),
+			"leads":       recentInsight.Leads(),
+			"cpl":         recentInsight.CPL(),
+		}
 	}
 
 	return map[string]interface{}{
@@ -840,7 +849,34 @@ func buildRefugioBlock(cfg *config.Config, token string, accounts []config.MetaA
 		"platforms":     platformRows(platforms),
 		"positions":     positionRows(positions),
 		"thresholds":    refugioThresholds(),
+		// Ventana post-optimizaciones (ver comentario arriba)
+		"period_reciente":    map[string]string{"start": recentStart, "end": dateStop},
+		"summary_reciente":   summaryReciente,
+		"adsets_recientes":   adsetInsightRows(recentAdsets),
+		"variants_recientes": aggregateVariants(recentAds),
 	}
+}
+
+// adsetInsightRows convierte insights de adset al formato del payload del brief.
+func adsetInsightRows(adsets []meta.AdInsights) []map[string]interface{} {
+	rows := make([]map[string]interface{}, 0, len(adsets))
+	for i := range adsets {
+		a := &adsets[i]
+		rows = append(rows, map[string]interface{}{
+			"adset_id":    a.AdsetID,
+			"adset_name":  a.AdsetName,
+			"spend":       a.Spend,
+			"impressions": a.Impressions,
+			"clicks":      a.Clicks,
+			"reach":       a.Reach,
+			"frequency":   a.Frequency,
+			"ctr":         a.CalculateCTR(),
+			"cpc":         a.CalculateCPC(),
+			"leads":       a.Leads(),
+			"cpl":         a.CPL(),
+		})
+	}
+	return rows
 }
 
 // buildGiftCardBlock arma el bloque de la campaña GiftCard Día del Padre.
