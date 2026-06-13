@@ -418,3 +418,29 @@ export const marcarAtendidoWhatsApp = async (phone: string): Promise<void> => {
     throw new Error(json.error || `HTTP ${res.status}`);
   }
 };
+
+export interface EditarNombreResult {
+  ok: boolean;
+  cliente_id?: number;
+  cliente_nombre?: string;
+}
+
+/** Corrige el nombre del cliente (ficha canónica en Django) desde la conversación. */
+export const editarNombreWhatsApp = async (
+  phone: string,
+  nombre: string
+): Promise<EditarNombreResult> => {
+  const res = await fetch(
+    `${apiBase()}${WA}/conversations/${encodeURIComponent(phone)}/editar-nombre`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nombre }),
+    }
+  );
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok || json.ok === false) {
+    throw new Error(json.error || `HTTP ${res.status}`);
+  }
+  return json as EditarNombreResult;
+};

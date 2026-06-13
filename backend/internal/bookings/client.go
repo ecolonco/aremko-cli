@@ -673,6 +673,39 @@ func (c *Client) PostWhatsAppMarcarAtendidoRaw(apiKey, phone string) ([]byte, er
 	return b, nil
 }
 
+// PostWhatsAppEditarNombreRaw corrige el nombre del cliente (ficha canónica) vía
+// Django: POST /api/whatsapp/conversations/<phone>/editar-nombre/. Mismo manejo
+// del phone que marcar-atendido (decodifica y reinyecta el "+").
+func (c *Client) PostWhatsAppEditarNombreRaw(apiKey, phone, nombre string) ([]byte, error) {
+	if dec, err := url.PathUnescape(phone); err == nil {
+		phone = dec
+	}
+	digits := strings.Map(func(r rune) rune {
+		if r >= '0' && r <= '9' {
+			return r
+		}
+		return -1
+	}, phone)
+	u := fmt.Sprintf("%s/api/whatsapp/conversations/%%2B%s/editar-nombre/", c.BaseURL, digits)
+	payload, _ := json.Marshal(map[string]string{"nombre": nombre})
+	req, err := http.NewRequest(http.MethodPost, u, bytes.NewReader(payload))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("X-API-Key", apiKey)
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := c.HTTPClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("error en editar-nombre: %w", err)
+	}
+	defer resp.Body.Close()
+	b, _ := io.ReadAll(resp.Body)
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("django editar-nombre status %d: %s", resp.StatusCode, b)
+	}
+	return b, nil
+}
+
 // GetRefugioLeadsSummary consulta el endpoint Django /api/refugio-leads/summary/
 // (requiere header X-API-Key). Devuelve el conteo real por canal en el rango.
 func (c *Client) GetRefugioLeadsSummary(desde, hasta, apiKey string) (*RefugioLeadsSummary, error) {

@@ -227,6 +227,7 @@ export default function MensajesWhatsAppPage() {
               telefono={activo}
               nombre={nombreActivo}
               onReplySent={() => cargar(true)}
+              onNombreEditado={() => cargar(true)}
             />
           ) : (
             <Card>

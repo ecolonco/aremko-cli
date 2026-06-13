@@ -14,11 +14,14 @@ import {
   Phone,
   Copy,
   Check,
+  Pencil,
+  X,
 } from 'lucide-react';
 import {
   fetchConversacionWhatsApp,
   responderWhatsApp,
   enviarAdjuntoWhatsApp,
+  editarNombreWhatsApp,
   telefonoE164,
 } from './api';
 import type { MensajeWhatsApp } from './types';
@@ -30,6 +33,8 @@ interface ConversacionWhatsAppProps {
   disabled?: boolean;
   /** Se llama tras enviar una respuesta con éxito (para refrescar listas externas). */
   onReplySent?: () => void;
+  /** Se llama tras corregir el nombre del cliente (para refrescar la lista externa). */
+  onNombreEditado?: (nombre: string) => void;
 }
 
 const horaCorta = (iso: string): string => {
@@ -123,6 +128,7 @@ export function ConversacionWhatsApp({
   nombre,
   disabled,
   onReplySent,
+  onNombreEditado,
 }: ConversacionWhatsAppProps) {
   const phone = telefonoE164(telefono);
   const [mensajes, setMensajes] = useState<MensajeWhatsApp[]>([]);
@@ -144,6 +150,41 @@ export function ConversacionWhatsApp({
       () => {}
     );
   }, [phone]);
+
+  const [nombreActual, setNombreActual] = useState(nombre);
+  const [editandoNombre, setEditandoNombre] = useState(false);
+  const [nombreInput, setNombreInput] = useState(nombre);
+  const [guardandoNombre, setGuardandoNombre] = useState(false);
+  const [nombreError, setNombreError] = useState<string | null>(null);
+
+  // Al cambiar de conversación (phone) se resetea el nombre mostrado y el modo
+  // edición. Depende solo de `phone` a propósito: tras editar, el nombre lo fija
+  // `guardarNombre` y no debe revertirse por un re-render del padre con el valor
+  // viejo antes de que su lista termine de refrescar.
+  useEffect(() => {
+    setNombreActual(nombre);
+    setEditandoNombre(false);
+    setNombreError(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phone]);
+
+  const guardarNombre = async () => {
+    const n = nombreInput.trim();
+    if (!n || guardandoNombre || !phone) return;
+    setGuardandoNombre(true);
+    setNombreError(null);
+    try {
+      const r = await editarNombreWhatsApp(phone, n);
+      const nuevo = r.cliente_nombre || n;
+      setNombreActual(nuevo);
+      setEditandoNombre(false);
+      onNombreEditado?.(nuevo);
+    } catch (e: unknown) {
+      setNombreError(e instanceof Error ? e.message : 'No se pudo guardar el nombre');
+    } finally {
+      setGuardandoNombre(false);
+    }
+  };
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const cargar = useCallback(
@@ -235,7 +276,62 @@ export function ConversacionWhatsApp({
             <MessageSquare className="h-3 w-3" />
             Conversación de WhatsApp
           </span>
-          <span className="truncate text-sm font-semibold text-emerald-900">{nombre}</span>
+          {editandoNombre ? (
+            <span className="flex items-center gap-1 py-0.5">
+              <input
+                value={nombreInput}
+                onChange={(e) => setNombreInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') guardarNombre();
+                  if (e.key === 'Escape') setEditandoNombre(false);
+                }}
+                autoFocus
+                maxLength={100}
+                placeholder="Nombre del cliente"
+                className="w-44 rounded border border-emerald-300 px-1.5 py-0.5 text-sm text-slate-900 focus:border-emerald-500 focus:outline-none"
+              />
+              <button
+                type="button"
+                onClick={guardarNombre}
+                disabled={guardandoNombre || !nombreInput.trim()}
+                title="Guardar nombre"
+                className="inline-flex items-center rounded p-0.5 hover:bg-emerald-100 disabled:opacity-50"
+              >
+                {guardandoNombre ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin text-emerald-600" />
+                ) : (
+                  <Check className="h-3.5 w-3.5 text-emerald-600" />
+                )}
+              </button>
+              <button
+                type="button"
+                onClick={() => setEditandoNombre(false)}
+                title="Cancelar"
+                className="inline-flex items-center rounded p-0.5 hover:bg-slate-100"
+              >
+                <X className="h-3.5 w-3.5 text-slate-400" />
+              </button>
+            </span>
+          ) : (
+            <span className="flex items-center gap-1.5">
+              <span className="truncate text-sm font-semibold text-emerald-900">
+                {nombreActual}
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  setNombreInput(nombreActual);
+                  setEditandoNombre(true);
+                  setNombreError(null);
+                }}
+                title="Editar nombre del cliente"
+                className="inline-flex flex-shrink-0 items-center rounded p-0.5 text-emerald-600 hover:bg-emerald-100"
+              >
+                <Pencil className="h-3 w-3" />
+              </button>
+            </span>
+          )}
+          {nombreError && <span className="text-[10px] text-red-600">{nombreError}</span>}
           {phone && (
             <span className="mt-0.5 flex items-center gap-1.5 text-xs text-emerald-700">
               <Phone className="h-3 w-3 flex-shrink-0" />
@@ -283,7 +379,7 @@ export function ConversacionWhatsApp({
           </div>
         ) : mensajes.length === 0 ? (
           <p className="py-6 text-center text-xs text-slate-400">
-            Sin mensajes de WhatsApp registrados con {nombre.split(' ')[0]} todavía.
+            Sin mensajes de WhatsApp registrados con {nombreActual.split(' ')[0]} todavía.
           </p>
         ) : (
           mensajes.map((m) => {

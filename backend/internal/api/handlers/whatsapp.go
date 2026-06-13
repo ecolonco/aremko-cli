@@ -676,6 +676,39 @@ func WhatsAppConversations(cfg *config.Config) http.HandlerFunc {
 
 // WhatsAppMarcarAtendido saca una conversación de la cola de pendientes
 // (proxy a Django). El teléfono llega como path param {phone} en E.164.
+// WhatsAppEditarNombre corrige el nombre del cliente (ficha canónica en Django)
+// desde la conversación. Proxy a Django agregando la X-API-Key. Devuelve el JSON
+// de Django tal cual ({ok, cliente_id, cliente_nombre}) para que la UI actualice.
+func WhatsAppEditarNombre(cfg *config.Config) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if cfg.LunaAPIKey == "" || cfg.BookingSystemURL == "" {
+			respondError(w, http.StatusServiceUnavailable, "Django no configurado")
+			return
+		}
+		phone := chi.URLParam(r, "phone")
+		if phone == "" {
+			respondError(w, http.StatusBadRequest, "falta el teléfono")
+			return
+		}
+		var body struct {
+			Nombre string `json:"nombre"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil || strings.TrimSpace(body.Nombre) == "" {
+			respondError(w, http.StatusBadRequest, "nombre requerido")
+			return
+		}
+		raw, err := bookings.NewClient(cfg.BookingSystemURL).
+			PostWhatsAppEditarNombreRaw(cfg.LunaAPIKey, phone, strings.TrimSpace(body.Nombre))
+		if err != nil {
+			respondError(w, http.StatusBadGateway, err.Error())
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write(raw)
+	}
+}
+
 func WhatsAppMarcarAtendido(cfg *config.Config) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if cfg.LunaAPIKey == "" || cfg.BookingSystemURL == "" {

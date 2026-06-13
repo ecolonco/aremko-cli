@@ -162,6 +162,7 @@ func (s *Server) setupRoutes() {
 		r.Get("/whatsapp/conversation", handlers.WhatsAppConversation(s.config))
 		r.Get("/whatsapp/conversations", handlers.WhatsAppConversations(s.config))
 		r.Post("/whatsapp/conversations/{phone}/marcar-atendido", handlers.WhatsAppMarcarAtendido(s.config))
+		r.Post("/whatsapp/conversations/{phone}/editar-nombre", handlers.WhatsAppEditarNombre(s.config))
 		r.Post("/whatsapp/run-template-campaign", handlers.WhatsAppRunTemplateCampaign(s.config))
 		r.Post("/whatsapp/create-templates", handlers.WhatsAppCreateTemplates(s.config))
 		r.Post("/whatsapp/send-template", handlers.WhatsAppSendTemplate(s.config))
