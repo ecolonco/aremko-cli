@@ -11,6 +11,9 @@ import {
   FileText,
   Mic,
   Paperclip,
+  Phone,
+  Copy,
+  Check,
 } from 'lucide-react';
 import {
   fetchConversacionWhatsApp,
@@ -128,7 +131,19 @@ export function ConversacionWhatsApp({
   const [texto, setTexto] = useState('');
   const [enviando, setEnviando] = useState(false);
   const [enviarError, setEnviarError] = useState<string | null>(null);
+  const [copiado, setCopiado] = useState(false);
   const finRef = useRef<HTMLDivElement | null>(null);
+
+  const copiarTelefono = useCallback(() => {
+    if (!phone) return;
+    navigator.clipboard?.writeText(phone).then(
+      () => {
+        setCopiado(true);
+        setTimeout(() => setCopiado(false), 1500);
+      },
+      () => {}
+    );
+  }, [phone]);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const cargar = useCallback(
@@ -215,15 +230,45 @@ export function ConversacionWhatsApp({
     <section className="rounded-lg border border-emerald-200 bg-white">
       {/* Encabezado del hilo */}
       <div className="flex items-center justify-between gap-2 border-b border-emerald-100 bg-emerald-50/60 px-3 py-2">
-        <span className="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-emerald-800">
-          <MessageSquare className="h-3.5 w-3.5" />
-          Conversación de WhatsApp
-        </span>
+        <div className="flex min-w-0 flex-col">
+          <span className="inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-700">
+            <MessageSquare className="h-3 w-3" />
+            Conversación de WhatsApp
+          </span>
+          <span className="truncate text-sm font-semibold text-emerald-900">{nombre}</span>
+          {phone && (
+            <span className="mt-0.5 flex items-center gap-1.5 text-xs text-emerald-700">
+              <Phone className="h-3 w-3 flex-shrink-0" />
+              <span className="font-mono">{phone}</span>
+              <button
+                type="button"
+                onClick={copiarTelefono}
+                title="Copiar número"
+                className="inline-flex items-center rounded p-0.5 hover:bg-emerald-100"
+              >
+                {copiado ? (
+                  <Check className="h-3 w-3 text-emerald-600" />
+                ) : (
+                  <Copy className="h-3 w-3" />
+                )}
+              </button>
+              <a
+                href={`https://wa.me/${phone.replace('+', '')}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                title="Abrir en WhatsApp"
+                className="underline hover:text-emerald-900"
+              >
+                abrir
+              </a>
+            </span>
+          )}
+        </div>
         <button
           type="button"
           onClick={() => cargar()}
           disabled={cargando}
-          className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs text-emerald-700 hover:bg-emerald-100 disabled:opacity-50"
+          className="inline-flex flex-shrink-0 items-center gap-1 rounded-md px-2 py-1 text-xs text-emerald-700 hover:bg-emerald-100 disabled:opacity-50"
           title="Actualizar conversación"
         >
           <RefreshCw className={`h-3.5 w-3.5 ${cargando ? 'animate-spin' : ''}`} />

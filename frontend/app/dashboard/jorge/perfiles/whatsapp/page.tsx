@@ -194,6 +194,11 @@ export default function MensajesWhatsAppPage() {
                             {horaCorta(c.ultimo_timestamp)}
                           </span>
                         </div>
+                        {c.cliente_nombre && (
+                          <span className="truncate font-mono text-[10px] text-slate-400">
+                            {c.phone}
+                          </span>
+                        )}
                         <div className="flex items-center justify-between gap-2">
                           <span className="truncate text-xs text-slate-500">
                             {c.ultimo_direction === 'out' ? 'Tú: ' : ''}
