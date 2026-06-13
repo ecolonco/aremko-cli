@@ -244,23 +244,17 @@ export function ConversacionWhatsApp({
                 type="button"
                 onClick={copiarTelefono}
                 title="Copiar número"
-                className="inline-flex items-center rounded p-0.5 hover:bg-emerald-100"
+                className="inline-flex items-center gap-1 rounded px-1 py-0.5 hover:bg-emerald-100"
               >
                 {copiado ? (
-                  <Check className="h-3 w-3 text-emerald-600" />
+                  <>
+                    <Check className="h-3 w-3 text-emerald-600" />
+                    <span className="text-[10px] text-emerald-600">copiado</span>
+                  </>
                 ) : (
                   <Copy className="h-3 w-3" />
                 )}
               </button>
-              <a
-                href={`https://wa.me/${phone.replace('+', '')}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                title="Abrir en WhatsApp"
-                className="underline hover:text-emerald-900"
-              >
-                abrir
-              </a>
             </span>
           )}
         </div>
