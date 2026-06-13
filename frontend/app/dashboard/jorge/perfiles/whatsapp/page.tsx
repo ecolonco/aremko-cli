@@ -228,6 +228,7 @@ export default function MensajesWhatsAppPage() {
               nombre={nombreActivo}
               onReplySent={() => cargar(true)}
               onNombreEditado={() => cargar(true)}
+              onAtendido={() => cargar(true)}
             />
           ) : (
             <Card>

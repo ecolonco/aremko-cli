@@ -14,6 +14,7 @@ import {
   Phone,
   Copy,
   Check,
+  CheckCheck,
   Pencil,
   X,
 } from 'lucide-react';
@@ -22,6 +23,7 @@ import {
   responderWhatsApp,
   enviarAdjuntoWhatsApp,
   editarNombreWhatsApp,
+  marcarAtendidoWhatsApp,
   telefonoE164,
 } from './api';
 import type { MensajeWhatsApp } from './types';
@@ -35,6 +37,8 @@ interface ConversacionWhatsAppProps {
   onReplySent?: () => void;
   /** Se llama tras corregir el nombre del cliente (para refrescar la lista externa). */
   onNombreEditado?: (nombre: string) => void;
+  /** Se llama tras marcar la conversación como leída (para refrescar la lista externa). */
+  onAtendido?: () => void;
 }
 
 const horaCorta = (iso: string): string => {
@@ -129,6 +133,7 @@ export function ConversacionWhatsApp({
   disabled,
   onReplySent,
   onNombreEditado,
+  onAtendido,
 }: ConversacionWhatsAppProps) {
   const phone = telefonoE164(telefono);
   const [mensajes, setMensajes] = useState<MensajeWhatsApp[]>([]);
@@ -183,6 +188,20 @@ export function ConversacionWhatsApp({
       setNombreError(e instanceof Error ? e.message : 'No se pudo guardar el nombre');
     } finally {
       setGuardandoNombre(false);
+    }
+  };
+
+  const [marcandoLeido, setMarcandoLeido] = useState(false);
+  const marcarLeido = async () => {
+    if (!phone || marcandoLeido) return;
+    setMarcandoLeido(true);
+    try {
+      await marcarAtendidoWhatsApp(phone);
+      onAtendido?.();
+    } catch {
+      // Silencioso: marcar leído es idempotente; si falla, el "1" permanece.
+    } finally {
+      setMarcandoLeido(false);
     }
   };
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -354,16 +373,32 @@ export function ConversacionWhatsApp({
             </span>
           )}
         </div>
-        <button
-          type="button"
-          onClick={() => cargar()}
-          disabled={cargando}
-          className="inline-flex flex-shrink-0 items-center gap-1 rounded-md px-2 py-1 text-xs text-emerald-700 hover:bg-emerald-100 disabled:opacity-50"
-          title="Actualizar conversación"
-        >
-          <RefreshCw className={`h-3.5 w-3.5 ${cargando ? 'animate-spin' : ''}`} />
-          Actualizar
-        </button>
+        <div className="flex flex-shrink-0 items-center gap-1">
+          <button
+            type="button"
+            onClick={marcarLeido}
+            disabled={marcandoLeido}
+            className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs text-emerald-700 hover:bg-emerald-100 disabled:opacity-50"
+            title="Marcar como leído (sacar de pendientes)"
+          >
+            {marcandoLeido ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <CheckCheck className="h-3.5 w-3.5" />
+            )}
+            Leído
+          </button>
+          <button
+            type="button"
+            onClick={() => cargar()}
+            disabled={cargando}
+            className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs text-emerald-700 hover:bg-emerald-100 disabled:opacity-50"
+            title="Actualizar conversación"
+          >
+            <RefreshCw className={`h-3.5 w-3.5 ${cargando ? 'animate-spin' : ''}`} />
+            Actualizar
+          </button>
+        </div>
       </div>
 
       {/* Hilo de mensajes */}
