@@ -154,10 +154,21 @@ func handleInboundWhatsApp(cfg *config.Config, v whatsappChangeValue, msg whatsa
 		return
 	}
 
+	// Una reacción (emoji a un mensaje previo) llega como type="reaction" sin
+	// texto; traducimos el emoji a un cuerpo legible para que se vea en la ficha.
+	body := msg.Text.Body
+	if msg.Type == "reaction" && msg.Reaction != nil {
+		if e := strings.TrimSpace(msg.Reaction.Emoji); e != "" {
+			body = "Reaccionó con " + e
+		} else {
+			body = "Quitó su reacción"
+		}
+	}
+
 	err := bc.PostWhatsAppInbound(cfg.LunaAPIKey, bookings.WhatsAppInboundReq{
 		WaMessageID: msg.ID,
 		From:        phone,
-		Body:        msg.Text.Body,
+		Body:        body,
 		Type:        msg.Type,
 		Timestamp:   msg.Timestamp,
 		ContactName: nombre,
@@ -799,6 +810,12 @@ type whatsappInboundMessage struct {
 	Audio    *whatsappMedia `json:"audio"`
 	Document *whatsappMedia `json:"document"`
 	Sticker  *whatsappMedia `json:"sticker"`
+	// Reaction: Meta manda un mensaje aparte tipo "reaction" al emoji de un
+	// mensaje previo. emoji vacío = el cliente quitó su reacción.
+	Reaction *struct {
+		MessageID string `json:"message_id"`
+		Emoji     string `json:"emoji"`
+	} `json:"reaction"`
 }
 
 // media devuelve el adjunto del mensaje según su tipo (nil si es texto).
