@@ -284,6 +284,79 @@ func handleMediaTooLarge(cfg *config.Config, bc *bookings.Client, wc *whatsapp.C
 // endpoints OVC, el secreto (token de WhatsApp + LUNA_API_KEY) vive sólo en el
 // servidor; el navegador no puede portarlo sin exponerlo. El acceso se acota vía
 // CORS + despliegue privado del backend, mismo modelo que /ovc/*.
+// WhatsAppSendTemplate envía una PLANTILLA aprobada a un número (form
+// "Contactando"). Sirve para abrir conversación EN FRÍO con clientes que no han
+// escrito en las últimas 24h —p. ej. los que tras la migración a Cloud API ven
+// "esta cuenta no tiene WhatsApp"—: al recibir la plantilla, su teléfono reabre
+// el chat. 'text' (opcional) rellena la variable {{1}} de la plantilla editable.
+// 'display_text' (opcional) es el texto ya renderizado, sólo para registrar el
+// saliente en la bandeja. Mismo modelo de auth que WhatsAppReply (sin X-API-KEY
+// del navegador; el token vive en el servidor).
+func WhatsAppSendTemplate(cfg *config.Config) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if cfg.WhatsAppAccessToken == "" || cfg.WhatsAppPhoneNumberID == "" {
+			respondError(w, http.StatusServiceUnavailable, "WhatsApp no configurado")
+			return
+		}
+		var body struct {
+			To           string `json:"to"`
+			TemplateName string `json:"template_name"`
+			Lang         string `json:"lang"`
+			Text         string `json:"text"`
+			DisplayText  string `json:"display_text"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.To == "" || body.TemplateName == "" {
+			respondError(w, http.StatusBadRequest, "se requieren 'to' y 'template_name'")
+			return
+		}
+		lang := body.Lang
+		if lang == "" {
+			lang = "es"
+		}
+		var components []interface{}
+		if strings.TrimSpace(body.Text) != "" {
+			components = []interface{}{
+				map[string]interface{}{
+					"type": "body",
+					"parameters": []interface{}{
+						map[string]interface{}{"type": "text", "text": body.Text},
+					},
+				},
+			}
+		}
+
+		client := whatsapp.NewClient(cfg.WhatsAppAccessToken, cfg.WhatsAppPhoneNumberID)
+		res, err := client.SendTemplate(body.To, body.TemplateName, lang, components)
+		if err != nil {
+			respondError(w, http.StatusBadGateway, err.Error())
+			return
+		}
+
+		// Registrar el saliente en Django (best-effort) para que aparezca en la
+		// bandeja. Usa display_text si vino; si no, una marca con el nombre.
+		if cfg.LunaAPIKey != "" && cfg.BookingSystemURL != "" {
+			logBody := body.DisplayText
+			if strings.TrimSpace(logBody) == "" {
+				logBody = "[Plantilla: " + body.TemplateName + "]"
+			}
+			ts := strconv.FormatInt(time.Now().Unix(), 10)
+			if e := bookings.NewClient(cfg.BookingSystemURL).PostWhatsAppOutbound(cfg.LunaAPIKey, bookings.WhatsAppOutboundReq{
+				WaMessageID: res.MessageID,
+				To:          body.To,
+				Body:        logBody,
+				Timestamp:   ts,
+			}); e != nil {
+				log.Printf("[whatsapp] error registrando outbound (plantilla) en Django: %v", e)
+			}
+		}
+
+		respondJSON(w, http.StatusOK, map[string]interface{}{
+			"success":    true,
+			"message_id": res.MessageID,
+		})
+	}
+}
+
 func WhatsAppReply(cfg *config.Config) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if cfg.WhatsAppAccessToken == "" || cfg.WhatsAppPhoneNumberID == "" {

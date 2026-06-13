@@ -14,6 +14,7 @@ import {
   TrophyIcon,
   EnvelopeIcon,
   MegaphoneIcon,
+  PaperAirplaneIcon,
 } from '@heroicons/react/24/outline';
 import { UserRole } from '@/lib/types/user';
 import { allowedItems } from '@/lib/permissions';
@@ -36,6 +37,7 @@ const ICONS: Record<string, typeof DocumentTextIcon> = {
   perfiles: UsersIcon,
   bandeja: ChatBubbleLeftRightIcon,
   mensajes: ChatBubbleLeftRightIcon,
+  contactando: PaperAirplaneIcon,
   masajes: EnvelopeIcon,
   tableros: ChartBarIcon,
   metricas: TrophyIcon,

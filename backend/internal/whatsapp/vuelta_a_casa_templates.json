@@ -194,5 +194,18 @@
     "category": "MARKETING",
     "body": "Hola {{1}}, ¿cómo has estado? Te escribo de Aremko.\nEstamos pensando en ti — eres parte de nuestra mesa chica de clientes. Si quieres venir pronto, cuéntame fecha y desde dónde nos visitas, así te armo el mejor plan a tu medida.\nUn abrazo.",
     "example": ["Jorge"]
+  },
+  {
+    "name": "contacto_general",
+    "language": "es",
+    "category": "MARKETING",
+    "body": "¡Hola! 👋 Te escribimos de Aremko Spa Boutique, Puerto Varas.\nCualquier servicio que necesites coordinar, escríbenos por aquí y con gusto te ayudamos. 🌿"
+  },
+  {
+    "name": "contacto_editable",
+    "language": "es",
+    "category": "MARKETING",
+    "body": "¡Hola! 👋 Te saluda Aremko Spa Boutique, Puerto Varas.\n{{1}}\nEscríbenos por aquí y coordinamos lo que necesites. 🌿",
+    "example": ["Vimos que nos visitas pronto — quedamos atentos a lo que necesites."]
   }
 ]
