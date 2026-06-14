@@ -472,12 +472,22 @@ export const reportarFeedbackAgente = async (data: {
   }
 };
 
-/** Lista las sugerencias de aprendizaje pendientes del agente (H-010 p2). */
-export const fetchSugerenciasAprendizaje = async (): Promise<SugerenciaAprendizaje[]> => {
-  const res = await fetch(`${apiBase()}${WA}/agente/sugerencias-aprendizaje?estado=pendiente`);
+/** Lista las sugerencias de aprendizaje del agente por estado (H-010 p2). */
+export const fetchSugerenciasAprendizaje = async (
+  estado: 'pendiente' | 'aprobada' | 'descartada' = 'pendiente'
+): Promise<SugerenciaAprendizaje[]> => {
+  const res = await fetch(`${apiBase()}${WA}/agente/sugerencias-aprendizaje?estado=${estado}`);
   const json = await res.json().catch(() => ({}));
   if (!res.ok || json.ok === false) throw new Error(json.error || `HTTP ${res.status}`);
   return (json.sugerencias ?? []) as SugerenciaAprendizaje[];
+};
+
+/** Dispara el proceso de clasificación de correcciones (H-013). Puede tardar. */
+export const procesarAprendizaje = async (): Promise<{ procesados: number; creadas: number }> => {
+  const res = await fetch(`${apiBase()}${WA}/agente/procesar-aprendizaje`, { method: 'POST' });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok || json.ok === false) throw new Error(json.error || `HTTP ${res.status}`);
+  return { procesados: json.procesados ?? 0, creadas: json.creadas ?? 0 };
 };
 
 /** Aprueba una sugerencia (opcional texto editado). regla→Conocimiento; hecho→queda para Jorge. */

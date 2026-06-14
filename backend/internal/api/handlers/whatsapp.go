@@ -774,6 +774,25 @@ func WhatsAppAgenteFeedback(cfg *config.Config) http.HandlerFunc {
 	}
 }
 
+// WhatsAppAgenteProcesarAprendizaje dispara el proceso de clasificación de
+// feedbacks (H-013) y devuelve el resumen. Proxy a Django (timeout amplio).
+func WhatsAppAgenteProcesarAprendizaje(cfg *config.Config) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if cfg.LunaAPIKey == "" || cfg.BookingSystemURL == "" {
+			respondError(w, http.StatusServiceUnavailable, "Django no configurado")
+			return
+		}
+		body, status, err := bookings.NewClient(cfg.BookingSystemURL).PostWhatsAppProcesarAprendizajeRaw(cfg.LunaAPIKey)
+		if err != nil {
+			respondError(w, http.StatusBadGateway, err.Error())
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(status)
+		_, _ = w.Write(body)
+	}
+}
+
 // WhatsAppAgenteSugerencias lista las sugerencias de aprendizaje del agente
 // (H-010 p2). Proxy a Django con la X-API-Key. ?estado= (default pendiente).
 func WhatsAppAgenteSugerencias(cfg *config.Config) http.HandlerFunc {

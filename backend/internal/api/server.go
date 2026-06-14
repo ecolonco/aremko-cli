@@ -166,6 +166,7 @@ func (s *Server) setupRoutes() {
 		r.Get("/whatsapp/agente/config", handlers.WhatsAppAgenteConfigGet(s.config))
 		r.Post("/whatsapp/agente/config", handlers.WhatsAppAgenteConfigPost(s.config))
 		r.Post("/whatsapp/agente/feedback", handlers.WhatsAppAgenteFeedback(s.config))
+		r.Post("/whatsapp/agente/procesar-aprendizaje", handlers.WhatsAppAgenteProcesarAprendizaje(s.config))
 		r.Get("/whatsapp/agente/sugerencias-aprendizaje", handlers.WhatsAppAgenteSugerencias(s.config))
 		r.Post("/whatsapp/agente/sugerencias-aprendizaje/{id}/aprobar", handlers.WhatsAppAgenteSugerenciaAccion(s.config, "aprobar"))
 		r.Post("/whatsapp/agente/sugerencias-aprendizaje/{id}/descartar", handlers.WhatsAppAgenteSugerenciaAccion(s.config, "descartar"))

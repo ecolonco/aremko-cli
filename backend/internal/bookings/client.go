@@ -831,6 +831,25 @@ func (c *Client) PostWhatsAppAgenteSugerenciaAccionRaw(apiKey, id, accion string
 	return b, resp.StatusCode, nil
 }
 
+// PostWhatsAppProcesarAprendizajeRaw dispara el proceso de clasificación de
+// feedbacks (H-013). Corre el LLM por cada corrección → cliente dedicado con
+// timeout amplio (60s); Django procesa por lote acotado para no excederlo.
+func (c *Client) PostWhatsAppProcesarAprendizajeRaw(apiKey string) ([]byte, int, error) {
+	req, err := http.NewRequest(http.MethodPost, c.BaseURL+"/api/whatsapp/agente/procesar-aprendizaje", nil)
+	if err != nil {
+		return nil, 0, err
+	}
+	req.Header.Set("X-API-Key", apiKey)
+	cl := &http.Client{Timeout: 60 * time.Second}
+	resp, err := cl.Do(req)
+	if err != nil {
+		return nil, 0, fmt.Errorf("error procesando aprendizaje: %w", err)
+	}
+	defer resp.Body.Close()
+	b, _ := io.ReadAll(resp.Body)
+	return b, resp.StatusCode, nil
+}
+
 // GetRefugioLeadsSummary consulta el endpoint Django /api/refugio-leads/summary/
 // (requiere header X-API-Key). Devuelve el conteo real por canal en el rango.
 func (c *Client) GetRefugioLeadsSummary(desde, hasta, apiKey string) (*RefugioLeadsSummary, error) {
