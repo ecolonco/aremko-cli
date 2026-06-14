@@ -580,6 +580,48 @@ func WhatsAppCreateTemplates(cfg *config.Config) http.HandlerFunc {
 // envía cada plantilla por la Cloud API y reporta el resultado a Django.
 // Lo dispara el cron de Django tras generar la bandeja. Protegido con
 // X-API-Key = LUNA_API_KEY (server-to-server; no lo llama el navegador).
+func campanaLimit(r *http.Request) int {
+	limit := 50
+	if l := r.URL.Query().Get("limit"); l != "" {
+		if n, err := strconv.Atoi(l); err == nil && n > 0 {
+			limit = n
+		}
+	}
+	return limit
+}
+
+// ejecutarCampanaPlantillas envía las plantillas pendientes (en Django, las que
+// ya están APROBADAS — H-012) por la Cloud API y marca cada una enviada/fallida.
+func ejecutarCampanaPlantillas(cfg *config.Config, limit int) (total, enviados, fallidos int, err error) {
+	bc := bookings.NewClient(cfg.BookingSystemURL)
+	pendientes, err := bc.GetPendingTemplateSends(cfg.LunaAPIKey, limit)
+	if err != nil {
+		return 0, 0, 0, err
+	}
+	wc := whatsapp.NewClient(cfg.WhatsAppAccessToken, cfg.WhatsAppPhoneNumberID)
+	for _, p := range pendientes {
+		lang := p.Language
+		if lang == "" {
+			lang = "es"
+		}
+		res, e := wc.SendTemplate(p.Phone, p.MetaTemplateName, lang, buildTemplateBody(p.Params))
+		if e != nil {
+			fallidos++
+			log.Printf("[whatsapp] plantilla falló contacto=%d script=%s: %v", p.ContactoID, p.ScriptID, e)
+			if me := bc.MarkTemplateFailed(cfg.LunaAPIKey, p.ContactoID, e.Error()); me != nil {
+				log.Printf("[whatsapp] error en mark-template-failed contacto=%d: %v", p.ContactoID, me)
+			}
+			continue
+		}
+		enviados++
+		if me := bc.MarkTemplateSent(cfg.LunaAPIKey, p.ContactoID, res.MessageID); me != nil {
+			log.Printf("[whatsapp] error en mark-template-sent contacto=%d: %v", p.ContactoID, me)
+		}
+	}
+	return len(pendientes), enviados, fallidos, nil
+}
+
+// WhatsAppRunTemplateCampaign — disparo con X-API-Key (cron/n8n).
 func WhatsAppRunTemplateCampaign(cfg *config.Config) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if cfg.LunaAPIKey == "" || r.Header.Get("X-API-Key") != cfg.LunaAPIKey {
@@ -594,48 +636,34 @@ func WhatsAppRunTemplateCampaign(cfg *config.Config) http.HandlerFunc {
 			respondError(w, http.StatusServiceUnavailable, "Django no configurado")
 			return
 		}
-		limit := 50
-		if l := r.URL.Query().Get("limit"); l != "" {
-			if n, err := strconv.Atoi(l); err == nil && n > 0 {
-				limit = n
-			}
-		}
-
-		bc := bookings.NewClient(cfg.BookingSystemURL)
-		pendientes, err := bc.GetPendingTemplateSends(cfg.LunaAPIKey, limit)
+		total, enviados, fallidos, err := ejecutarCampanaPlantillas(cfg, campanaLimit(r))
 		if err != nil {
 			respondError(w, http.StatusBadGateway, err.Error())
 			return
 		}
+		respondJSON(w, http.StatusOK, map[string]interface{}{"success": true, "total": total, "enviados": enviados, "fallidos": fallidos})
+	}
+}
 
-		wc := whatsapp.NewClient(cfg.WhatsAppAccessToken, cfg.WhatsAppPhoneNumberID)
-		enviados, fallidos := 0, 0
-		for _, p := range pendientes {
-			lang := p.Language
-			if lang == "" {
-				lang = "es"
-			}
-			res, err := wc.SendTemplate(p.Phone, p.MetaTemplateName, lang, buildTemplateBody(p.Params))
-			if err != nil {
-				fallidos++
-				log.Printf("[whatsapp] plantilla falló contacto=%d script=%s: %v", p.ContactoID, p.ScriptID, err)
-				if e := bc.MarkTemplateFailed(cfg.LunaAPIKey, p.ContactoID, err.Error()); e != nil {
-					log.Printf("[whatsapp] error en mark-template-failed contacto=%d: %v", p.ContactoID, e)
-				}
-				continue
-			}
-			enviados++
-			if e := bc.MarkTemplateSent(cfg.LunaAPIKey, p.ContactoID, res.MessageID); e != nil {
-				log.Printf("[whatsapp] error en mark-template-sent contacto=%d: %v", p.ContactoID, e)
-			}
+// WhatsAppEnviarAprobados — disparo desde la UI del "por aprobar" (H-012).
+// Browser-callable (sin X-API-Key; el secreto vive server-side, mismo modelo que
+// reply). Solo envía lo que Django ya marcó APROBADO; idempotente (mark-sent).
+func WhatsAppEnviarAprobados(cfg *config.Config) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if cfg.LunaAPIKey == "" || cfg.BookingSystemURL == "" {
+			respondError(w, http.StatusServiceUnavailable, "Django no configurado")
+			return
 		}
-
-		respondJSON(w, http.StatusOK, map[string]interface{}{
-			"success":  true,
-			"total":    len(pendientes),
-			"enviados": enviados,
-			"fallidos": fallidos,
-		})
+		if cfg.WhatsAppAccessToken == "" || cfg.WhatsAppPhoneNumberID == "" {
+			respondError(w, http.StatusServiceUnavailable, "WhatsApp no configurado")
+			return
+		}
+		total, enviados, fallidos, err := ejecutarCampanaPlantillas(cfg, campanaLimit(r))
+		if err != nil {
+			respondError(w, http.StatusBadGateway, err.Error())
+			return
+		}
+		respondJSON(w, http.StatusOK, map[string]interface{}{"success": true, "total": total, "enviados": enviados, "fallidos": fallidos})
 	}
 }
 
@@ -831,6 +859,72 @@ func WhatsAppAgenteSugerenciaAccion(cfg *config.Config, accion string) http.Hand
 		}
 		raw, _ := io.ReadAll(r.Body)
 		body, status, err := bookings.NewClient(cfg.BookingSystemURL).PostWhatsAppAgenteSugerenciaAccionRaw(cfg.LunaAPIKey, id, accion, raw)
+		if err != nil {
+			respondError(w, http.StatusBadGateway, err.Error())
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(status)
+		_, _ = w.Write(body)
+	}
+}
+
+// WhatsAppBandejaEnvios lista los envíos de plantilla de la Bandeja por estado
+// (H-012). Proxy a Django con la X-API-Key. ?estado= (default por_aprobar).
+func WhatsAppBandejaEnvios(cfg *config.Config) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if cfg.LunaAPIKey == "" || cfg.BookingSystemURL == "" {
+			respondError(w, http.StatusServiceUnavailable, "Django no configurado")
+			return
+		}
+		estado := r.URL.Query().Get("estado")
+		if estado == "" {
+			estado = "por_aprobar"
+		}
+		body, status, err := bookings.NewClient(cfg.BookingSystemURL).GetWhatsAppBandejaEnviosRaw(cfg.LunaAPIKey, estado)
+		if err != nil {
+			respondError(w, http.StatusBadGateway, err.Error())
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(status)
+		_, _ = w.Write(body)
+	}
+}
+
+// WhatsAppBandejaEnvioAccion aprueba/descarta un envío (H-012).
+func WhatsAppBandejaEnvioAccion(cfg *config.Config, accion string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if cfg.LunaAPIKey == "" || cfg.BookingSystemURL == "" {
+			respondError(w, http.StatusServiceUnavailable, "Django no configurado")
+			return
+		}
+		id := chi.URLParam(r, "id")
+		if id == "" {
+			respondError(w, http.StatusBadRequest, "falta el id")
+			return
+		}
+		raw, _ := io.ReadAll(r.Body)
+		body, status, err := bookings.NewClient(cfg.BookingSystemURL).PostWhatsAppBandejaEnvioAccionRaw(cfg.LunaAPIKey, id, accion, raw)
+		if err != nil {
+			respondError(w, http.StatusBadGateway, err.Error())
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(status)
+		_, _ = w.Write(body)
+	}
+}
+
+// WhatsAppBandejaAprobarLote aprueba un lote de envíos (H-012).
+func WhatsAppBandejaAprobarLote(cfg *config.Config) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if cfg.LunaAPIKey == "" || cfg.BookingSystemURL == "" {
+			respondError(w, http.StatusServiceUnavailable, "Django no configurado")
+			return
+		}
+		raw, _ := io.ReadAll(r.Body)
+		body, status, err := bookings.NewClient(cfg.BookingSystemURL).PostWhatsAppBandejaAprobarLoteRaw(cfg.LunaAPIKey, raw)
 		if err != nil {
 			respondError(w, http.StatusBadGateway, err.Error())
 			return

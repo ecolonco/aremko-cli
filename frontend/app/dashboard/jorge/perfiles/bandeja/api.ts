@@ -13,6 +13,7 @@ import type {
   ConversacionesResponse,
   AgenteConfig,
   SugerenciaAprendizaje,
+  EnvioPlantilla,
 } from './types';
 
 const apiBase = () =>
@@ -508,6 +509,50 @@ export const descartarSugerencia = async (id: number): Promise<void> => {
   });
   const json = await res.json().catch(() => ({}));
   if (!res.ok || json.ok === false) throw new Error(json.error || `HTTP ${res.status}`);
+};
+
+// ============================ Bandeja de envíos (H-012) ============================
+
+/** Lista los envíos de plantilla por aprobar (H-012). */
+export const fetchBandejaEnvios = async (
+  estado: 'por_aprobar' | 'aprobado' | 'enviado' = 'por_aprobar'
+): Promise<EnvioPlantilla[]> => {
+  const res = await fetch(`${apiBase()}${WA}/bandeja-envios?estado=${estado}`);
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok || json.ok === false) throw new Error(json.error || `HTTP ${res.status}`);
+  return (json.envios ?? []) as EnvioPlantilla[];
+};
+
+export const aprobarEnvio = async (id: number): Promise<void> => {
+  const res = await fetch(`${apiBase()}${WA}/bandeja-envios/${id}/aprobar`, { method: 'POST' });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok || json.ok === false) throw new Error(json.error || `HTTP ${res.status}`);
+};
+
+export const descartarEnvio = async (id: number): Promise<void> => {
+  const res = await fetch(`${apiBase()}${WA}/bandeja-envios/${id}/descartar`, { method: 'POST' });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok || json.ok === false) throw new Error(json.error || `HTTP ${res.status}`);
+};
+
+/** Aprueba un lote (por ids o por motivo). Devuelve cuántos quedaron aprobados. */
+export const aprobarLoteEnvios = async (body: { ids?: number[]; motivo?: string }): Promise<number> => {
+  const res = await fetch(`${apiBase()}${WA}/bandeja-envios/aprobar-lote`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok || json.ok === false) throw new Error(json.error || `HTTP ${res.status}`);
+  return json.aprobados ?? 0;
+};
+
+/** Envía las plantillas APROBADAS por la Cloud API. Devuelve conteos. */
+export const enviarAprobados = async (): Promise<{ enviados: number; fallidos: number; total: number }> => {
+  const res = await fetch(`${apiBase()}${WA}/enviar-aprobados`, { method: 'POST' });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok || json.success === false) throw new Error(json.error || `HTTP ${res.status}`);
+  return { enviados: json.enviados ?? 0, fallidos: json.fallidos ?? 0, total: json.total ?? 0 };
 };
 
 /** Lee la config del agente IA de WhatsApp (H-007). Proxy a Django, que la

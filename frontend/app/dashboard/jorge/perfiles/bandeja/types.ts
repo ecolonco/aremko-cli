@@ -225,6 +225,22 @@ export interface AgenteConfig {
   conocimiento: string;
 }
 
+// Envío de plantilla por aprobar (H-012): la Bandeja propone contactar a un
+// cliente con una plantilla aprobada; Deborah revisa y aprueba.
+export interface EnvioPlantilla {
+  contacto_id: number;
+  cliente_id: number | null;
+  cliente_nombre: string | null;
+  phone: string;
+  motivo: string;
+  script_id: number | string;
+  plantilla: string;
+  preview: string;
+  salva: number | string | null;
+  prioridad: number | string | null;
+  fecha_sugerido: string | null;
+}
+
 // Sugerencia de aprendizaje (H-010 p2): el agente clasifica la corrección de
 // Deborah y propone una acción. `destino`/`aprueba` vienen listos para mostrar.
 export interface SugerenciaAprendizaje {

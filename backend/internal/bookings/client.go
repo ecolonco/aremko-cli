@@ -850,6 +850,63 @@ func (c *Client) PostWhatsAppProcesarAprendizajeRaw(apiKey string) ([]byte, int,
 	return b, resp.StatusCode, nil
 }
 
+// GetWhatsAppBandejaEnviosRaw lista los envíos de plantilla de la Bandeja por
+// estado (H-012). Devuelve body+status para reenviar al frontend.
+func (c *Client) GetWhatsAppBandejaEnviosRaw(apiKey, estado string) ([]byte, int, error) {
+	u := c.BaseURL + "/api/whatsapp/bandeja-envios"
+	if estado != "" {
+		u += "?estado=" + url.QueryEscape(estado)
+	}
+	req, err := http.NewRequest(http.MethodGet, u, nil)
+	if err != nil {
+		return nil, 0, err
+	}
+	req.Header.Set("X-API-Key", apiKey)
+	resp, err := c.HTTPClient.Do(req)
+	if err != nil {
+		return nil, 0, fmt.Errorf("error listando envíos bandeja: %w", err)
+	}
+	defer resp.Body.Close()
+	b, _ := io.ReadAll(resp.Body)
+	return b, resp.StatusCode, nil
+}
+
+// PostWhatsAppBandejaEnvioAccionRaw aprueba/descarta un envío (H-012).
+// `accion` = "aprobar" | "descartar".
+func (c *Client) PostWhatsAppBandejaEnvioAccionRaw(apiKey, id, accion string, body []byte) ([]byte, int, error) {
+	u := fmt.Sprintf("%s/api/whatsapp/bandeja-envios/%s/%s", c.BaseURL, url.PathEscape(id), accion)
+	req, err := http.NewRequest(http.MethodPost, u, bytes.NewReader(body))
+	if err != nil {
+		return nil, 0, err
+	}
+	req.Header.Set("X-API-Key", apiKey)
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := c.HTTPClient.Do(req)
+	if err != nil {
+		return nil, 0, fmt.Errorf("error en acción envío bandeja: %w", err)
+	}
+	defer resp.Body.Close()
+	b, _ := io.ReadAll(resp.Body)
+	return b, resp.StatusCode, nil
+}
+
+// PostWhatsAppBandejaAprobarLoteRaw aprueba un lote de envíos (H-012).
+func (c *Client) PostWhatsAppBandejaAprobarLoteRaw(apiKey string, body []byte) ([]byte, int, error) {
+	req, err := http.NewRequest(http.MethodPost, c.BaseURL+"/api/whatsapp/bandeja-envios/aprobar-lote", bytes.NewReader(body))
+	if err != nil {
+		return nil, 0, err
+	}
+	req.Header.Set("X-API-Key", apiKey)
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := c.HTTPClient.Do(req)
+	if err != nil {
+		return nil, 0, fmt.Errorf("error aprobando lote bandeja: %w", err)
+	}
+	defer resp.Body.Close()
+	b, _ := io.ReadAll(resp.Body)
+	return b, resp.StatusCode, nil
+}
+
 // GetRefugioLeadsSummary consulta el endpoint Django /api/refugio-leads/summary/
 // (requiere header X-API-Key). Devuelve el conteo real por canal en el rango.
 func (c *Client) GetRefugioLeadsSummary(desde, hasta, apiKey string) (*RefugioLeadsSummary, error) {
