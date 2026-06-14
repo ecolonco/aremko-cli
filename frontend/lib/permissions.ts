@@ -41,7 +41,7 @@ const ALL_KEYS = MENU_ITEMS.map((i) => i.key);
 export const USER_PERMISSIONS: Record<string, 'all' | string[]> = {
   jorge: 'all',
   angelica: ALL_KEYS.filter((k) => k !== 'sistema'), // todo menos "Aremko-CLI Sistema"
-  deborah: ['bandeja', 'mensajes', 'contactando', 'masajes', 'tableros', 'metricas'],
+  deborah: ['bandeja', 'mensajes', 'contactando', 'agente', 'masajes', 'tableros', 'metricas'],
   ernesto: [], // por ahora, ninguna
 };
 
