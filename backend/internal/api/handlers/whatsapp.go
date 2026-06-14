@@ -645,28 +645,6 @@ func WhatsAppRunTemplateCampaign(cfg *config.Config) http.HandlerFunc {
 	}
 }
 
-// WhatsAppEnviarAprobados — disparo desde la UI del "por aprobar" (H-012).
-// Browser-callable (sin X-API-Key; el secreto vive server-side, mismo modelo que
-// reply). Solo envía lo que Django ya marcó APROBADO; idempotente (mark-sent).
-func WhatsAppEnviarAprobados(cfg *config.Config) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		if cfg.LunaAPIKey == "" || cfg.BookingSystemURL == "" {
-			respondError(w, http.StatusServiceUnavailable, "Django no configurado")
-			return
-		}
-		if cfg.WhatsAppAccessToken == "" || cfg.WhatsAppPhoneNumberID == "" {
-			respondError(w, http.StatusServiceUnavailable, "WhatsApp no configurado")
-			return
-		}
-		total, enviados, fallidos, err := ejecutarCampanaPlantillas(cfg, campanaLimit(r))
-		if err != nil {
-			respondError(w, http.StatusBadGateway, err.Error())
-			return
-		}
-		respondJSON(w, http.StatusOK, map[string]interface{}{"success": true, "total": total, "enviados": enviados, "fallidos": fallidos})
-	}
-}
-
 // buildTemplateBody arma el component "body" de una plantilla con sus variables
 // posicionales ({{1}}, {{2}}…). Devuelve nil si la plantilla no tiene variables.
 func buildTemplateBody(params []string) []interface{} {

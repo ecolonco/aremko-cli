@@ -547,9 +547,11 @@ export const aprobarLoteEnvios = async (body: { ids?: number[]; motivo?: string 
   return json.aprobados ?? 0;
 };
 
-/** Envía las plantillas APROBADAS por la Cloud API. Devuelve conteos. */
+/** Envía las plantillas APROBADAS por la Cloud API. Pasa por el proxy server-side
+ *  de Next.js (`/api/whatsapp/enviar-aprobados`, detrás del login) que agrega la
+ *  X-API-Key — el mass-send NO queda expuesto público. Devuelve conteos. */
 export const enviarAprobados = async (): Promise<{ enviados: number; fallidos: number; total: number }> => {
-  const res = await fetch(`${apiBase()}${WA}/enviar-aprobados`, { method: 'POST' });
+  const res = await fetch(`/api/whatsapp/enviar-aprobados`, { method: 'POST' });
   const json = await res.json().catch(() => ({}));
   if (!res.ok || json.success === false) throw new Error(json.error || `HTTP ${res.status}`);
   return { enviados: json.enviados ?? 0, fallidos: json.fallidos ?? 0, total: json.total ?? 0 };

@@ -174,7 +174,6 @@ func (s *Server) setupRoutes() {
 		r.Post("/whatsapp/bandeja-envios/aprobar-lote", handlers.WhatsAppBandejaAprobarLote(s.config))
 		r.Post("/whatsapp/bandeja-envios/{id}/aprobar", handlers.WhatsAppBandejaEnvioAccion(s.config, "aprobar"))
 		r.Post("/whatsapp/bandeja-envios/{id}/descartar", handlers.WhatsAppBandejaEnvioAccion(s.config, "descartar"))
-		r.Post("/whatsapp/enviar-aprobados", handlers.WhatsAppEnviarAprobados(s.config))
 		r.Post("/whatsapp/run-template-campaign", handlers.WhatsAppRunTemplateCampaign(s.config))
 		r.Post("/whatsapp/create-templates", handlers.WhatsAppCreateTemplates(s.config))
 		r.Post("/whatsapp/send-template", handlers.WhatsAppSendTemplate(s.config))
