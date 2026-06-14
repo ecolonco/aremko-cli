@@ -21,6 +21,9 @@ export default function AgenteIAPage() {
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [ok, setOk] = useState(false);
+  // ¿el usuario editó el Conocimiento? Si NO, al guardar re-leemos el valor del
+  // servidor para no pisar reglas aprobadas desde "Aprendizaje del agente".
+  const [conocimientoDirty, setConocimientoDirty] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -45,6 +48,17 @@ export default function AgenteIAPage() {
     setError(null);
     setOk(false);
     try {
+      // Si no tocaste el Conocimiento, re-leemos el valor actual del servidor
+      // (puede tener reglas recién aprobadas) para NO pisarlas al guardar.
+      let conocimiento = cfg.conocimiento;
+      if (!conocimientoDirty) {
+        try {
+          const fresh = await fetchAgenteConfig();
+          conocimiento = fresh.conocimiento ?? cfg.conocimiento;
+        } catch {
+          /* si falla, usamos el que tenemos */
+        }
+      }
       const saved = await saveAgenteConfig({
         activo: cfg.activo,
         modo: cfg.modo,
@@ -58,9 +72,10 @@ export default function AgenteIAPage() {
         ausencia_activa: cfg.ausencia_activa,
         ausencia_mensaje: cfg.ausencia_mensaje,
         ausencia_anti_spam_horas: cfg.ausencia_anti_spam_horas,
-        conocimiento: cfg.conocimiento,
+        conocimiento,
       });
       setCfg(saved);
+      setConocimientoDirty(false);
       setOk(true);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'No se pudo guardar');
@@ -212,7 +227,10 @@ export default function AgenteIAPage() {
             </p>
             <textarea
               value={cfg.conocimiento ?? ''}
-              onChange={(e) => set('conocimiento', e.target.value)}
+              onChange={(e) => {
+                set('conocimiento', e.target.value);
+                setConocimientoDirty(true);
+              }}
               rows={6}
               placeholder={
                 'Las tinas se cobran POR PERSONA, capacidad 1 a 4 personas. Tina Calbuco: $25.000 por persona; siempre aclara que es por persona y la capacidad.\n' +
