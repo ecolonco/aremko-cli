@@ -1,12 +1,12 @@
 import { NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
 
 // Diagnóstico TEMPORAL: indica si las variables LOGIN_PW_* están definidas
 // en el servidor. NUNCA expone el valor — solo si existe y su largo (útil
-// para detectar espacios/comillas accidentales). Detrás del login.
-export async function GET() {
-  const session = await auth();
-  if (!session?.user) {
+// para detectar espacios/comillas accidentales). Protegido por una clave
+// temporal en la URL (?k=aremko-diag) para no depender de la sesión.
+export async function GET(req: Request) {
+  const k = new URL(req.url).searchParams.get('k');
+  if (k !== 'aremko-diag') {
     return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
   }
 
@@ -31,5 +31,12 @@ export async function GET() {
     })
   );
 
-  return NextResponse.json({ status, nodeEnv: process.env.NODE_ENV });
+  const secretos = {
+    AUTH_SECRET: !!process.env.AUTH_SECRET,
+    NEXTAUTH_SECRET: !!process.env.NEXTAUTH_SECRET,
+    NEXTAUTH_URL: !!process.env.NEXTAUTH_URL,
+    LUNA_API_KEY: !!process.env.LUNA_API_KEY,
+  };
+
+  return NextResponse.json({ status, secretos, nodeEnv: process.env.NODE_ENV });
 }
