@@ -18,6 +18,7 @@ import {
   Pencil,
   X,
   Sparkles,
+  ChevronUp,
 } from 'lucide-react';
 import {
   fetchConversacionWhatsApp,
@@ -143,6 +144,12 @@ export function ConversacionWhatsApp({
   // Para auto-generar el borrador al llegar un entrante nuevo (sin tocar nada).
   const ultimoInboundRef = useRef<string | null>(null);
   const inicializadoSugRef = useRef(false);
+  // Paginación "cargar mensajes antiguos" (Django topea limit a 500).
+  const [limite, setLimite] = useState(200);
+  const limiteRef = useRef(200);
+  limiteRef.current = limite;
+  const masAntiguosRef = useRef(false);
+  const [cargandoAntiguos, setCargandoAntiguos] = useState(false);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [texto, setTexto] = useState('');
@@ -180,6 +187,9 @@ export function ConversacionWhatsApp({
     sugerenciaAplicadaRef.current = null;
     ultimoInboundRef.current = null;
     inicializadoSugRef.current = false;
+    setLimite(200);
+    limiteRef.current = 200;
+    masAntiguosRef.current = false;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phone]);
 
@@ -240,7 +250,7 @@ export function ConversacionWhatsApp({
       if (!silencioso) setCargando(true);
       const pedirSugerencia = conSug ?? !silencioso;
       try {
-        const data = await fetchConversacionWhatsApp(phone, 200, pedirSugerencia);
+        const data = await fetchConversacionWhatsApp(phone, limiteRef.current, pedirSugerencia);
         setMensajes(data.messages || []);
         // Solo pisamos la sugerencia cuando la pedimos (el auto-refresco no la
         // pide → conservamos la última).
@@ -268,6 +278,22 @@ export function ConversacionWhatsApp({
     }
   };
 
+  // Sube el límite (de a 300, tope 500 de Django) y recarga para traer mensajes
+  // más antiguos. Silencioso (no blanquea) y no auto-baja el scroll.
+  const cargarAntiguos = async () => {
+    if (cargandoAntiguos || limite >= 500) return;
+    setCargandoAntiguos(true);
+    masAntiguosRef.current = true;
+    const nuevo = Math.min(limite + 300, 500);
+    limiteRef.current = nuevo;
+    setLimite(nuevo);
+    try {
+      await cargar(true, false);
+    } finally {
+      setCargandoAntiguos(false);
+    }
+  };
+
   useEffect(() => {
     cargar();
   }, [cargar]);
@@ -282,8 +308,13 @@ export function ConversacionWhatsApp({
     return () => clearInterval(id);
   }, [phone]);
 
-  // Auto-scroll al último mensaje cuando cambia el hilo.
+  // Auto-scroll al último mensaje cuando cambia el hilo. Se omite cuando se
+  // acaban de cargar mensajes antiguos (el usuario quiere quedarse arriba).
   useEffect(() => {
+    if (masAntiguosRef.current) {
+      masAntiguosRef.current = false;
+      return;
+    }
     finRef.current?.scrollIntoView({ block: 'end' });
   }, [mensajes.length]);
 
@@ -475,7 +506,25 @@ export function ConversacionWhatsApp({
             Sin mensajes de WhatsApp registrados con {nombreActual.split(' ')[0]} todavía.
           </p>
         ) : (
-          mensajes.map((m) => {
+          <>
+            {mensajes.length >= limite && limite < 500 && (
+              <div className="flex justify-center pb-1">
+                <button
+                  type="button"
+                  onClick={cargarAntiguos}
+                  disabled={cargandoAntiguos}
+                  className="inline-flex items-center gap-1 rounded-full border border-slate-300 bg-white px-3 py-1 text-[11px] text-slate-600 hover:bg-slate-100 disabled:opacity-50"
+                >
+                  {cargandoAntiguos ? (
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                  ) : (
+                    <ChevronUp className="h-3 w-3" />
+                  )}
+                  Cargar mensajes antiguos
+                </button>
+              </div>
+            )}
+            {mensajes.map((m) => {
             const saliente = m.direction === 'out';
             return (
               <div
@@ -510,7 +559,8 @@ export function ConversacionWhatsApp({
                 </div>
               </div>
             );
-          })
+            })}
+          </>
         )}
         <div ref={finRef} />
       </div>
