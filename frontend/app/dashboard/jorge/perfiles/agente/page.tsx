@@ -8,7 +8,6 @@ import { useEffect, useState } from 'react';
 import { Bot, Loader2, Save, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { fetchAgenteConfig, saveAgenteConfig } from '../bandeja/api';
 import type { AgenteConfig } from '../bandeja/types';
-import SugerenciasAprendizaje from './SugerenciasAprendizaje';
 
 const MODOS: { value: string; label: string; hint: string }[] = [
   { value: 'borrador', label: 'Borrador (Fase 1)', hint: 'Sugiere; Deborah revisa y envía. No auto-envía. (Recomendado para empezar)' },
@@ -97,9 +96,6 @@ export default function AgenteIAPage() {
         </div>
       ) : (
         <div className="mt-6 space-y-5">
-          {/* El agente aprendió algo (H-010 p2) */}
-          <SugerenciasAprendizaje />
-
           {/* Mensaje de ausencia (H-008) */}
           <div className="rounded-lg border border-amber-300 bg-amber-50 p-4">
             <div className="flex items-center justify-between">

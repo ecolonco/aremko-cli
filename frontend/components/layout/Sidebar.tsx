@@ -16,6 +16,7 @@ import {
   MegaphoneIcon,
   PaperAirplaneIcon,
   SparklesIcon,
+  AcademicCapIcon,
 } from '@heroicons/react/24/outline';
 import { UserRole } from '@/lib/types/user';
 import { allowedItems } from '@/lib/permissions';
@@ -40,6 +41,7 @@ const ICONS: Record<string, typeof DocumentTextIcon> = {
   mensajes: ChatBubbleLeftRightIcon,
   contactando: PaperAirplaneIcon,
   agente: SparklesIcon,
+  aprendizaje: AcademicCapIcon,
   masajes: EnvelopeIcon,
   tableros: ChartBarIcon,
   metricas: TrophyIcon,
