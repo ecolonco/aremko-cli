@@ -11,20 +11,13 @@ export interface User {
   dashboards: string[]; // Dashboards a los que tiene acceso
 }
 
-// Contraseñas temporales (pueden cambiar después del primer login)
-// jorge: jorge2026
-// angelica: angelica2026
-// deborah: deborah2026
-// ernesto: ernesto2026
-
 const users: User[] = [
   {
     id: '1',
     username: 'jorge',
     name: 'Jorge Aguilera',
     role: 'superadmin',
-    // Password: jorge2026
-    passwordHash: '$2a$10$YKZqNvXqQX3xJYqKQJYqKuK5FqK5FqK5FqK5FqK5FqK5FqK5FqK5F', // Will be replaced
+    passwordHash: '', // Se calcula en initPasswordHashes()
     dashboards: ['jorge', 'deborah', 'angelica', 'ernesto'], // Acceso total
   },
   {
@@ -32,8 +25,7 @@ const users: User[] = [
     username: 'angelica',
     name: 'Angélica',
     role: 'superadmin',
-    // Password: angelica2026
-    passwordHash: '$2a$10$YKZqNvXqQX3xJYqKQJYqKuK5FqK5FqK5FqK5FqK5FqK5FqK5FqK5F', // Will be replaced
+    passwordHash: '',
     dashboards: ['jorge', 'deborah', 'angelica', 'ernesto'], // Acceso total
   },
   {
@@ -41,8 +33,7 @@ const users: User[] = [
     username: 'deborah',
     name: 'Deborah',
     role: 'admin',
-    // Password: deborah2026
-    passwordHash: '$2a$10$YKZqNvXqQX3xJYqKQJYqKuK5FqK5FqK5FqK5FqK5FqK5FqK5FqK5F', // Will be replaced
+    passwordHash: '',
     dashboards: ['deborah'], // Solo su dashboard
   },
   {
@@ -50,23 +41,28 @@ const users: User[] = [
     username: 'ernesto',
     name: 'Ernesto',
     role: 'admin',
-    // Password: ernesto2026
-    passwordHash: '$2a$10$YKZqNvXqQX3xJYqKQJYqKuK5FqK5FqK5FqK5FqK5FqK5FqK5FqK5F', // Will be replaced
+    passwordHash: '',
     dashboards: ['ernesto'], // Solo su dashboard
   },
 ];
 
+// Las contraseñas se leen desde variables de entorno (Vercel):
+//   LOGIN_PW_JORGE, LOGIN_PW_ANGELICA, LOGIN_PW_DEBORAH, LOGIN_PW_ERNESTO
+// Si una variable no está definida, se usa la contraseña temporal como
+// respaldo (transición). Una vez configuradas en Vercel, las temporales
+// quedan deshabilitadas y conviene eliminar este respaldo.
+const TEMP_PASSWORDS: Record<string, string> = {
+  jorge: 'jorge2026',
+  angelica: 'angelica2026',
+  deborah: 'deborah2026',
+  ernesto: 'ernesto2026',
+};
+
 // Inicializar hashes de contraseñas (se ejecuta al importar)
 const initPasswordHashes = async () => {
-  const passwords: Record<string, string> = {
-    jorge: 'jorge2026',
-    angelica: 'angelica2026',
-    deborah: 'deborah2026',
-    ernesto: 'ernesto2026',
-  };
-
   for (const user of users) {
-    const password = passwords[user.username];
+    const envVar = `LOGIN_PW_${user.username.toUpperCase()}`;
+    const password = process.env[envVar] || TEMP_PASSWORDS[user.username];
     if (password) {
       user.passwordHash = await bcrypt.hash(password, 10);
     }
