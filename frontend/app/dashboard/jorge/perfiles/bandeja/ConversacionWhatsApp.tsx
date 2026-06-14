@@ -26,6 +26,7 @@ import {
   enviarAdjuntoWhatsApp,
   editarNombreWhatsApp,
   marcarAtendidoWhatsApp,
+  reportarFeedbackAgente,
   telefonoE164,
 } from './api';
 import type { MensajeWhatsApp, SugerenciaAgente } from './types';
@@ -340,8 +341,20 @@ export function ConversacionWhatsApp({
     if (!t || enviando || disabled) return;
     setEnviando(true);
     setEnviarError(null);
+    const sug = sugerencia; // snapshot antes de limpiar
     try {
       await responderWhatsApp(phone, t);
+      // Feedback del agente (H-010 p1): si había borrador (no escalado), reporta
+      // el delta borrador-vs-enviado. Fire-and-forget, no bloquea ni rompe.
+      if (sug && !sug.escalar && sug.texto) {
+        void reportarFeedbackAgente({
+          phone,
+          wa_message_id: sug.responde_a || '',
+          borrador: sug.texto,
+          enviado: t,
+        });
+        setSugerencia(null); // borrador consumido
+      }
       setTexto('');
       // Recarga silenciosa para traer el saliente recién registrado en Django.
       await cargar(true);

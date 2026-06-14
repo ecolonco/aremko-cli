@@ -452,6 +452,25 @@ export const editarNombreWhatsApp = async (
   return json as EditarNombreResult;
 };
 
+/** Reporta el delta borrador-vs-enviado del agente (H-010 p1). Fire-and-forget:
+ *  es dato de aprendizaje, NO debe afectar el envío → traga cualquier error. */
+export const reportarFeedbackAgente = async (data: {
+  phone: string;
+  wa_message_id: string;
+  borrador: string;
+  enviado: string;
+}): Promise<void> => {
+  try {
+    await fetch(`${apiBase()}${WA}/agente/feedback`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+  } catch {
+    // ignorado a propósito (best-effort)
+  }
+};
+
 /** Lee la config del agente IA de WhatsApp (H-007). Proxy a Django, que la
  *  envuelve en `{ok, config}`. */
 export const fetchAgenteConfig = async (): Promise<AgenteConfig> => {

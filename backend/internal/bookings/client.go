@@ -772,6 +772,25 @@ func (c *Client) PostWhatsAppAgenteConfigRaw(apiKey string, body []byte) ([]byte
 	return b, resp.StatusCode, nil
 }
 
+// PostWhatsAppAgenteFeedbackRaw reenvía el "delta" borrador-vs-enviado al agente
+// de aprendizaje (H-010 p1). Reenvía el body del navegador. Django responde 200
+// siempre (fire-and-forget); preservamos status+body por consistencia.
+func (c *Client) PostWhatsAppAgenteFeedbackRaw(apiKey string, body []byte) ([]byte, int, error) {
+	req, err := http.NewRequest(http.MethodPost, c.BaseURL+"/api/whatsapp/agente/feedback", bytes.NewReader(body))
+	if err != nil {
+		return nil, 0, err
+	}
+	req.Header.Set("X-API-Key", apiKey)
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := c.HTTPClient.Do(req)
+	if err != nil {
+		return nil, 0, fmt.Errorf("error en feedback agente: %w", err)
+	}
+	defer resp.Body.Close()
+	b, _ := io.ReadAll(resp.Body)
+	return b, resp.StatusCode, nil
+}
+
 // GetRefugioLeadsSummary consulta el endpoint Django /api/refugio-leads/summary/
 // (requiere header X-API-Key). Devuelve el conteo real por canal en el rango.
 func (c *Client) GetRefugioLeadsSummary(desde, hasta, apiKey string) (*RefugioLeadsSummary, error) {

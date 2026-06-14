@@ -754,6 +754,26 @@ func WhatsAppAgenteConfigPost(cfg *config.Config) http.HandlerFunc {
 	}
 }
 
+// WhatsAppAgenteFeedback reenvía el delta borrador-vs-enviado al motor de
+// aprendizaje del agente (H-010 p1). Proxy a Django con la X-API-Key.
+func WhatsAppAgenteFeedback(cfg *config.Config) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if cfg.LunaAPIKey == "" || cfg.BookingSystemURL == "" {
+			respondError(w, http.StatusServiceUnavailable, "Django no configurado")
+			return
+		}
+		raw, _ := io.ReadAll(r.Body)
+		body, status, err := bookings.NewClient(cfg.BookingSystemURL).PostWhatsAppAgenteFeedbackRaw(cfg.LunaAPIKey, raw)
+		if err != nil {
+			respondError(w, http.StatusBadGateway, err.Error())
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(status)
+		_, _ = w.Write(body)
+	}
+}
+
 // WhatsAppEditarNombre corrige el nombre del cliente (ficha canónica en Django)
 // desde la conversación. Proxy a Django agregando la X-API-Key. Devuelve el JSON
 // de Django tal cual ({ok, cliente_id, cliente_nombre}) para que la UI actualice.
