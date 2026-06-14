@@ -1,6 +1,6 @@
 import NextAuth, { DefaultSession } from 'next-auth';
 import Credentials from 'next-auth/providers/credentials';
-import { getUserByUsername, verifyPassword, type User } from './users';
+import { getUserByUsername, verifyPassword, passwordsReady, type User } from './users';
 
 // Extender tipos de NextAuth para incluir nuestros campos personalizados
 declare module 'next-auth' {
@@ -35,6 +35,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         if (!credentials?.username || !credentials?.password) {
           return null;
         }
+
+        // Esperar a que los hashes de contraseñas estén calculados
+        // (evita validar contra un hash vacío en el primer request).
+        await passwordsReady;
 
         const user = getUserByUsername(credentials.username as string);
 

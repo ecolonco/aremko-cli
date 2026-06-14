@@ -69,8 +69,14 @@ const initPasswordHashes = async () => {
   }
 };
 
-// Inicializar hashes
-initPasswordHashes().catch(console.error);
+// Inicializar hashes. Se exporta la promesa para que el login pueda
+// ESPERAR a que los hashes estén listos antes de validar (evita un race
+// condition en serverless donde authorize() corre antes de terminar).
+export const passwordsReady: Promise<void> = initPasswordHashes().catch(
+  (err) => {
+    console.error('Error inicializando hashes de contraseñas:', err);
+  }
+);
 
 export function getUsers(): User[] {
   return users;
