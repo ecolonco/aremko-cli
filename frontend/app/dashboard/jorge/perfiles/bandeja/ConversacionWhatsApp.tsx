@@ -223,21 +223,23 @@ export function ConversacionWhatsApp({
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const cargar = useCallback(
-    async (silencioso = false) => {
+    // silencioso = no blanquea el hilo (sin loader). conSug = pedir el borrador
+    // del agente IA. Por defecto conSug sigue a !silencioso, pero se desacoplan
+    // para que "Actualizar" pida el borrador SIN blanquear (no perder el scroll).
+    async (silencioso = false, conSug?: boolean) => {
       if (!phone) {
         setError('Sin teléfono válido para este cliente');
         setCargando(false);
         return;
       }
       if (!silencioso) setCargando(true);
+      const pedirSugerencia = conSug ?? !silencioso;
       try {
-        // conSugerencia solo en carga no-silenciosa (apertura / "Actualizar"),
-        // para no disparar el LLM en cada auto-refresco de 12s.
-        const data = await fetchConversacionWhatsApp(phone, 50, !silencioso);
+        const data = await fetchConversacionWhatsApp(phone, 50, pedirSugerencia);
         setMensajes(data.messages || []);
-        // En auto-refresco (silencioso) Django no genera sugerencia → no la
-        // pisamos con null; conservamos la última.
-        if (!silencioso) setSugerencia(data.sugerencia_agente ?? null);
+        // Solo pisamos la sugerencia cuando la pedimos (el auto-refresco no la
+        // pide → conservamos la última).
+        if (pedirSugerencia) setSugerencia(data.sugerencia_agente ?? null);
         setError(null);
       } catch (e: unknown) {
         setError(e instanceof Error ? e.message : 'Error al cargar la conversación');
@@ -247,6 +249,19 @@ export function ConversacionWhatsApp({
     },
     [phone]
   );
+
+  // "Actualizar": refresca el hilo y regenera el borrador SIN blanquearlo
+  // (silencioso) para no saltar el scroll hacia arriba.
+  const [regenerando, setRegenerando] = useState(false);
+  const regenerar = async () => {
+    if (regenerando) return;
+    setRegenerando(true);
+    try {
+      await cargar(true, true);
+    } finally {
+      setRegenerando(false);
+    }
+  };
 
   useEffect(() => {
     cargar();
@@ -411,12 +426,12 @@ export function ConversacionWhatsApp({
           </button>
           <button
             type="button"
-            onClick={() => cargar()}
-            disabled={cargando}
+            onClick={regenerar}
+            disabled={cargando || regenerando}
             className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs text-emerald-700 hover:bg-emerald-100 disabled:opacity-50"
-            title="Actualizar conversación"
+            title="Actualizar conversación y regenerar el borrador del agente"
           >
-            <RefreshCw className={`h-3.5 w-3.5 ${cargando ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`h-3.5 w-3.5 ${cargando || regenerando ? 'animate-spin' : ''}`} />
             Actualizar
           </button>
         </div>
