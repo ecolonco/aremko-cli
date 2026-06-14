@@ -791,6 +791,46 @@ func (c *Client) PostWhatsAppAgenteFeedbackRaw(apiKey string, body []byte) ([]by
 	return b, resp.StatusCode, nil
 }
 
+// GetWhatsAppAgenteSugerenciasRaw lista las sugerencias de aprendizaje del agente
+// (H-010 p2) por estado. Devuelve body+status para reenviar al frontend.
+func (c *Client) GetWhatsAppAgenteSugerenciasRaw(apiKey, estado string) ([]byte, int, error) {
+	u := c.BaseURL + "/api/whatsapp/agente/sugerencias-aprendizaje"
+	if estado != "" {
+		u += "?estado=" + url.QueryEscape(estado)
+	}
+	req, err := http.NewRequest(http.MethodGet, u, nil)
+	if err != nil {
+		return nil, 0, err
+	}
+	req.Header.Set("X-API-Key", apiKey)
+	resp, err := c.HTTPClient.Do(req)
+	if err != nil {
+		return nil, 0, fmt.Errorf("error listando sugerencias agente: %w", err)
+	}
+	defer resp.Body.Close()
+	b, _ := io.ReadAll(resp.Body)
+	return b, resp.StatusCode, nil
+}
+
+// PostWhatsAppAgenteSugerenciaAccionRaw aprueba/descarta una sugerencia de
+// aprendizaje (H-010 p2). `accion` = "aprobar" | "descartar".
+func (c *Client) PostWhatsAppAgenteSugerenciaAccionRaw(apiKey, id, accion string, body []byte) ([]byte, int, error) {
+	u := fmt.Sprintf("%s/api/whatsapp/agente/sugerencias-aprendizaje/%s/%s", c.BaseURL, url.PathEscape(id), accion)
+	req, err := http.NewRequest(http.MethodPost, u, bytes.NewReader(body))
+	if err != nil {
+		return nil, 0, err
+	}
+	req.Header.Set("X-API-Key", apiKey)
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := c.HTTPClient.Do(req)
+	if err != nil {
+		return nil, 0, fmt.Errorf("error en acción sugerencia agente: %w", err)
+	}
+	defer resp.Body.Close()
+	b, _ := io.ReadAll(resp.Body)
+	return b, resp.StatusCode, nil
+}
+
 // GetRefugioLeadsSummary consulta el endpoint Django /api/refugio-leads/summary/
 // (requiere header X-API-Key). Devuelve el conteo real por canal en el rango.
 func (c *Client) GetRefugioLeadsSummary(desde, hasta, apiKey string) (*RefugioLeadsSummary, error) {

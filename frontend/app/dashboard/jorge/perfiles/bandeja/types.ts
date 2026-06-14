@@ -225,6 +225,23 @@ export interface AgenteConfig {
   conocimiento: string;
 }
 
+// Sugerencia de aprendizaje (H-010 p2): el agente clasifica la corrección de
+// Deborah y propone una acción. `destino`/`aprueba` vienen listos para mostrar.
+export interface SugerenciaAprendizaje {
+  id: number;
+  phone: string;
+  tipo: 'hecho_catalogo' | 'regla' | 'tono' | 'puntual' | string;
+  estado: string;
+  texto_propuesto: string;
+  ref_catalogo: string | null;
+  motivo: string | null;
+  borrador: string;
+  enviado: string;
+  destino: string;
+  aprueba: string;
+  created_at: string;
+}
+
 // Fila del listado de conversaciones (bandeja de entrada).
 export interface ConversacionResumen {
   phone: string;

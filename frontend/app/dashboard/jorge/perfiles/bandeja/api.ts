@@ -12,6 +12,7 @@ import type {
   ConversacionWhatsAppResponse,
   ConversacionesResponse,
   AgenteConfig,
+  SugerenciaAprendizaje,
 } from './types';
 
 const apiBase = () =>
@@ -469,6 +470,34 @@ export const reportarFeedbackAgente = async (data: {
   } catch {
     // ignorado a propósito (best-effort)
   }
+};
+
+/** Lista las sugerencias de aprendizaje pendientes del agente (H-010 p2). */
+export const fetchSugerenciasAprendizaje = async (): Promise<SugerenciaAprendizaje[]> => {
+  const res = await fetch(`${apiBase()}${WA}/agente/sugerencias-aprendizaje?estado=pendiente`);
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok || json.ok === false) throw new Error(json.error || `HTTP ${res.status}`);
+  return (json.sugerencias ?? []) as SugerenciaAprendizaje[];
+};
+
+/** Aprueba una sugerencia (opcional texto editado). regla→Conocimiento; hecho→queda para Jorge. */
+export const aprobarSugerencia = async (id: number, texto?: string): Promise<void> => {
+  const res = await fetch(`${apiBase()}${WA}/agente/sugerencias-aprendizaje/${id}/aprobar`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(texto != null ? { texto } : {}),
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok || json.ok === false) throw new Error(json.error || `HTTP ${res.status}`);
+};
+
+/** Descarta una sugerencia de aprendizaje. */
+export const descartarSugerencia = async (id: number): Promise<void> => {
+  const res = await fetch(`${apiBase()}${WA}/agente/sugerencias-aprendizaje/${id}/descartar`, {
+    method: 'POST',
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok || json.ok === false) throw new Error(json.error || `HTTP ${res.status}`);
 };
 
 /** Lee la config del agente IA de WhatsApp (H-007). Proxy a Django, que la
