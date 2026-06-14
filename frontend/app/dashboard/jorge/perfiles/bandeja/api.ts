@@ -446,17 +446,19 @@ export const editarNombreWhatsApp = async (
   return json as EditarNombreResult;
 };
 
-/** Lee la config del agente IA de WhatsApp (H-007). Proxy a Django. */
+/** Lee la config del agente IA de WhatsApp (H-007). Proxy a Django, que la
+ *  envuelve en `{ok, config}`. */
 export const fetchAgenteConfig = async (): Promise<AgenteConfig> => {
   const res = await fetch(`${apiBase()}${WA}/agente/config`);
   const json = await res.json().catch(() => ({}));
-  if (!res.ok) {
+  if (!res.ok || json.ok === false) {
     throw new Error(json.error || `HTTP ${res.status}`);
   }
-  return json as AgenteConfig;
+  return (json.config ?? json) as AgenteConfig;
 };
 
-/** Guarda la config del agente IA. Django valida enum/rangos (400 → mensaje). */
+/** Guarda la config del agente IA. Django valida enum/rangos (400 → mensaje) y
+ *  responde `{ok, config}`. */
 export const saveAgenteConfig = async (
   cambios: Partial<AgenteConfig>
 ): Promise<AgenteConfig> => {
@@ -469,5 +471,5 @@ export const saveAgenteConfig = async (
   if (!res.ok || json.ok === false) {
     throw new Error(json.error || `HTTP ${res.status}`);
   }
-  return json as AgenteConfig;
+  return (json.config ?? json) as AgenteConfig;
 };
