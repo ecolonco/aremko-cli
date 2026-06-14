@@ -240,7 +240,7 @@ export function ConversacionWhatsApp({
       if (!silencioso) setCargando(true);
       const pedirSugerencia = conSug ?? !silencioso;
       try {
-        const data = await fetchConversacionWhatsApp(phone, 50, pedirSugerencia);
+        const data = await fetchConversacionWhatsApp(phone, 200, pedirSugerencia);
         setMensajes(data.messages || []);
         // Solo pisamos la sugerencia cuando la pedimos (el auto-refresco no la
         // pide → conservamos la última).
