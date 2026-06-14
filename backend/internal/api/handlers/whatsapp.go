@@ -165,7 +165,7 @@ func handleInboundWhatsApp(cfg *config.Config, v whatsappChangeValue, msg whatsa
 		}
 	}
 
-	err := bc.PostWhatsAppInbound(cfg.LunaAPIKey, bookings.WhatsAppInboundReq{
+	resp, err := bc.PostWhatsAppInbound(cfg.LunaAPIKey, bookings.WhatsAppInboundReq{
 		WaMessageID: msg.ID,
 		From:        phone,
 		Body:        body,
@@ -175,6 +175,33 @@ func handleInboundWhatsApp(cfg *config.Config, v whatsappChangeValue, msg whatsa
 	})
 	if err != nil {
 		log.Printf("[whatsapp] error guardando inbound en Django: %v", err)
+		return
+	}
+
+	// Mensaje de ausencia (H-008): si Django indica responder (ausencia activa +
+	// fuera de la ventana anti-spam), enviamos la frase fija por la Cloud API y la
+	// registramos SIN limpiar el pendiente (no_marcar_atendido).
+	if resp != nil && resp.ResponderAusencia != nil && strings.TrimSpace(resp.ResponderAusencia.Mensaje) != "" {
+		if cfg.WhatsAppAccessToken == "" || cfg.WhatsAppPhoneNumberID == "" {
+			return
+		}
+		mensaje := resp.ResponderAusencia.Mensaje
+		wc := whatsapp.NewClient(cfg.WhatsAppAccessToken, cfg.WhatsAppPhoneNumberID)
+		res, e := wc.SendSessionMessage(phone, mensaje)
+		if e != nil {
+			log.Printf("[whatsapp] error enviando mensaje de ausencia: %v", e)
+			return
+		}
+		ts := strconv.FormatInt(time.Now().Unix(), 10)
+		if e := bc.PostWhatsAppOutbound(cfg.LunaAPIKey, bookings.WhatsAppOutboundReq{
+			WaMessageID:      res.MessageID,
+			To:               phone,
+			Body:             mensaje,
+			Timestamp:        ts,
+			NoMarcarAtendido: true,
+		}); e != nil {
+			log.Printf("[whatsapp] error registrando saliente de ausencia: %v", e)
+		}
 	}
 }
 
@@ -259,7 +286,7 @@ func handleMediaTooLarge(cfg *config.Config, bc *bookings.Client, wc *whatsapp.C
 	log.Printf("[whatsapp] adjunto de %s excede %d bytes; aviso al cliente", phone, maxMediaBytes)
 
 	// Nota para el operador en el hilo (idempotente con sufijo en el wa_message_id).
-	if e := bc.PostWhatsAppInbound(cfg.LunaAPIKey, bookings.WhatsAppInboundReq{
+	if _, e := bc.PostWhatsAppInbound(cfg.LunaAPIKey, bookings.WhatsAppInboundReq{
 		WaMessageID: msg.ID + "-toolarge",
 		From:        phone,
 		Body:        "⚠️ El cliente envió un archivo demasiado grande (límite 16 MB); no se pudo guardar. Pídele reenviarlo más liviano.",

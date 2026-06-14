@@ -387,6 +387,10 @@ type WhatsAppOutboundReq struct {
 	To          string `json:"to"`
 	Body        string `json:"body"`
 	Timestamp   string `json:"timestamp"`
+	// NoMarcarAtendido: si true, el saliente queda en el historial pero NO limpia
+	// el pendiente de la conversación (H-008: el mensaje de ausencia no cuenta
+	// como respuesta real → cuando Deborah vuelve ve quién escribió).
+	NoMarcarAtendido bool `json:"no_marcar_atendido,omitempty"`
 }
 
 // WhatsAppInboundMediaReq son los metadatos de un adjunto entrante (los bytes
@@ -402,10 +406,26 @@ type WhatsAppInboundMediaReq struct {
 	Filename    string
 }
 
+// WhatsAppInboundResp es la respuesta de POST /api/whatsapp/inbound. Trae la
+// directiva del "mensaje de ausencia" (H-008): si la ausencia está activa y no
+// se respondió dentro de la ventana anti-spam, Django devuelve el texto a enviar.
+type WhatsAppInboundResp struct {
+	ResponderAusencia *struct {
+		Mensaje string `json:"mensaje"`
+	} `json:"responder_ausencia"`
+}
+
 // PostWhatsAppInbound guarda un mensaje entrante en Django (idempotente por
-// wa_message_id) y marca el contacto OVC como respuesta pendiente.
-func (c *Client) PostWhatsAppInbound(apiKey string, req WhatsAppInboundReq) error {
-	return c.postWhatsApp("/api/whatsapp/inbound", apiKey, req)
+// wa_message_id) y marca el contacto OVC como respuesta pendiente. Devuelve la
+// respuesta de Django (incluye la directiva de ausencia, si aplica).
+func (c *Client) PostWhatsAppInbound(apiKey string, req WhatsAppInboundReq) (*WhatsAppInboundResp, error) {
+	raw, err := c.postWhatsAppRaw("/api/whatsapp/inbound", apiKey, req)
+	if err != nil {
+		return nil, err
+	}
+	var out WhatsAppInboundResp
+	_ = json.Unmarshal(raw, &out) // tolerante: si no trae el campo, queda nil
+	return &out, nil
 }
 
 // PostWhatsAppInboundMedia sube un adjunto entrante a Django como multipart
@@ -507,26 +527,33 @@ func (c *Client) PostWhatsAppOutboundMedia(apiKey string, m WhatsAppOutboundMedi
 }
 
 func (c *Client) postWhatsApp(path, apiKey string, payload interface{}) error {
+	_, err := c.postWhatsAppRaw(path, apiKey, payload)
+	return err
+}
+
+// postWhatsAppRaw es como postWhatsApp pero devuelve el body de la respuesta
+// (para endpoints que devuelven datos, ej. el inbound con la directiva de ausencia).
+func (c *Client) postWhatsAppRaw(path, apiKey string, payload interface{}) ([]byte, error) {
 	body, err := json.Marshal(payload)
 	if err != nil {
-		return fmt.Errorf("error serializando %s: %w", path, err)
+		return nil, fmt.Errorf("error serializando %s: %w", path, err)
 	}
 	req, err := http.NewRequest(http.MethodPost, c.BaseURL+path, bytes.NewReader(body))
 	if err != nil {
-		return fmt.Errorf("error creando request %s: %w", path, err)
+		return nil, fmt.Errorf("error creando request %s: %w", path, err)
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("X-API-Key", apiKey)
 	resp, err := c.HTTPClient.Do(req)
 	if err != nil {
-		return fmt.Errorf("error en %s: %w", path, err)
+		return nil, fmt.Errorf("error en %s: %w", path, err)
 	}
 	defer resp.Body.Close()
+	b, _ := io.ReadAll(resp.Body)
 	if resp.StatusCode != http.StatusOK {
-		b, _ := io.ReadAll(resp.Body)
-		return fmt.Errorf("django %s status %d: %s", path, resp.StatusCode, b)
+		return nil, fmt.Errorf("django %s status %d: %s", path, resp.StatusCode, b)
 	}
-	return nil
+	return b, nil
 }
 
 // GetWhatsAppConversationRaw devuelve el JSON crudo del historial de conversación

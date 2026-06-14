@@ -217,6 +217,10 @@ export interface AgenteConfig {
   history_window: number;
   pausa_horas_tras_humano: number;
   prompt_version: string | number;
+  // Mensaje de ausencia (H-008)
+  ausencia_activa: boolean;
+  ausencia_mensaje: string;
+  ausencia_anti_spam_horas: number;
 }
 
 // Fila del listado de conversaciones (bandeja de entrada).

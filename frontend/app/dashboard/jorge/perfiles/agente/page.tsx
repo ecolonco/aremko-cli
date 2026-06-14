@@ -55,6 +55,9 @@ export default function AgenteIAPage() {
         max_tokens: cfg.max_tokens,
         history_window: cfg.history_window,
         pausa_horas_tras_humano: cfg.pausa_horas_tras_humano,
+        ausencia_activa: cfg.ausencia_activa,
+        ausencia_mensaje: cfg.ausencia_mensaje,
+        ausencia_anti_spam_horas: cfg.ausencia_anti_spam_horas,
       });
       setCfg(saved);
       setOk(true);
@@ -92,6 +95,62 @@ export default function AgenteIAPage() {
         </div>
       ) : (
         <div className="mt-6 space-y-5">
+          {/* Mensaje de ausencia (H-008) */}
+          <div className="rounded-lg border border-amber-300 bg-amber-50 p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-sm font-semibold text-amber-900">🌙 Mensaje de ausencia</div>
+                <div className="text-xs text-amber-700">
+                  {cfg.ausencia_activa
+                    ? 'ACTIVO — a cada cliente que escribe se le responde la frase fija (no la IA ni Deborah).'
+                    : 'Apagado — los mensajes se atienden normal.'}
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => set('ausencia_activa', !cfg.ausencia_activa)}
+                className={`relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition ${
+                  cfg.ausencia_activa ? 'bg-amber-500' : 'bg-gray-300'
+                }`}
+                aria-pressed={cfg.ausencia_activa}
+              >
+                <span
+                  className={`inline-block h-5 w-5 transform rounded-full bg-white transition ${
+                    cfg.ausencia_activa ? 'translate-x-5' : 'translate-x-0.5'
+                  }`}
+                />
+              </button>
+            </div>
+            <div className="mt-3">
+              <label className="block text-xs font-medium text-amber-900">Texto que se envía</label>
+              <textarea
+                value={cfg.ausencia_mensaje ?? ''}
+                onChange={(e) => set('ausencia_mensaje', e.target.value)}
+                rows={3}
+                className="mt-1 block w-full rounded-md border border-amber-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-amber-500 focus:ring-amber-500"
+              />
+            </div>
+            <div className="mt-3 flex items-end gap-3">
+              <div>
+                <label className="block text-xs font-medium text-amber-900">No repetir por (horas)</label>
+                <input
+                  type="number"
+                  min="0"
+                  max="168"
+                  value={cfg.ausencia_anti_spam_horas ?? 6}
+                  onChange={(e) => set('ausencia_anti_spam_horas', Number(e.target.value))}
+                  className="mt-1 w-24 rounded-md border border-amber-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-amber-500 focus:ring-amber-500"
+                />
+              </div>
+              <p className="pb-2 text-[11px] text-amber-700">
+                0 = responder a cada mensaje. Recomendado 4-6h.
+              </p>
+            </div>
+            <p className="mt-2 text-[11px] font-medium text-amber-800">
+              ⚠️ Acuérdate de presionar <strong>Guardar</strong> (abajo) para aplicar.
+            </p>
+          </div>
+
           {/* On / Off */}
           <div className="flex items-center justify-between rounded-lg border border-gray-200 bg-white p-4">
             <div>
