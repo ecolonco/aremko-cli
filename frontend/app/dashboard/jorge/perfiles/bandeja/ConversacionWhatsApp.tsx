@@ -231,9 +231,13 @@ export function ConversacionWhatsApp({
       }
       if (!silencioso) setCargando(true);
       try {
-        const data = await fetchConversacionWhatsApp(phone);
+        // conSugerencia solo en carga no-silenciosa (apertura / "Actualizar"),
+        // para no disparar el LLM en cada auto-refresco de 12s.
+        const data = await fetchConversacionWhatsApp(phone, 50, !silencioso);
         setMensajes(data.messages || []);
-        setSugerencia(data.sugerencia_agente ?? null);
+        // En auto-refresco (silencioso) Django no genera sugerencia → no la
+        // pisamos con null; conservamos la última.
+        if (!silencioso) setSugerencia(data.sugerencia_agente ?? null);
         setError(null);
       } catch (e: unknown) {
         setError(e instanceof Error ? e.message : 'Error al cargar la conversación');

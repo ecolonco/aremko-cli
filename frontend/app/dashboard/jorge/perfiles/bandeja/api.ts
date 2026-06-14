@@ -335,9 +335,15 @@ export const telefonoE164 = (raw: string): string => {
 
 export const fetchConversacionWhatsApp = async (
   phone: string,
-  limit = 50
+  limit = 50,
+  // Pide el borrador del agente IA (H-007). Es opt-in en Django para no gastar
+  // LLM en cada apertura: solo lo activamos en la carga inicial / "Actualizar",
+  // NO en el auto-refresco cada 12s.
+  conSugerencia = false
 ): Promise<ConversacionWhatsAppResponse> => {
-  const q = new URLSearchParams({ phone, limit: String(limit) }).toString();
+  const params: Record<string, string> = { phone, limit: String(limit) };
+  if (conSugerencia) params.sugerencia = '1';
+  const q = new URLSearchParams(params).toString();
   const res = await fetch(`${apiBase()}${WA}/conversation?${q}`);
   const json = await res.json().catch(() => ({}));
   if (!res.ok) {
