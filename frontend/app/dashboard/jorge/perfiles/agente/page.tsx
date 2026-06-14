@@ -58,6 +58,7 @@ export default function AgenteIAPage() {
         ausencia_activa: cfg.ausencia_activa,
         ausencia_mensaje: cfg.ausencia_mensaje,
         ausencia_anti_spam_horas: cfg.ausencia_anti_spam_horas,
+        conocimiento: cfg.conocimiento,
       });
       setCfg(saved);
       setOk(true);
@@ -198,6 +199,26 @@ export default function AgenteIAPage() {
               onChange={(e) => set('persona_tono', e.target.value)}
               rows={4}
               placeholder="Ej: Cálido y cercano, español de Chile. Asistente de Aremko Spa Boutique, Puerto Varas — aguas calientes junto al río."
+              className={inputCls}
+            />
+          </div>
+
+          {/* Conocimiento / correcciones (H-009a) */}
+          <div className="rounded-lg border border-violet-200 bg-violet-50/50 p-4">
+            <label className={label}>📚 Conocimiento y correcciones del agente</label>
+            <p className="mt-1 mb-2 text-xs text-gray-600">
+              Una regla por línea. Tienen <strong>autoridad máxima</strong> (priman sobre el catálogo).
+              Cada vez que el agente se equivoque, agrega una línea y deja de equivocarse.
+            </p>
+            <textarea
+              value={cfg.conocimiento ?? ''}
+              onChange={(e) => set('conocimiento', e.target.value)}
+              rows={6}
+              placeholder={
+                'Las tinas se cobran POR PERSONA, capacidad 1 a 4 personas. Tina Calbuco: $25.000 por persona; siempre aclara que es por persona y la capacidad.\n' +
+                'No ofrecer el producto Cacao por este chat.\n' +
+                'Solo masajes de relajación y descontracturante se reservan online; el resto se coordina por WhatsApp.'
+              }
               className={inputCls}
             />
           </div>

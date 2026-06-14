@@ -221,6 +221,8 @@ export interface AgenteConfig {
   ausencia_activa: boolean;
   ausencia_mensaje: string;
   ausencia_anti_spam_horas: number;
+  // Conocimiento / correcciones (H-009a): una regla por línea, autoridad máxima.
+  conocimiento: string;
 }
 
 // Fila del listado de conversaciones (bandeja de entrada).
