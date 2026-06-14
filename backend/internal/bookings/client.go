@@ -531,12 +531,16 @@ func (c *Client) postWhatsApp(path, apiKey string, payload interface{}) error {
 
 // GetWhatsAppConversationRaw devuelve el JSON crudo del historial de conversación
 // de Django, para que el frontend lo consuma vía el proxy del backend Go.
-func (c *Client) GetWhatsAppConversationRaw(apiKey, phone string, limit int) ([]byte, error) {
+func (c *Client) GetWhatsAppConversationRaw(apiKey, phone string, limit int, conSugerencia bool) ([]byte, error) {
 	if limit <= 0 {
 		limit = 50
 	}
 	u := fmt.Sprintf("%s/api/whatsapp/conversation/?phone=%s&limit=%d",
 		c.BaseURL, url.QueryEscape(phone), limit)
+	if conSugerencia {
+		// Opt-in del borrador del agente IA (H-007): Django solo lo genera con esto.
+		u += "&sugerencia=1"
+	}
 	req, err := http.NewRequest(http.MethodGet, u, nil)
 	if err != nil {
 		return nil, err

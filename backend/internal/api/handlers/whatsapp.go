@@ -646,7 +646,9 @@ func WhatsAppConversation(cfg *config.Config) http.HandlerFunc {
 				limit = n
 			}
 		}
-		raw, err := bookings.NewClient(cfg.BookingSystemURL).GetWhatsAppConversationRaw(cfg.LunaAPIKey, phone, limit)
+		// Opt-in del borrador del agente IA (H-007): se reenvía a Django.
+		conSug := r.URL.Query().Get("sugerencia") == "1"
+		raw, err := bookings.NewClient(cfg.BookingSystemURL).GetWhatsAppConversationRaw(cfg.LunaAPIKey, phone, limit, conSug)
 		if err != nil {
 			respondError(w, http.StatusBadGateway, err.Error())
 			return
