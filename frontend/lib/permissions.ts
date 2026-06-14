@@ -25,6 +25,7 @@ export const MENU_ITEMS: MenuItemDef[] = [
   { key: 'bandeja', name: 'Bandeja WhatsApp', href: '/dashboard/jorge/perfiles/bandeja' },
   { key: 'mensajes', name: 'Mensajes WhatsApp', href: '/dashboard/jorge/perfiles/whatsapp' },
   { key: 'contactando', name: 'Contactando', href: '/dashboard/jorge/perfiles/contactando' },
+  { key: 'agente', name: 'Agente IA', href: '/dashboard/jorge/perfiles/agente' },
   { key: 'masajes', name: 'Conexión-Masajes', href: '/dashboard/jorge/perfiles/masajes' },
   { key: 'tableros', name: 'Tableros Bandeja', href: '/dashboard/jorge/perfiles/tableros' },
   { key: 'metricas', name: 'Métricas Operadores', href: '/dashboard/jorge/perfiles/metricas-operadores' },

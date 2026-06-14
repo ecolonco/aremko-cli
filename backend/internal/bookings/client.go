@@ -706,6 +706,41 @@ func (c *Client) PostWhatsAppEditarNombreRaw(apiKey, phone, nombre string) ([]by
 	return b, nil
 }
 
+// GetWhatsAppAgenteConfigRaw lee la config del agente IA (H-007) desde Django.
+// Devuelve body + status para reenviar tal cual al frontend.
+func (c *Client) GetWhatsAppAgenteConfigRaw(apiKey string) ([]byte, int, error) {
+	req, err := http.NewRequest(http.MethodGet, c.BaseURL+"/api/whatsapp/agente/config", nil)
+	if err != nil {
+		return nil, 0, err
+	}
+	req.Header.Set("X-API-Key", apiKey)
+	resp, err := c.HTTPClient.Do(req)
+	if err != nil {
+		return nil, 0, fmt.Errorf("error leyendo config agente: %w", err)
+	}
+	defer resp.Body.Close()
+	b, _ := io.ReadAll(resp.Body)
+	return b, resp.StatusCode, nil
+}
+
+// PostWhatsAppAgenteConfigRaw guarda la config del agente IA (H-007). Reenvía el
+// body del navegador y preserva el status (Django valida enum/rangos → 400).
+func (c *Client) PostWhatsAppAgenteConfigRaw(apiKey string, body []byte) ([]byte, int, error) {
+	req, err := http.NewRequest(http.MethodPost, c.BaseURL+"/api/whatsapp/agente/config", bytes.NewReader(body))
+	if err != nil {
+		return nil, 0, err
+	}
+	req.Header.Set("X-API-Key", apiKey)
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := c.HTTPClient.Do(req)
+	if err != nil {
+		return nil, 0, fmt.Errorf("error guardando config agente: %w", err)
+	}
+	defer resp.Body.Close()
+	b, _ := io.ReadAll(resp.Body)
+	return b, resp.StatusCode, nil
+}
+
 // GetRefugioLeadsSummary consulta el endpoint Django /api/refugio-leads/summary/
 // (requiere header X-API-Key). Devuelve el conteo real por canal en el rango.
 func (c *Client) GetRefugioLeadsSummary(desde, hasta, apiKey string) (*RefugioLeadsSummary, error) {

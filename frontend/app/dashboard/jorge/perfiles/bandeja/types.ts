@@ -184,11 +184,39 @@ export interface MensajeWhatsApp {
   filename?: string | null;   // nombre original (documentos)
 }
 
+// Sugerencia del agente IA (H-007, Fase 1) para el último entrante sin responder.
+export interface SugerenciaAgente {
+  texto: string;
+  escalar: boolean;
+  motivo: string | null;
+  modo: string | null;
+  modelo: string | null;
+  error: string | null;
+  generada_at: string | null;
+  responde_a: string | null; // wa_message_id del entrante al que responde
+}
+
 export interface ConversacionWhatsAppResponse {
   phone: string;
   cliente_id: number | null;
   count: number;
   messages: MensajeWhatsApp[];
+  sugerencia_agente?: SugerenciaAgente | null;
+}
+
+// Config del agente IA de WhatsApp (H-007). El backend la proxea a Django.
+export interface AgenteConfig {
+  activo: boolean;
+  modo: 'borrador' | 'auto_info' | 'auto' | string;
+  persona_tono: string;
+  link_reserva: string;
+  model_name: string;
+  modelo_efectivo: string;
+  temperature: number;
+  max_tokens: number;
+  history_window: number;
+  pausa_horas_tras_humano: number;
+  prompt_version: string | number;
 }
 
 // Fila del listado de conversaciones (bandeja de entrada).

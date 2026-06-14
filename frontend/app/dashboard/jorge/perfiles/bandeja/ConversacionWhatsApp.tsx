@@ -17,6 +17,7 @@ import {
   CheckCheck,
   Pencil,
   X,
+  Sparkles,
 } from 'lucide-react';
 import {
   fetchConversacionWhatsApp,
@@ -26,7 +27,7 @@ import {
   marcarAtendidoWhatsApp,
   telefonoE164,
 } from './api';
-import type { MensajeWhatsApp } from './types';
+import type { MensajeWhatsApp, SugerenciaAgente } from './types';
 
 interface ConversacionWhatsAppProps {
   /** Teléfono del cliente en cualquier formato; se normaliza a E.164 internamente. */
@@ -137,6 +138,8 @@ export function ConversacionWhatsApp({
 }: ConversacionWhatsAppProps) {
   const phone = telefonoE164(telefono);
   const [mensajes, setMensajes] = useState<MensajeWhatsApp[]>([]);
+  const [sugerencia, setSugerencia] = useState<SugerenciaAgente | null>(null);
+  const sugerenciaAplicadaRef = useRef<string | null>(null);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [texto, setTexto] = useState('');
@@ -170,8 +173,21 @@ export function ConversacionWhatsApp({
     setNombreActual(nombre);
     setEditandoNombre(false);
     setNombreError(null);
+    setSugerencia(null);
+    sugerenciaAplicadaRef.current = null;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phone]);
+
+  // Precarga el cajón con la sugerencia del agente IA (H-007 F1): una sola vez
+  // por entrante (responde_a) y solo si el cajón está vacío, para no pisar lo que
+  // escriba Deborah. Si la sugerencia escala a humano, no precarga (solo avisa).
+  useEffect(() => {
+    const s = sugerencia;
+    if (!s || s.escalar || !s.texto) return;
+    if (s.responde_a && s.responde_a === sugerenciaAplicadaRef.current) return;
+    sugerenciaAplicadaRef.current = s.responde_a;
+    setTexto((prev) => (prev.trim() === '' ? s.texto : prev));
+  }, [sugerencia]);
 
   const guardarNombre = async () => {
     const n = nombreInput.trim();
@@ -217,6 +233,7 @@ export function ConversacionWhatsApp({
       try {
         const data = await fetchConversacionWhatsApp(phone);
         setMensajes(data.messages || []);
+        setSugerencia(data.sugerencia_agente ?? null);
         setError(null);
       } catch (e: unknown) {
         setError(e instanceof Error ? e.message : 'Error al cargar la conversación');
@@ -467,6 +484,21 @@ export function ConversacionWhatsApp({
               permite responder con una <strong>plantilla aprobada</strong> fuera
               de esa ventana; un mensaje libre será rechazado.
             </span>
+          </div>
+        )}
+        {sugerencia && sugerencia.escalar && (
+          <div className="flex items-start gap-2 rounded-md border border-orange-200 bg-orange-50 p-2 text-[11px] text-orange-900">
+            <AlertTriangle className="mt-0.5 h-3.5 w-3.5 flex-shrink-0" />
+            <span>
+              <strong>Derivar a persona.</strong>{' '}
+              {sugerencia.motivo || 'El agente IA sugiere que conteste un humano.'}
+            </span>
+          </div>
+        )}
+        {sugerencia && !sugerencia.escalar && sugerencia.texto && (
+          <div className="flex items-center gap-1.5 text-[11px] text-violet-700">
+            <Sparkles className="h-3.5 w-3.5 flex-shrink-0" />
+            <span>Borrador sugerido por IA — revísalo antes de enviar.</span>
           </div>
         )}
         <div className="flex items-end gap-2">

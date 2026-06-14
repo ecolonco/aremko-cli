@@ -11,6 +11,7 @@ import type {
   MetricasOperadoresResponse,
   ConversacionWhatsAppResponse,
   ConversacionesResponse,
+  AgenteConfig,
 } from './types';
 
 const apiBase = () =>
@@ -443,4 +444,30 @@ export const editarNombreWhatsApp = async (
     throw new Error(json.error || `HTTP ${res.status}`);
   }
   return json as EditarNombreResult;
+};
+
+/** Lee la config del agente IA de WhatsApp (H-007). Proxy a Django. */
+export const fetchAgenteConfig = async (): Promise<AgenteConfig> => {
+  const res = await fetch(`${apiBase()}${WA}/agente/config`);
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(json.error || `HTTP ${res.status}`);
+  }
+  return json as AgenteConfig;
+};
+
+/** Guarda la config del agente IA. Django valida enum/rangos (400 → mensaje). */
+export const saveAgenteConfig = async (
+  cambios: Partial<AgenteConfig>
+): Promise<AgenteConfig> => {
+  const res = await fetch(`${apiBase()}${WA}/agente/config`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(cambios),
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok || json.ok === false) {
+    throw new Error(json.error || `HTTP ${res.status}`);
+  }
+  return json as AgenteConfig;
 };
