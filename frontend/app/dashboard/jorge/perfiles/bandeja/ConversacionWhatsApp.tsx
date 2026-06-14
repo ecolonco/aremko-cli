@@ -140,6 +140,9 @@ export function ConversacionWhatsApp({
   const [mensajes, setMensajes] = useState<MensajeWhatsApp[]>([]);
   const [sugerencia, setSugerencia] = useState<SugerenciaAgente | null>(null);
   const sugerenciaAplicadaRef = useRef<string | null>(null);
+  // Para auto-generar el borrador al llegar un entrante nuevo (sin tocar nada).
+  const ultimoInboundRef = useRef<string | null>(null);
+  const inicializadoSugRef = useRef(false);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [texto, setTexto] = useState('');
@@ -175,6 +178,8 @@ export function ConversacionWhatsApp({
     setNombreError(null);
     setSugerencia(null);
     sugerenciaAplicadaRef.current = null;
+    ultimoInboundRef.current = null;
+    inicializadoSugRef.current = false;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phone]);
 
@@ -281,6 +286,23 @@ export function ConversacionWhatsApp({
   useEffect(() => {
     finRef.current?.scrollIntoView({ block: 'end' });
   }, [mensajes.length]);
+
+  // Auto-genera el borrador del agente al llegar un entrante NUEVO (una vez por
+  // mensaje), sin tener que tocar "Actualizar". La carga inicial ya pide
+  // sugerencia, por eso la primera vez solo registramos el estado.
+  useEffect(() => {
+    const ins = mensajes.filter((m) => m.direction === 'in');
+    const ultId = ins.length ? ins[ins.length - 1].wa_message_id || null : null;
+    if (!inicializadoSugRef.current) {
+      inicializadoSugRef.current = true;
+      ultimoInboundRef.current = ultId;
+      return;
+    }
+    if (ultId && ultId !== ultimoInboundRef.current) {
+      ultimoInboundRef.current = ultId;
+      cargar(true, true); // entrante nuevo → genera el borrador en silencio
+    }
+  }, [mensajes, cargar]);
 
   const handleEnviar = async () => {
     const t = texto.trim();
