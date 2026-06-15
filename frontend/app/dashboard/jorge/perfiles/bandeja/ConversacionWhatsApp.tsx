@@ -393,7 +393,7 @@ export function ConversacionWhatsApp({
   const ventanaAbierta = dentroVentana24h(mensajes);
 
   return (
-    <section className="flex h-full min-h-0 w-full flex-col overflow-hidden rounded-lg border border-emerald-200 bg-white">
+    <section className="flex h-full min-h-0 w-full min-w-0 flex-col overflow-hidden rounded-lg border border-emerald-200 bg-white">
       {/* Encabezado del hilo */}
       <div className="flex flex-shrink-0 items-center justify-between gap-2 border-b border-emerald-100 bg-emerald-50/60 px-3 py-2">
         {onVolver && (
@@ -519,7 +519,7 @@ export function ConversacionWhatsApp({
       </div>
 
       {/* Hilo de mensajes */}
-      <div className="min-h-0 flex-1 space-y-2 overflow-y-auto bg-slate-50 p-3">
+      <div className="min-h-0 min-w-0 flex-1 space-y-2 overflow-y-auto bg-slate-50 p-3">
         {cargando ? (
           <div className="flex items-center justify-center py-6 text-slate-400">
             <Loader2 className="h-5 w-5 animate-spin" />
