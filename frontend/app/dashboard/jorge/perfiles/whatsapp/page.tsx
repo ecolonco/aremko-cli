@@ -44,6 +44,17 @@ export default function MensajesWhatsAppPage() {
   const [soloPendientes, setSoloPendientes] = useState(false);
   const [activo, setActivo] = useState<string>('');
   const [input, setInput] = useState('');
+  // En desktop mostramos las dos columnas y abrimos el primer hilo solo;
+  // en móvil trabajamos una pantalla a la vez (lista ↔ conversación).
+  const [esDesktop, setEsDesktop] = useState(false);
+
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 768px)');
+    const update = () => setEsDesktop(mq.matches);
+    update();
+    mq.addEventListener('change', update);
+    return () => mq.removeEventListener('change', update);
+  }, []);
 
   const cargar = useCallback(
     async (silencioso = false) => {
@@ -73,12 +84,13 @@ export default function MensajesWhatsAppPage() {
     return () => clearInterval(id);
   }, []);
 
-  // Abre el primer hilo automáticamente cuando llega la lista y no hay activo.
+  // Abre el primer hilo automáticamente SOLO en desktop (en móvil se parte en la
+  // lista, igual que WhatsApp, y el usuario elige a quién abrir).
   useEffect(() => {
-    if (!activo && conversaciones.length > 0) {
+    if (esDesktop && !activo && conversaciones.length > 0) {
       setActivo(conversaciones[0].phone);
     }
-  }, [conversaciones, activo]);
+  }, [conversaciones, activo, esDesktop]);
 
   const abrirNumero = (raw: string) => {
     const phone = telefonoE164(raw);
@@ -91,29 +103,33 @@ export default function MensajesWhatsAppPage() {
     conversaciones.find((c) => c.phone === activo)?.cliente_nombre || activo;
 
   return (
-    <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
-      <div className="flex items-start justify-between gap-2">
-        <div>
-          <h2 className="flex items-center gap-2 text-3xl font-bold tracking-tight">
-            <MessageSquare className="h-7 w-7 text-emerald-600" />
+    <div className="flex h-full flex-col gap-3 p-3 md:p-6">
+      <div className="flex flex-shrink-0 items-start justify-between gap-2">
+        <div className="min-w-0">
+          <h2 className="flex items-center gap-2 text-xl font-bold tracking-tight md:text-3xl">
+            <MessageSquare className="h-6 w-6 flex-shrink-0 text-emerald-600 md:h-7 md:w-7" />
             Mensajes WhatsApp
           </h2>
-          <p className="mt-1 text-sm text-muted-foreground">
+          <p className="mt-1 hidden text-sm text-muted-foreground md:block">
             Conversaciones que entran y salen por la <strong>Cloud API oficial</strong> de
             Aremko. Lo que respondas acá se envía desde el WhatsApp del negocio y queda
             guardado en la ficha del cliente.
           </p>
         </div>
         <Button onClick={() => cargar()} variant="outline" size="sm" disabled={cargando}>
-          <RefreshCw className={`mr-2 h-4 w-4 ${cargando ? 'animate-spin' : ''}`} />
-          Refrescar
+          <RefreshCw className={`mr-0 h-4 w-4 md:mr-2 ${cargando ? 'animate-spin' : ''}`} />
+          <span className="hidden md:inline">Refrescar</span>
         </Button>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-[320px_1fr]">
-        {/* Columna izquierda: bandeja de entrada */}
-        <Card className="h-fit">
-          <CardHeader className="pb-3">
+      <div className="flex min-h-0 flex-1 gap-4">
+        {/* Columna izquierda: bandeja de entrada (en móvil ocupa todo; se oculta al abrir un hilo) */}
+        <Card
+          className={`${
+            activo ? 'hidden md:flex' : 'flex'
+          } w-full min-h-0 flex-col md:w-80 md:flex-shrink-0`}
+        >
+          <CardHeader className="flex-shrink-0 pb-3">
             <CardTitle className="text-sm">Conversaciones</CardTitle>
             <CardDescription className="text-xs">
               {cargando
@@ -121,7 +137,7 @@ export default function MensajesWhatsAppPage() {
                 : `${conversaciones.length} ${soloPendientes ? 'pendientes' : 'en total'}`}
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-3">
+          <CardContent className="flex min-h-0 flex-1 flex-col space-y-3">
             {/* Buscador para abrir cualquier número */}
             <form
               onSubmit={(e) => {
@@ -168,7 +184,7 @@ export default function MensajesWhatsAppPage() {
                   : 'Aún no hay conversaciones registradas.'}
               </p>
             ) : (
-              <ul className="-mx-2 max-h-[60vh] divide-y divide-slate-100 overflow-y-auto">
+              <ul className="-mx-2 min-h-0 flex-1 divide-y divide-slate-100 overflow-y-auto">
                 {conversaciones.map((c) => {
                   const sel = c.phone === activo;
                   return (
@@ -219,8 +235,12 @@ export default function MensajesWhatsAppPage() {
           </CardContent>
         </Card>
 
-        {/* Columna derecha: hilo + responder */}
-        <div>
+        {/* Columna derecha: hilo + responder (en móvil ocupa todo al abrir un hilo) */}
+        <div
+          className={`${
+            activo ? 'flex' : 'hidden md:flex'
+          } min-h-0 flex-1`}
+        >
           {activo ? (
             <ConversacionWhatsApp
               key={activo}
@@ -229,9 +249,10 @@ export default function MensajesWhatsAppPage() {
               onReplySent={() => cargar(true)}
               onNombreEditado={() => cargar(true)}
               onAtendido={() => cargar(true)}
+              onVolver={() => setActivo('')}
             />
           ) : (
-            <Card>
+            <Card className="flex w-full items-center justify-center">
               <CardContent className="py-12 text-center text-sm text-slate-400">
                 Elige una conversación o ábrela por teléfono.
               </CardContent>

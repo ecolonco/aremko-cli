@@ -7,6 +7,7 @@ import {
   RefreshCw,
   Send,
   MessageSquare,
+  ArrowLeft,
   AlertTriangle,
   FileText,
   Mic,
@@ -42,6 +43,8 @@ interface ConversacionWhatsAppProps {
   onNombreEditado?: (nombre: string) => void;
   /** Se llama tras marcar la conversación como leída (para refrescar la lista externa). */
   onAtendido?: () => void;
+  /** Si se entrega, muestra un botón "← Volver" (solo en móvil) para regresar a la lista. */
+  onVolver?: () => void;
 }
 
 const horaCorta = (iso: string): string => {
@@ -137,6 +140,7 @@ export function ConversacionWhatsApp({
   onReplySent,
   onNombreEditado,
   onAtendido,
+  onVolver,
 }: ConversacionWhatsAppProps) {
   const phone = telefonoE164(telefono);
   const [mensajes, setMensajes] = useState<MensajeWhatsApp[]>([]);
@@ -389,10 +393,21 @@ export function ConversacionWhatsApp({
   const ventanaAbierta = dentroVentana24h(mensajes);
 
   return (
-    <section className="rounded-lg border border-emerald-200 bg-white">
+    <section className="flex h-full min-h-0 w-full flex-col overflow-hidden rounded-lg border border-emerald-200 bg-white">
       {/* Encabezado del hilo */}
-      <div className="flex items-center justify-between gap-2 border-b border-emerald-100 bg-emerald-50/60 px-3 py-2">
-        <div className="flex min-w-0 flex-col">
+      <div className="flex flex-shrink-0 items-center justify-between gap-2 border-b border-emerald-100 bg-emerald-50/60 px-3 py-2">
+        {onVolver && (
+          <button
+            type="button"
+            onClick={onVolver}
+            title="Volver a la lista"
+            aria-label="Volver a la lista de conversaciones"
+            className="-ml-1 inline-flex flex-shrink-0 items-center rounded-md p-1 text-emerald-700 hover:bg-emerald-100 md:hidden"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </button>
+        )}
+        <div className="flex min-w-0 flex-1 flex-col">
           <span className="inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-700">
             <MessageSquare className="h-3 w-3" />
             Conversación de WhatsApp
@@ -504,7 +519,7 @@ export function ConversacionWhatsApp({
       </div>
 
       {/* Hilo de mensajes */}
-      <div className="max-h-72 space-y-2 overflow-y-auto bg-slate-50 p-3">
+      <div className="min-h-0 flex-1 space-y-2 overflow-y-auto bg-slate-50 p-3">
         {cargando ? (
           <div className="flex items-center justify-center py-6 text-slate-400">
             <Loader2 className="h-5 w-5 animate-spin" />
@@ -579,7 +594,7 @@ export function ConversacionWhatsApp({
       </div>
 
       {/* Caja de respuesta */}
-      <div className="space-y-2 border-t border-slate-200 p-3">
+      <div className="flex-shrink-0 space-y-2 border-t border-slate-200 p-3">
         {!ventanaAbierta && mensajes.length > 0 && (
           <div className="flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 p-2 text-[11px] text-amber-900">
             <AlertTriangle className="mt-0.5 h-3.5 w-3.5 flex-shrink-0" />
