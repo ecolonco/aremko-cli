@@ -46,23 +46,13 @@ const users: User[] = [
   },
 ];
 
-// Las contraseñas se leen desde variables de entorno (Vercel):
+// Las contraseñas se leen EXCLUSIVAMENTE desde variables de entorno (Vercel):
 //   LOGIN_PW_JORGE, LOGIN_PW_ANGELICA, LOGIN_PW_DEBORAH, LOGIN_PW_ERNESTO
-// Si una variable no está definida, se usa la contraseña temporal como
-// respaldo (transición). Una vez configuradas en Vercel, las temporales
-// quedan deshabilitadas y conviene eliminar este respaldo.
-const TEMP_PASSWORDS: Record<string, string> = {
-  jorge: 'jorge2026',
-  angelica: 'angelica2026',
-  deborah: 'deborah2026',
-  ernesto: 'ernesto2026',
-};
-
-// Inicializar hashes de contraseñas (se ejecuta al importar)
+// No hay contraseñas en el código. Si una variable no está definida, ese
+// usuario simplemente no puede iniciar sesión (passwordHash vacío).
 const initPasswordHashes = async () => {
   for (const user of users) {
-    const envVar = `LOGIN_PW_${user.username.toUpperCase()}`;
-    const password = process.env[envVar] || TEMP_PASSWORDS[user.username];
+    const password = process.env[`LOGIN_PW_${user.username.toUpperCase()}`];
     if (password) {
       user.passwordHash = await bcrypt.hash(password, 10);
     }
