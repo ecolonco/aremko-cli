@@ -5,9 +5,29 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"strconv"
+	"strings"
 
 	"github.com/aremko/aremko-cli/internal/config"
 )
+
+// flexInt acepta un entero venga como número JSON (DMs reales: 1527459824) o
+// como string ("1527459824", lo que manda el probador de webhooks de Meta).
+// Así un timestamp con tipo inesperado no rompe el unmarshal del webhook entero.
+type flexInt int64
+
+func (f *flexInt) UnmarshalJSON(b []byte) error {
+	s := strings.Trim(string(b), `"`)
+	if s == "" || s == "null" {
+		return nil
+	}
+	n, err := strconv.ParseInt(s, 10, 64)
+	if err != nil {
+		return nil // no abortamos el webhook por un timestamp raro
+	}
+	*f = flexInt(n)
+	return nil
+}
 
 // ============================================================================
 // Instagram Messaging API (ruta "Instagram Login") — bandeja omnicanal
@@ -68,7 +88,14 @@ func InstagramWebhookReceive(cfg *config.Config) http.HandlerFunc {
 
 		var payload instagramWebhookPayload
 		if err := json.Unmarshal(raw, &payload); err != nil {
-			respondError(w, http.StatusBadRequest, "payload inválido")
+			// No devolvemos 400: Meta reintentaría y podría deshabilitar el
+			// webhook. Logueamos el crudo (recortado) para depurar y seguimos.
+			body := string(raw)
+			if len(body) > 800 {
+				body = body[:800] + "…"
+			}
+			log.Printf("[instagram] payload no parseable (%v): %s", err, body)
+			w.WriteHeader(http.StatusOK)
 			return
 		}
 
@@ -116,7 +143,7 @@ type instagramWebhookPayload struct {
 	Object string `json:"object"` // "instagram"
 	Entry  []struct {
 		ID        string                    `json:"id"` // IG Business Account ID
-		Time      int64                     `json:"time"`
+		Time      flexInt                   `json:"time"`
 		Messaging []instagramMessagingEvent `json:"messaging"`
 		// Formato alterno usado por el probador de Meta y por eventos no-DM.
 		Changes []struct {
@@ -133,7 +160,7 @@ type instagramMessagingEvent struct {
 	Recipient struct {
 		ID string `json:"id"` // IG Business Account ID (la cuenta de Aremko)
 	} `json:"recipient"`
-	Timestamp int64                    `json:"timestamp"`
+	Timestamp flexInt                  `json:"timestamp"`
 	Message   *instagramInboundMessage `json:"message"`
 }
 
