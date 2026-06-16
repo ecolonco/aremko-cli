@@ -10,6 +10,7 @@ import (
 
 	"github.com/aremko/aremko-cli/internal/bookings"
 	"github.com/aremko/aremko-cli/internal/config"
+	"github.com/aremko/aremko-cli/internal/instagram"
 )
 
 // flexInt acepta un entero venga como número JSON (DMs reales: 1527459824) o
@@ -154,19 +155,56 @@ func handleInstagramEvent(cfg *config.Config, ev instagramMessagingEvent) {
 		ts = ts / 1000
 	}
 
+	// Resolvemos el @usuario del cliente (no en ecos: ahí el sender somos nosotros).
+	// Si no hay token o no se puede resolver, queda vacío y Django usa el IGSID.
+	contactName := ""
+	if !ev.Message.IsEcho && cfg.InstagramAccessToken != "" && cfg.InstagramBusinessID != "" {
+		contactName = instagram.NewClient(cfg.InstagramAccessToken, cfg.InstagramBusinessID).GetUsername(ev.Sender.ID)
+	}
+
 	err := bookings.NewClient(cfg.BookingSystemURL).PostInstagramInbound(cfg.LunaAPIKey, bookings.InstagramInboundReq{
 		IgMessageID: ev.Message.Mid,
 		FromIGSID:   ev.Sender.ID,
 		ToIGSID:     ev.Recipient.ID,
 		Text:        body,
 		Timestamp:   strconv.FormatInt(ts, 10),
-		// TODO(H-017): resolver IGSID→@username vía Graph API cuando esté seteado
-		// INSTAGRAM_ACCESS_TOKEN. Por ahora Django usa el IGSID como fallback.
-		ContactName: "",
+		ContactName: contactName,
 		IsEcho:      ev.Message.IsEcho,
 	})
 	if err != nil {
 		log.Printf("[instagram] error guardando inbound en Django: %v", err)
+	}
+}
+
+// InstagramReply envía un DM de texto al cliente (ventana de 24h). El saliente
+// NO se registra acá: Meta manda un webhook "echo" que el inbound persiste como
+// saliente (contrato H-016). Lo usa la bandeja para responder por Instagram.
+func InstagramReply(cfg *config.Config) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if cfg.InstagramAccessToken == "" || cfg.InstagramBusinessID == "" {
+			respondError(w, http.StatusServiceUnavailable, "Instagram no configurado (falta token o business id)")
+			return
+		}
+		var body struct {
+			To   string `json:"to"`
+			Text string `json:"text"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil ||
+			strings.TrimSpace(body.To) == "" || strings.TrimSpace(body.Text) == "" {
+			respondError(w, http.StatusBadRequest, "se requieren 'to' (IGSID) y 'text'")
+			return
+		}
+		res, err := instagram.NewClient(cfg.InstagramAccessToken, cfg.InstagramBusinessID).
+			SendMessage(strings.TrimSpace(body.To), body.Text)
+		if err != nil {
+			// Fuera de la ventana de 24h, token vencido, etc. → error de Meta.
+			respondError(w, http.StatusBadGateway, err.Error())
+			return
+		}
+		respondJSON(w, http.StatusOK, map[string]interface{}{
+			"success":    true,
+			"message_id": res.MessageID,
+		})
 	}
 }
 

@@ -126,9 +126,9 @@ export default function MensajesWhatsAppPage() {
             Mensajes
           </h2>
           <p className="mt-1 hidden text-sm text-muted-foreground md:block">
-            Bandeja unificada de <strong>WhatsApp</strong> e <strong>Instagram</strong>. Lo de
-            WhatsApp se responde acá y queda en la ficha del cliente. Instagram por ahora es de
-            lectura (responder llega pronto).
+            Bandeja unificada de <strong>WhatsApp</strong> e <strong>Instagram</strong> — respondés
+            ambos canales desde acá. Lo de WhatsApp queda en la ficha del cliente. Instagram solo
+            permite responder dentro de las 24 h del último mensaje del cliente.
           </p>
         </div>
         <Button onClick={() => cargar()} variant="outline" size="sm" disabled={cargando}>
@@ -272,6 +272,7 @@ export default function MensajesWhatsAppPage() {
                 key={`ig:${activo.externalId}`}
                 externalId={activo.externalId}
                 nombre={nombreActivo}
+                onReplySent={() => cargar(true)}
                 onAtendido={() => cargar(true)}
                 onVolver={() => setActivo(null)}
               />

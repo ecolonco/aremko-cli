@@ -1,9 +1,9 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ArrowLeft, Camera as Instagram, Loader2, RefreshCw, Check, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Camera as Instagram, Loader2, RefreshCw, Check, AlertTriangle, Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { fetchConversacionInbox, marcarAtendidoInbox } from './api';
+import { fetchConversacionInbox, marcarAtendidoInbox, responderInstagram } from './api';
 import type { MensajeInbox } from './types';
 
 interface Props {
@@ -11,6 +11,7 @@ interface Props {
   nombre: string;
   onVolver?: () => void;
   onAtendido?: () => void;
+  onReplySent?: () => void;
 }
 
 const POLL_MS = 30_000;
@@ -23,10 +24,13 @@ const hora = (iso: string): string => {
 
 // Conversación de Instagram en SOLO LECTURA. Responder por IG llega en H-017
 // (necesita el token de envío). Por ahora se ve el hilo y se marca como leído.
-export function ConversacionInstagram({ externalId, nombre, onVolver, onAtendido }: Props) {
+export function ConversacionInstagram({ externalId, nombre, onVolver, onAtendido, onReplySent }: Props) {
   const [mensajes, setMensajes] = useState<MensajeInbox[]>([]);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [input, setInput] = useState('');
+  const [enviando, setEnviando] = useState(false);
+  const [sendError, setSendError] = useState<string | null>(null);
   const finRef = useRef<HTMLDivElement>(null);
 
   const cargar = useCallback(
@@ -67,6 +71,24 @@ export function ConversacionInstagram({ externalId, nombre, onVolver, onAtendido
       onAtendido?.();
     } catch {
       /* no bloquea la vista */
+    }
+  };
+
+  const enviar = async () => {
+    const text = input.trim();
+    if (!text || enviando) return;
+    setEnviando(true);
+    setSendError(null);
+    try {
+      await responderInstagram(externalId, text);
+      setInput('');
+      // El saliente llega por el webhook "echo" de Meta; refrescamos en breve.
+      setTimeout(() => cargarRef.current(true), 1500);
+      onReplySent?.();
+    } catch (e: unknown) {
+      setSendError(e instanceof Error ? e.message : 'No se pudo enviar el mensaje');
+    } finally {
+      setEnviando(false);
     }
   };
 
@@ -141,8 +163,45 @@ export function ConversacionInstagram({ externalId, nombre, onVolver, onAtendido
         <div ref={finRef} />
       </div>
 
-      <div className="flex-shrink-0 border-t border-slate-200 bg-pink-50/40 p-3 text-center text-xs text-slate-500">
-        ✍️ Responder por Instagram llega pronto. Por ahora podés ver el hilo y marcarlo como leído.
+      <div className="flex-shrink-0 space-y-2 border-t border-slate-200 p-3">
+        {sendError && (
+          <p className="flex items-start gap-1.5 text-xs text-amber-700">
+            <AlertTriangle className="mt-0.5 h-3.5 w-3.5 flex-shrink-0" />
+            <span>{sendError}</span>
+          </p>
+        )}
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            enviar();
+          }}
+          className="flex items-end gap-2"
+        >
+          <textarea
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                enviar();
+              }
+            }}
+            rows={1}
+            placeholder="Responder por Instagram…"
+            className="max-h-32 min-h-[38px] w-full resize-none rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-pink-500 focus:outline-none focus:ring-1 focus:ring-pink-500"
+          />
+          <Button
+            type="submit"
+            disabled={!input.trim() || enviando}
+            className="bg-pink-500 hover:bg-pink-600"
+          >
+            {enviando ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+          </Button>
+        </form>
+        <p className="text-[10px] text-slate-400">
+          Solo se puede responder dentro de las 24 h del último mensaje del cliente · Enter envía ·
+          Shift+Enter salto de línea
+        </p>
       </div>
     </section>
   );

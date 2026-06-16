@@ -496,6 +496,24 @@ export const marcarAtendidoInbox = async (
   }
 };
 
+/** Responde un DM de Instagram (ventana de 24h). El saliente se persiste vía el
+ * webhook "echo" de Meta (no hay que registrarlo aparte). */
+export const responderInstagram = async (
+  igsid: string,
+  text: string
+): Promise<ResponderWhatsAppResult> => {
+  const res = await fetch(`${apiBase()}/api/v1/instagram/reply`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ to: igsid, text }),
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok || json.success === false) {
+    throw new Error(json.error || `HTTP ${res.status}`);
+  }
+  return json as ResponderWhatsAppResult;
+};
+
 export interface EditarNombreResult {
   ok: boolean;
   cliente_id?: number;

@@ -184,6 +184,7 @@ func (s *Server) setupRoutes() {
 		// Fase 1: solo recibir + loguear DMs entrantes para validar end-to-end.
 		r.Get("/instagram/webhook", handlers.InstagramWebhookVerify(s.config))
 		r.Post("/instagram/webhook", handlers.InstagramWebhookReceive(s.config))
+		r.Post("/instagram/reply", handlers.InstagramReply(s.config))
 
 		// Bandeja omnicanal (H-016): reads unificados WhatsApp + Instagram.
 		// Proxy a Django /api/inbox/*; conversación identificada por (canal, external_id).
