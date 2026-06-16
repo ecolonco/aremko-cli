@@ -64,23 +64,6 @@ func (c *Client) SendMessage(recipientIGSID, text string) (*SendResult, error) {
 	return &out, nil
 }
 
-// GetProfileRaw devuelve el status + body crudo del perfil de un IGSID (diag).
-func (c *Client) GetProfileRaw(igsid string) (int, []byte) {
-	u := fmt.Sprintf("%s/%s?fields=name,username,profile_pic", graphBase, url.PathEscape(igsid))
-	req, err := http.NewRequest(http.MethodGet, u, nil)
-	if err != nil {
-		return 0, []byte(err.Error())
-	}
-	req.Header.Set("Authorization", "Bearer "+c.Token)
-	resp, err := c.HTTPClient.Do(req)
-	if err != nil {
-		return 0, []byte(err.Error())
-	}
-	defer resp.Body.Close()
-	b, _ := io.ReadAll(resp.Body)
-	return resp.StatusCode, b
-}
-
 // GetUsername resuelve el @usuario (o el nombre) de un IGSID que nos escribió.
 // Devuelve "" si no se puede resolver — nunca rompe el flujo de inbound.
 func (c *Client) GetUsername(igsid string) string {
