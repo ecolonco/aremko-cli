@@ -30,13 +30,13 @@ func NewClient(baseURL string) *Client {
 
 // BookingStats represents aggregated booking statistics
 type BookingStats struct {
-	Total      int     `json:"total"`
-	Revenue    float64 `json:"revenue"`
-	AvgTicket  float64 `json:"avg_ticket"`
-	Paid       int     `json:"paid"`
-	Pending    int     `json:"pending"`
-	Partial    int     `json:"partial"`
-	Period     Period  `json:"period"`
+	Total     int     `json:"total"`
+	Revenue   float64 `json:"revenue"`
+	AvgTicket float64 `json:"avg_ticket"`
+	Paid      int     `json:"paid"`
+	Pending   int     `json:"pending"`
+	Partial   int     `json:"partial"`
+	Period    Period  `json:"period"`
 }
 
 // DailyBooking represents bookings for a single day
@@ -142,12 +142,12 @@ type BreakdownTrend struct {
 
 // BreakdownSummary contains aggregate stats for the breakdown
 type BreakdownSummary struct {
-	WeeksCount      int                `json:"weeks_count"`
-	FirstWeekStart  string             `json:"first_week_start"`
-	LastWeekStop    string             `json:"last_week_stop"`
-	Totals          BreakdownTotals    `json:"totals"`
-	AveragesPerWeek BreakdownAverages  `json:"averages_per_week"`
-	Trend           BreakdownTrend     `json:"trend"`
+	WeeksCount      int               `json:"weeks_count"`
+	FirstWeekStart  string            `json:"first_week_start"`
+	LastWeekStop    string            `json:"last_week_stop"`
+	Totals          BreakdownTotals   `json:"totals"`
+	AveragesPerWeek BreakdownAverages `json:"averages_per_week"`
+	Trend           BreakdownTrend    `json:"trend"`
 }
 
 // WeeklyBreakdown is the response from /bookings/weekly-breakdown/
@@ -426,6 +426,93 @@ func (c *Client) PostWhatsAppInbound(apiKey string, req WhatsAppInboundReq) (*Wh
 	var out WhatsAppInboundResp
 	_ = json.Unmarshal(raw, &out) // tolerante: si no trae el campo, queda nil
 	return &out, nil
+}
+
+// ============================================================================
+// Relay de Instagram + Bandeja omnicanal (H-016)
+// ============================================================================
+
+// InstagramInboundReq es el body de POST /api/instagram/inbound. Django keyea la
+// conversación por el IGSID del cliente (el que NO es la cuenta de Aremko).
+type InstagramInboundReq struct {
+	IgMessageID string `json:"ig_message_id"`
+	FromIGSID   string `json:"from_igsid"`
+	ToIGSID     string `json:"to_igsid"`
+	Text        string `json:"text"`
+	Timestamp   string `json:"timestamp"`
+	ContactName string `json:"contact_name,omitempty"`
+	IsEcho      bool   `json:"is_echo"`
+}
+
+// PostInstagramInbound guarda un DM de Instagram en Django (idempotente por
+// ig_message_id). is_echo=true se guarda como saliente.
+func (c *Client) PostInstagramInbound(apiKey string, req InstagramInboundReq) error {
+	return c.postWhatsApp("/api/instagram/inbound", apiKey, req)
+}
+
+// getRaw hace un GET con X-API-Key y devuelve el body crudo (espera status 200).
+func (c *Client) getRaw(u, apiKey, label string) ([]byte, error) {
+	req, err := http.NewRequest(http.MethodGet, u, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("X-API-Key", apiKey)
+	resp, err := c.HTTPClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("error en %s: %w", label, err)
+	}
+	defer resp.Body.Close()
+	b, _ := io.ReadAll(resp.Body)
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("django %s status %d: %s", label, resp.StatusCode, b)
+	}
+	return b, nil
+}
+
+// GetInboxConversationsRaw lista conversaciones de TODOS los canales (WhatsApp +
+// Instagram) para la bandeja unificada. JSON crudo de Django.
+func (c *Client) GetInboxConversationsRaw(apiKey string, soloPendientes bool, limit int, canal string) ([]byte, error) {
+	if limit <= 0 {
+		limit = 50
+	}
+	u := fmt.Sprintf("%s/api/inbox/conversations/?solo_pendientes=%t&limit=%d",
+		c.BaseURL, soloPendientes, limit)
+	if canal != "" {
+		u += "&canal=" + url.QueryEscape(canal)
+	}
+	return c.getRaw(u, apiKey, "inbox conversations")
+}
+
+// GetInboxConversationRaw devuelve el hilo de una conversación identificada por
+// (canal, external_id). JSON crudo de Django.
+func (c *Client) GetInboxConversationRaw(apiKey, canal, externalID string, limit int) ([]byte, error) {
+	if limit <= 0 {
+		limit = 200
+	}
+	u := fmt.Sprintf("%s/api/inbox/conversation/?canal=%s&external_id=%s&limit=%d",
+		c.BaseURL, url.QueryEscape(canal), url.QueryEscape(externalID), limit)
+	return c.getRaw(u, apiKey, "inbox conversation")
+}
+
+// PostInboxMarcarAtendidoRaw saca de pendientes una conversación (canal, external_id).
+func (c *Client) PostInboxMarcarAtendidoRaw(apiKey, canal, externalID string) ([]byte, error) {
+	u := fmt.Sprintf("%s/api/inbox/conversations/%s/%s/marcar-atendido/",
+		c.BaseURL, url.PathEscape(canal), url.PathEscape(externalID))
+	req, err := http.NewRequest(http.MethodPost, u, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("X-API-Key", apiKey)
+	resp, err := c.HTTPClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("error en inbox marcar-atendido: %w", err)
+	}
+	defer resp.Body.Close()
+	b, _ := io.ReadAll(resp.Body)
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("django inbox marcar-atendido status %d: %s", resp.StatusCode, b)
+	}
+	return b, nil
 }
 
 // PostWhatsAppInboundMedia sube un adjunto entrante a Django como multipart
@@ -1017,10 +1104,10 @@ func (c *Client) GetWeeklyBreakdown(weeks int) (*WeeklyBreakdown, error) {
 
 // MonthlyFamilyData is one row (one month) of the monthly-by-family matrix.
 type MonthlyFamilyData struct {
-	Month       string                     `json:"month"`
-	MonthLabel  string                     `json:"month_label"`
-	Families    map[string]FamilyBreakdown `json:"families"`
-	Total       FamilyBreakdown            `json:"total"`
+	Month      string                     `json:"month"`
+	MonthLabel string                     `json:"month_label"`
+	Families   map[string]FamilyBreakdown `json:"families"`
+	Total      FamilyBreakdown            `json:"total"`
 }
 
 // MonthlyFamilySummary describes aggregated stats per family for the period.
@@ -1035,11 +1122,11 @@ type MonthlyFamilySummary struct {
 
 // MonthlyByFamilyResult is the response from /bookings/monthly-by-family/.
 type MonthlyByFamilyResult struct {
-	Months          int                              `json:"months"`
-	FirstMonth      string                           `json:"first_month"`
-	LastMonth       string                           `json:"last_month"`
-	Data            []MonthlyFamilyData              `json:"data"`
-	SummaryByFamily map[string]MonthlyFamilySummary  `json:"summary_by_family"`
+	Months          int                             `json:"months"`
+	FirstMonth      string                          `json:"first_month"`
+	LastMonth       string                          `json:"last_month"`
+	Data            []MonthlyFamilyData             `json:"data"`
+	SummaryByFamily map[string]MonthlyFamilySummary `json:"summary_by_family"`
 }
 
 // GetMonthlyByFamily fetches the monthly revenue + count matrix by family for the
@@ -1164,10 +1251,10 @@ type FamilyCombinationShare struct {
 
 // FamilyCombinationsSummary is the period summary returned by Django.
 type FamilyCombinationsSummary struct {
-	TotalReservas              int                                `json:"total_reservas"`
-	TotalRevenue               float64                            `json:"total_revenue"`
-	ShareByCombination         map[string]FamilyCombinationShare  `json:"share_by_combination"`
-	TrendSlopePctByCombination map[string]*float64                `json:"trend_slope_pct_by_combination"`
+	TotalReservas              int                               `json:"total_reservas"`
+	TotalRevenue               float64                           `json:"total_revenue"`
+	ShareByCombination         map[string]FamilyCombinationShare `json:"share_by_combination"`
+	TrendSlopePctByCombination map[string]*float64               `json:"trend_slope_pct_by_combination"`
 }
 
 // FamilyCombinationsResult is the response from /bookings/family-combinations/.

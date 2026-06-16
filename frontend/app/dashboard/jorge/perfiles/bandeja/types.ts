@@ -172,6 +172,9 @@ export interface DelDiaResponse {
 
 export type DireccionMensaje = 'in' | 'out';
 
+// Canal de la conversación (bandeja omnicanal, H-016).
+export type CanalMensaje = 'whatsapp' | 'instagram';
+
 export interface MensajeWhatsApp {
   wa_message_id: string;
   direction: DireccionMensaje;
@@ -182,6 +185,28 @@ export interface MensajeWhatsApp {
   media_url?: string | null;  // URL del adjunto en Django (null si es texto)
   mime_type?: string | null;
   filename?: string | null;   // nombre original (documentos)
+  canal?: CanalMensaje;       // omnicanal (ausente = whatsapp legacy)
+}
+
+// Mensaje del hilo unificado (Django /api/inbox/conversation). A diferencia de
+// MensajeWhatsApp usa external_message_id (no wa_message_id) y trae el canal.
+export interface MensajeInbox {
+  external_message_id: string;
+  canal: CanalMensaje;
+  direction: DireccionMensaje;
+  body: string;
+  type: string;
+  status: string;
+  timestamp: string;
+}
+
+export interface ConversacionInboxResponse {
+  canal: CanalMensaje;
+  external_id: string;
+  cliente_id: number | null;
+  contact_name?: string | null;
+  count: number;
+  messages: MensajeInbox[];
 }
 
 // Sugerencia del agente IA (H-007, Fase 1) para el último entrante sin responder.
@@ -260,7 +285,10 @@ export interface SugerenciaAprendizaje {
 
 // Fila del listado de conversaciones (bandeja de entrada).
 export interface ConversacionResumen {
-  phone: string;
+  phone: string;                 // E.164 (WhatsApp); null/"" en Instagram
+  canal?: CanalMensaje;          // omnicanal (H-016); ausente = whatsapp legacy
+  external_id?: string;          // identidad por canal: phone (WA) / IGSID (IG)
+  contact_name?: string | null;  // nombre del perfil del canal (ej. @usuario IG)
   cliente_id: number | null;
   cliente_nombre: string | null;
   ultimo_mensaje: string;

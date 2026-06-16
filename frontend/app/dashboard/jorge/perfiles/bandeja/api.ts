@@ -11,6 +11,8 @@ import type {
   MetricasOperadoresResponse,
   ConversacionWhatsAppResponse,
   ConversacionesResponse,
+  ConversacionInboxResponse,
+  CanalMensaje,
   AgenteConfig,
   SugerenciaAprendizaje,
   EnvioPlantilla,
@@ -420,6 +422,72 @@ export const fetchConversacionesWhatsApp = async (
 export const marcarAtendidoWhatsApp = async (phone: string): Promise<void> => {
   const res = await fetch(
     `${apiBase()}${WA}/conversations/${encodeURIComponent(phone)}/marcar-atendido`,
+    { method: 'POST' }
+  );
+  if (!res.ok) {
+    const json = await res.json().catch(() => ({}));
+    throw new Error(json.error || `HTTP ${res.status}`);
+  }
+};
+
+// ====================================================================
+// 12.bis Bandeja omnicanal (H-016) — lista + hilo unificados (WA + IG)
+// --------------------------------------------------------------------
+// Viven en /api/v1/inbox/* (proxy Go a Django /api/inbox/*). Cada
+// conversación se identifica por (canal, external_id), no por phone.
+// JSON crudo de Django (sin envelope {success,data}).
+// ====================================================================
+
+const INBOX = '/api/v1/inbox';
+
+/** Lista conversaciones de TODOS los canales (WhatsApp + Instagram) juntas. */
+export const fetchConversacionesInbox = async (
+  soloPendientes = false,
+  limit = 100,
+  canal?: CanalMensaje
+): Promise<ConversacionesResponse> => {
+  const params: Record<string, string> = {
+    solo_pendientes: String(soloPendientes),
+    limit: String(limit),
+  };
+  if (canal) params.canal = canal;
+  const q = new URLSearchParams(params).toString();
+  const res = await fetch(`${apiBase()}${INBOX}/conversations?${q}`);
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(json.error || `HTTP ${res.status}`);
+  }
+  return json as ConversacionesResponse;
+};
+
+/** Hilo de una conversación identificada por (canal, external_id). */
+export const fetchConversacionInbox = async (
+  canal: CanalMensaje,
+  externalId: string,
+  limit = 200
+): Promise<ConversacionInboxResponse> => {
+  const q = new URLSearchParams({
+    canal,
+    external_id: externalId,
+    limit: String(limit),
+  }).toString();
+  const res = await fetch(`${apiBase()}${INBOX}/conversation?${q}`);
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(json.error || `HTTP ${res.status}`);
+  }
+  return json as ConversacionInboxResponse;
+};
+
+/** Marca atendida una conversación de cualquier canal (canal, external_id). */
+export const marcarAtendidoInbox = async (
+  canal: CanalMensaje,
+  externalId: string
+): Promise<void> => {
+  const res = await fetch(
+    `${apiBase()}${INBOX}/conversations/${encodeURIComponent(canal)}/${encodeURIComponent(
+      externalId
+    )}/marcar-atendido`,
     { method: 'POST' }
   );
   if (!res.ok) {

@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/aremko/aremko-cli/internal/bookings"
 	"github.com/aremko/aremko-cli/internal/config"
 )
 
@@ -121,20 +122,52 @@ func InstagramWebhookReceive(cfg *config.Config) http.HandlerFunc {
 	}
 }
 
-// handleInstagramEvent procesa un evento de mensajería. Fase 1: solo loguea.
+// handleInstagramEvent procesa un evento de mensajería y lo persiste en Django
+// (bandeja omnicanal, H-016). is_echo=true se guarda como saliente.
 func handleInstagramEvent(cfg *config.Config, ev instagramMessagingEvent) {
 	if ev.Message == nil {
 		// read / reaction / postback / etc. — los ignoramos por ahora.
 		log.Printf("[instagram] evento sin mensaje (sender=%s)", ev.Sender.ID)
 		return
 	}
-	// is_echo = el mensaje lo envió la propia cuenta (eco de un saliente). No es
-	// un DM del cliente; en Fase 1 solo lo dejamos registrado.
+	body := ev.Message.Text
 	if ev.Message.IsEcho {
-		log.Printf("[instagram] echo (saliente propio) mid=%s a=%s: %q", ev.Message.Mid, ev.Recipient.ID, ev.Message.Text)
+		log.Printf("[instagram] echo (saliente propio) mid=%s a=%s: %q", ev.Message.Mid, ev.Recipient.ID, body)
+	} else {
+		log.Printf("[instagram] DM entrante de IGSID=%s mid=%s texto=%q adjuntos=%d", ev.Sender.ID, ev.Message.Mid, body, len(ev.Message.Attachments))
+	}
+
+	if cfg.LunaAPIKey == "" || cfg.BookingSystemURL == "" {
 		return
 	}
-	log.Printf("[instagram] DM entrante de IGSID=%s mid=%s texto=%q adjuntos=%d", ev.Sender.ID, ev.Message.Mid, ev.Message.Text, len(ev.Message.Attachments))
+
+	// Fase 2/3: persistimos texto. Si el DM trae solo adjunto, dejamos una marca
+	// legible (descarga/subida de media = Fase 5).
+	if body == "" && len(ev.Message.Attachments) > 0 {
+		body = "📎 Adjunto de Instagram"
+	}
+
+	// El timestamp de IG viene en milisegundos; Django (como en WhatsApp) espera
+	// segundos → normalizamos si el valor parece estar en ms.
+	ts := int64(ev.Timestamp)
+	if ts > 9999999999 {
+		ts = ts / 1000
+	}
+
+	err := bookings.NewClient(cfg.BookingSystemURL).PostInstagramInbound(cfg.LunaAPIKey, bookings.InstagramInboundReq{
+		IgMessageID: ev.Message.Mid,
+		FromIGSID:   ev.Sender.ID,
+		ToIGSID:     ev.Recipient.ID,
+		Text:        body,
+		Timestamp:   strconv.FormatInt(ts, 10),
+		// TODO(H-017): resolver IGSID→@username vía Graph API cuando esté seteado
+		// INSTAGRAM_ACCESS_TOKEN. Por ahora Django usa el IGSID como fallback.
+		ContactName: "",
+		IsEcho:      ev.Message.IsEcho,
+	})
+	if err != nil {
+		log.Printf("[instagram] error guardando inbound en Django: %v", err)
+	}
 }
 
 // ---- Shape del payload del webhook (formato Messenger Platform) ----

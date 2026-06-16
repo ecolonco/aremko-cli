@@ -15,13 +15,22 @@ import {
   RefreshCw,
   Loader2,
   AlertTriangle,
+  Camera as InstagramIcon,
 } from 'lucide-react';
 import { ConversacionWhatsApp } from '../bandeja/ConversacionWhatsApp';
+import { ConversacionInstagram } from '../bandeja/ConversacionInstagram';
 import {
   telefonoE164,
-  fetchConversacionesWhatsApp,
+  fetchConversacionesInbox,
 } from '../bandeja/api';
-import type { ConversacionResumen } from '../bandeja/types';
+import type { ConversacionResumen, CanalMensaje } from '../bandeja/types';
+
+// Canal + id externo de una conversación (la identidad cruza canales).
+const canalDe = (c: ConversacionResumen): CanalMensaje => c.canal || 'whatsapp';
+// En WhatsApp el id es el teléfono E.164 (con "+", como lo indexan los endpoints
+// legacy de WA); en Instagram es el IGSID (external_id).
+const extDe = (c: ConversacionResumen): string =>
+  canalDe(c) === 'whatsapp' ? c.phone || c.external_id || '' : c.external_id || '';
 
 // Número piloto de Meta (sandbox) con el que validamos el end-to-end.
 const PILOTO = '+56958655810';
@@ -42,7 +51,8 @@ export default function MensajesWhatsAppPage() {
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [soloPendientes, setSoloPendientes] = useState(false);
-  const [activo, setActivo] = useState<string>('');
+  // Conversación activa identificada por (canal, external_id), no por phone.
+  const [activo, setActivo] = useState<{ canal: CanalMensaje; externalId: string } | null>(null);
   const [input, setInput] = useState('');
   // En desktop mostramos las dos columnas y abrimos el primer hilo solo;
   // en móvil trabajamos una pantalla a la vez (lista ↔ conversación).
@@ -60,7 +70,7 @@ export default function MensajesWhatsAppPage() {
     async (silencioso = false) => {
       if (!silencioso) setCargando(true);
       try {
-        const data = await fetchConversacionesWhatsApp(soloPendientes, 100);
+        const data = await fetchConversacionesInbox(soloPendientes, 100);
         setConversaciones(data.conversations || []);
         setError(null);
       } catch (e: unknown) {
@@ -88,19 +98,23 @@ export default function MensajesWhatsAppPage() {
   // lista, igual que WhatsApp, y el usuario elige a quién abrir).
   useEffect(() => {
     if (esDesktop && !activo && conversaciones.length > 0) {
-      setActivo(conversaciones[0].phone);
+      const c = conversaciones[0];
+      setActivo({ canal: canalDe(c), externalId: extDe(c) });
     }
   }, [conversaciones, activo, esDesktop]);
 
   const abrirNumero = (raw: string) => {
     const phone = telefonoE164(raw);
     if (!phone) return;
-    setActivo(phone);
+    setActivo({ canal: 'whatsapp', externalId: phone });
     setInput('');
   };
 
+  const convActiva = activo
+    ? conversaciones.find((c) => canalDe(c) === activo.canal && extDe(c) === activo.externalId)
+    : undefined;
   const nombreActivo =
-    conversaciones.find((c) => c.phone === activo)?.cliente_nombre || activo;
+    convActiva?.cliente_nombre || convActiva?.contact_name || activo?.externalId || '';
 
   return (
     <div className="flex h-full flex-col gap-3 p-3 md:p-6">
@@ -108,12 +122,13 @@ export default function MensajesWhatsAppPage() {
         <div className="min-w-0">
           <h2 className="flex items-center gap-2 text-xl font-bold tracking-tight md:text-3xl">
             <MessageSquare className="h-6 w-6 flex-shrink-0 text-emerald-600 md:h-7 md:w-7" />
-            Mensajes WhatsApp
+            <InstagramIcon className="-ml-1 h-5 w-5 flex-shrink-0 text-pink-500 md:h-6 md:w-6" />
+            Mensajes
           </h2>
           <p className="mt-1 hidden text-sm text-muted-foreground md:block">
-            Conversaciones que entran y salen por la <strong>Cloud API oficial</strong> de
-            Aremko. Lo que respondas acá se envía desde el WhatsApp del negocio y queda
-            guardado en la ficha del cliente.
+            Bandeja unificada de <strong>WhatsApp</strong> e <strong>Instagram</strong>. Lo de
+            WhatsApp se responde acá y queda en la ficha del cliente. Instagram por ahora es de
+            lectura (responder llega pronto).
           </p>
         </div>
         <Button onClick={() => cargar()} variant="outline" size="sm" disabled={cargando}>
@@ -186,32 +201,42 @@ export default function MensajesWhatsAppPage() {
             ) : (
               <ul className="-mx-2 min-h-0 flex-1 divide-y divide-slate-100 overflow-y-auto">
                 {conversaciones.map((c) => {
-                  const sel = c.phone === activo;
+                  const canal = canalDe(c);
+                  const ext = extDe(c);
+                  const sel = !!activo && activo.canal === canal && activo.externalId === ext;
+                  const titulo = c.cliente_nombre || c.contact_name || c.phone || ext;
                   return (
-                    <li key={c.phone}>
+                    <li key={`${canal}:${ext}`}>
                       <button
                         type="button"
-                        onClick={() => setActivo(c.phone)}
+                        onClick={() => setActivo({ canal, externalId: ext })}
                         className={`flex w-full flex-col gap-0.5 px-2 py-2 text-left transition ${
                           sel ? 'bg-emerald-50' : 'hover:bg-slate-50'
                         }`}
                       >
                         <div className="flex items-center justify-between gap-2">
-                          <span
-                            className={`truncate text-sm ${
-                              c.sin_responder > 0
-                                ? 'font-semibold text-slate-900'
-                                : 'font-medium text-slate-700'
-                            }`}
-                          >
-                            {c.cliente_nombre || c.phone}
+                          <span className="flex min-w-0 items-center gap-1.5">
+                            {canal === 'instagram' ? (
+                              <InstagramIcon className="h-3.5 w-3.5 flex-shrink-0 text-pink-500" />
+                            ) : (
+                              <MessageSquare className="h-3.5 w-3.5 flex-shrink-0 text-emerald-600" />
+                            )}
+                            <span
+                              className={`truncate text-sm ${
+                                c.sin_responder > 0
+                                  ? 'font-semibold text-slate-900'
+                                  : 'font-medium text-slate-700'
+                              }`}
+                            >
+                              {titulo}
+                            </span>
                           </span>
                           <span className="flex-shrink-0 text-[10px] text-slate-400">
                             {horaCorta(c.ultimo_timestamp)}
                           </span>
                         </div>
-                        {c.cliente_nombre && (
-                          <span className="truncate font-mono text-[10px] text-slate-400">
+                        {canal === 'whatsapp' && c.cliente_nombre && (
+                          <span className="truncate pl-5 font-mono text-[10px] text-slate-400">
                             {c.phone}
                           </span>
                         )}
@@ -242,15 +267,25 @@ export default function MensajesWhatsAppPage() {
           } min-h-0 min-w-0 flex-1`}
         >
           {activo ? (
-            <ConversacionWhatsApp
-              key={activo}
-              telefono={activo}
-              nombre={nombreActivo}
-              onReplySent={() => cargar(true)}
-              onNombreEditado={() => cargar(true)}
-              onAtendido={() => cargar(true)}
-              onVolver={() => setActivo('')}
-            />
+            activo.canal === 'instagram' ? (
+              <ConversacionInstagram
+                key={`ig:${activo.externalId}`}
+                externalId={activo.externalId}
+                nombre={nombreActivo}
+                onAtendido={() => cargar(true)}
+                onVolver={() => setActivo(null)}
+              />
+            ) : (
+              <ConversacionWhatsApp
+                key={`wa:${activo.externalId}`}
+                telefono={activo.externalId}
+                nombre={nombreActivo}
+                onReplySent={() => cargar(true)}
+                onNombreEditado={() => cargar(true)}
+                onAtendido={() => cargar(true)}
+                onVolver={() => setActivo(null)}
+              />
+            )
           ) : (
             <Card className="flex w-full items-center justify-center">
               <CardContent className="py-12 text-center text-sm text-slate-400">
