@@ -179,6 +179,12 @@ func (s *Server) setupRoutes() {
 		r.Post("/whatsapp/send-template", handlers.WhatsAppSendTemplate(s.config))
 		r.Get("/whatsapp/diagnostico", handlers.WhatsAppDiagnostico(s.config))
 
+		// Instagram Messaging API (ruta "Instagram Login") — bandeja omnicanal.
+		// El webhook lo llama Meta: sin auth de app, se valida con firma HMAC.
+		// Fase 1: solo recibir + loguear DMs entrantes para validar end-to-end.
+		r.Get("/instagram/webhook", handlers.InstagramWebhookVerify(s.config))
+		r.Post("/instagram/webhook", handlers.InstagramWebhookReceive(s.config))
+
 		// Bandeja de salida "Conexión-Masajes" — proxy a Django (emails de
 		// seguimiento post-masaje que se revisan/editan/envían uno por uno).
 		// El backend Go agrega la X-API-Key; el navegador no la conoce (igual

@@ -45,12 +45,19 @@ type Config struct {
 	WhatsAppVerifyToken   string
 	WhatsAppAppSecret     string
 
+	// Instagram Messaging API (ruta "Instagram Login") — bandeja omnicanal.
+	// Identidad de app IG aparte (aremko-wa2-IG), por eso su propio app secret.
+	InstagramAccessToken string // token de acceso de la cuenta IG (aremkospa)
+	InstagramBusinessID  string // IG Business Account ID (ej 17841400756478364)
+	InstagramVerifyToken string // string compartido para el handshake del webhook
+	InstagramAppSecret   string // valida X-Hub-Signature-256 de los webhooks IG
+
 	// Google Analytics 4
 	GA4PropertyID      string
 	GA4CredentialsPath string
 
 	// OpenRouter (AI)
-	OpenRouterAPIKey string
+	OpenRouterAPIKey  string
 	OpenRouterBaseURL string
 	// OpenRouterModel: si está seteado, sobreescribe el modelo de TODAS las
 	// llamadas de IA (un solo knob para cambiar de modelo desde Render, sin tocar
@@ -86,13 +93,13 @@ type Config struct {
 	Environment string
 
 	// Features
-	EnableMetaAds     bool
-	EnableGoogleAds   bool
-	EnableLinkedIn    bool
-	EnableBookings    bool
-	EnableGA4         bool
-	EnableAI          bool
-	EnableWhatsApp    bool
+	EnableMetaAds   bool
+	EnableGoogleAds bool
+	EnableLinkedIn  bool
+	EnableBookings  bool
+	EnableGA4       bool
+	EnableAI        bool
+	EnableWhatsApp  bool
 }
 
 var AppConfig *Config
@@ -110,8 +117,8 @@ func LoadConfig() (*Config, error) {
 		MetaRefugioBudgetCLP:  parseFloatEnv("META_REFUGIO_BUDGET_CLP", 100000),
 		// Default = ID real de la campaña creada el 11-jun-2026; la env var permite
 		// apuntar a otra campaña (o vaciarla para ocultar el bloque) sin redeploy de código.
-		MetaGiftCardCampaignID: getEnvOrDefault("META_GIFTCARD_CAMPAIGN_ID", "120249461833490134"),
-		MetaGiftCardBudgetCLP:  parseFloatEnv("META_GIFTCARD_BUDGET_CLP", 55000),
+		MetaGiftCardCampaignID:     getEnvOrDefault("META_GIFTCARD_CAMPAIGN_ID", "120249461833490134"),
+		MetaGiftCardBudgetCLP:      parseFloatEnv("META_GIFTCARD_BUDGET_CLP", 55000),
 		GoogleAdsDeveloperToken:    getEnvOrDefault("GOOGLE_ADS_DEVELOPER_TOKEN", ""),
 		GoogleAdsClientID:          getEnvOrDefault("GOOGLE_ADS_CLIENT_ID", ""),
 		GoogleAdsClientSecret:      getEnvOrDefault("GOOGLE_ADS_CLIENT_SECRET", ""),
@@ -120,35 +127,39 @@ func LoadConfig() (*Config, error) {
 		GoogleAdsLoginCustomerID:   getEnvOrDefault("GOOGLE_ADS_LOGIN_CUSTOMER_ID", ""),
 		GoogleAdsRefugioCampaignID: getEnvOrDefault("GOOGLE_ADS_REFUGIO_CAMPAIGN_ID", ""),
 		GoogleAdsBudgetCLP:         parseFloatEnv("GOOGLE_ADS_BUDGET_CLP", 100000),
-		WhatsAppAccessToken:   getEnvOrDefault("WHATSAPP_ACCESS_TOKEN", ""),
-		WhatsAppPhoneNumberID: getEnvOrDefault("WHATSAPP_PHONE_NUMBER_ID", ""),
-		WhatsAppWABAID:        getEnvOrDefault("WHATSAPP_WABA_ID", ""),
-		WhatsAppVerifyToken:   getEnvOrDefault("WHATSAPP_VERIFY_TOKEN", ""),
-		WhatsAppAppSecret:     getEnvOrDefault("WHATSAPP_APP_SECRET", ""),
-		GA4PropertyID:      getEnvOrDefault("GA4_PROPERTY_ID", ""),
-		GA4CredentialsPath: getEnvOrDefault("GA4_CREDENTIALS_PATH", "ga4-credentials.json"),
-		OpenRouterAPIKey:   getEnvOrDefault("OPENROUTER_API_KEY", ""),
-		OpenRouterBaseURL:  getEnvOrDefault("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1"),
-		OpenRouterModel:    getEnvOrDefault("OPENROUTER_MODEL", ""),
-		OpenRouterMaxTokens: parseIntEnv("OPENROUTER_MAX_TOKENS", 0),
-		BookingSystemURL:   getEnvOrDefault("BOOKING_SYSTEM_URL", "http://localhost:8002"),
-		AutomationAPIKey:   getEnvOrDefault("AUTOMATION_API_KEY", ""),
-		LunaAPIKey:         getEnvOrDefault("LUNA_API_KEY", ""),
-		SendGridAPIKey:       getEnvOrDefault("SENDGRID_API_KEY", ""),
-		ReporteCronToken:     getEnvOrDefault("REPORTE_CRON_TOKEN", ""),
-		ReporteFromEmail:     getEnvOrDefault("REPORTE_FROM_EMAIL", "noreply@aremko.cl"),
-		ReporteFromName:      getEnvOrDefault("REPORTE_FROM_NAME", "Aremko · Reporte diario"),
-		ReporteDestinatarios: parseCSVEnv("REPORTE_DIARIO_DESTINATARIOS"),
-		DatabaseURL:        getEnvOrDefault("DATABASE_URL", "postgres://localhost/aremko?sslmode=disable"),
-		Port:               getEnvOrDefault("PORT", "8080"),
-		Environment:        getEnvOrDefault("ENVIRONMENT", "development"),
-		EnableMetaAds:      getEnvOrDefault("ENABLE_META_ADS", "true") == "true",
-		EnableGoogleAds:    googleAdsAutoEnabled(),
-		EnableLinkedIn:     getEnvOrDefault("ENABLE_LINKEDIN", "false") == "true",
-		EnableBookings:     getEnvOrDefault("ENABLE_BOOKINGS", "true") == "true",
-		EnableGA4:          getEnvOrDefault("ENABLE_GA4", "true") == "true",
-		EnableAI:           getEnvOrDefault("ENABLE_AI", "true") == "true",
-		EnableWhatsApp:     getEnvOrDefault("ENABLE_WHATSAPP", "false") == "true",
+		WhatsAppAccessToken:        getEnvOrDefault("WHATSAPP_ACCESS_TOKEN", ""),
+		WhatsAppPhoneNumberID:      getEnvOrDefault("WHATSAPP_PHONE_NUMBER_ID", ""),
+		WhatsAppWABAID:             getEnvOrDefault("WHATSAPP_WABA_ID", ""),
+		WhatsAppVerifyToken:        getEnvOrDefault("WHATSAPP_VERIFY_TOKEN", ""),
+		WhatsAppAppSecret:          getEnvOrDefault("WHATSAPP_APP_SECRET", ""),
+		InstagramAccessToken:       getEnvOrDefault("INSTAGRAM_ACCESS_TOKEN", ""),
+		InstagramBusinessID:        getEnvOrDefault("INSTAGRAM_BUSINESS_ID", ""),
+		InstagramVerifyToken:       getEnvOrDefault("INSTAGRAM_VERIFY_TOKEN", ""),
+		InstagramAppSecret:         getEnvOrDefault("INSTAGRAM_APP_SECRET", ""),
+		GA4PropertyID:              getEnvOrDefault("GA4_PROPERTY_ID", ""),
+		GA4CredentialsPath:         getEnvOrDefault("GA4_CREDENTIALS_PATH", "ga4-credentials.json"),
+		OpenRouterAPIKey:           getEnvOrDefault("OPENROUTER_API_KEY", ""),
+		OpenRouterBaseURL:          getEnvOrDefault("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1"),
+		OpenRouterModel:            getEnvOrDefault("OPENROUTER_MODEL", ""),
+		OpenRouterMaxTokens:        parseIntEnv("OPENROUTER_MAX_TOKENS", 0),
+		BookingSystemURL:           getEnvOrDefault("BOOKING_SYSTEM_URL", "http://localhost:8002"),
+		AutomationAPIKey:           getEnvOrDefault("AUTOMATION_API_KEY", ""),
+		LunaAPIKey:                 getEnvOrDefault("LUNA_API_KEY", ""),
+		SendGridAPIKey:             getEnvOrDefault("SENDGRID_API_KEY", ""),
+		ReporteCronToken:           getEnvOrDefault("REPORTE_CRON_TOKEN", ""),
+		ReporteFromEmail:           getEnvOrDefault("REPORTE_FROM_EMAIL", "noreply@aremko.cl"),
+		ReporteFromName:            getEnvOrDefault("REPORTE_FROM_NAME", "Aremko · Reporte diario"),
+		ReporteDestinatarios:       parseCSVEnv("REPORTE_DIARIO_DESTINATARIOS"),
+		DatabaseURL:                getEnvOrDefault("DATABASE_URL", "postgres://localhost/aremko?sslmode=disable"),
+		Port:                       getEnvOrDefault("PORT", "8080"),
+		Environment:                getEnvOrDefault("ENVIRONMENT", "development"),
+		EnableMetaAds:              getEnvOrDefault("ENABLE_META_ADS", "true") == "true",
+		EnableGoogleAds:            googleAdsAutoEnabled(),
+		EnableLinkedIn:             getEnvOrDefault("ENABLE_LINKEDIN", "false") == "true",
+		EnableBookings:             getEnvOrDefault("ENABLE_BOOKINGS", "true") == "true",
+		EnableGA4:                  getEnvOrDefault("ENABLE_GA4", "true") == "true",
+		EnableAI:                   getEnvOrDefault("ENABLE_AI", "true") == "true",
+		EnableWhatsApp:             getEnvOrDefault("ENABLE_WHATSAPP", "false") == "true",
 	}
 
 	// Validar configuración mínima
