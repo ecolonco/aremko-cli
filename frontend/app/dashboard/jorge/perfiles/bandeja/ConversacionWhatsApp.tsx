@@ -681,6 +681,19 @@ export function ConversacionWhatsApp({
           </div>
         )}
       </div>
+
+      {/* Botón al fondo para volver al listado sin tener que scrollear arriba
+          a buscar la flecha (solo móvil; en desktop la lista siempre está). */}
+      {onVolver && (
+        <button
+          type="button"
+          onClick={onVolver}
+          className="flex flex-shrink-0 items-center justify-center gap-1.5 border-t border-slate-200 bg-slate-50 py-3 text-sm font-medium text-emerald-700 hover:bg-slate-100 md:hidden"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Volver al listado
+        </button>
+      )}
     </section>
   );
 }

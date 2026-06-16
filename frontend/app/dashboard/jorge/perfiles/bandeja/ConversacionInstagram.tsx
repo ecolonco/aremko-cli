@@ -203,6 +203,18 @@ export function ConversacionInstagram({ externalId, nombre, onVolver, onAtendido
           Shift+Enter salto de línea
         </p>
       </div>
+
+      {/* Botón al fondo para volver al listado sin scrollear arriba (solo móvil). */}
+      {onVolver && (
+        <button
+          type="button"
+          onClick={onVolver}
+          className="flex flex-shrink-0 items-center justify-center gap-1.5 border-t border-slate-200 bg-slate-50 py-3 text-sm font-medium text-pink-600 hover:bg-slate-100 md:hidden"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Volver al listado
+        </button>
+      )}
     </section>
   );
 }
