@@ -89,8 +89,13 @@ func (c *Client) GetUsername(igsid string) string {
 	if err := json.Unmarshal(b, &out); err != nil {
 		return ""
 	}
+	// Preferimos el nombre de perfil (display name) por ser más reconocible;
+	// si no está, caemos al @usuario.
+	if out.Name != "" {
+		return out.Name
+	}
 	if out.Username != "" {
 		return "@" + out.Username
 	}
-	return out.Name
+	return ""
 }
