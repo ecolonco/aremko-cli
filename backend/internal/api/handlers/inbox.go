@@ -77,6 +77,37 @@ func InboxConversation(cfg *config.Config) http.HandlerFunc {
 	}
 }
 
+// MetricsProxy proxea los endpoints de métricas de Django (H-021): campanas |
+// agente | canales | masajes. Series semanales para el Tablero de Evolución.
+func MetricsProxy(cfg *config.Config) http.HandlerFunc {
+	permitidos := map[string]bool{"campanas": true, "agente": true, "canales": true, "masajes": true}
+	return func(w http.ResponseWriter, r *http.Request) {
+		if cfg.LunaAPIKey == "" || cfg.BookingSystemURL == "" {
+			respondError(w, http.StatusServiceUnavailable, "Django no configurado")
+			return
+		}
+		tipo := chi.URLParam(r, "tipo")
+		if !permitidos[tipo] {
+			respondError(w, http.StatusNotFound, "métrica desconocida")
+			return
+		}
+		weeks := 12
+		if wq := r.URL.Query().Get("weeks"); wq != "" {
+			if n, err := strconv.Atoi(wq); err == nil && n > 0 {
+				weeks = n
+			}
+		}
+		raw, err := bookings.NewClient(cfg.BookingSystemURL).GetMetricsRaw(cfg.LunaAPIKey, tipo, weeks)
+		if err != nil {
+			respondError(w, http.StatusBadGateway, err.Error())
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write(raw)
+	}
+}
+
 // InboxMarcarAtendido saca de pendientes una conversación (canal, external_id).
 func InboxMarcarAtendido(cfg *config.Config) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {

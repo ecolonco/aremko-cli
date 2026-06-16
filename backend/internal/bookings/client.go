@@ -527,6 +527,16 @@ func (c *Client) getRaw(u, apiKey, label string) ([]byte, error) {
 	return b, nil
 }
 
+// GetMetricsRaw proxea un endpoint de métricas de Django (H-021): campanas |
+// agente | canales | masajes. Series semanales. JSON crudo para el front.
+func (c *Client) GetMetricsRaw(apiKey, tipo string, weeks int) ([]byte, error) {
+	if weeks <= 0 {
+		weeks = 12
+	}
+	u := fmt.Sprintf("%s/api/metrics/%s?weeks=%d", c.BaseURL, url.PathEscape(tipo), weeks)
+	return c.getRaw(u, apiKey, "metrics "+tipo)
+}
+
 // GetInboxConversationsRaw lista conversaciones de TODOS los canales (WhatsApp +
 // Instagram) para la bandeja unificada. JSON crudo de Django.
 func (c *Client) GetInboxConversationsRaw(apiKey string, soloPendientes bool, limit int, canal string) ([]byte, error) {

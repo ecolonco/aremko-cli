@@ -192,6 +192,9 @@ func (s *Server) setupRoutes() {
 		r.Get("/inbox/conversation", handlers.InboxConversation(s.config))
 		r.Post("/inbox/conversations/{canal}/{externalId}/marcar-atendido", handlers.InboxMarcarAtendido(s.config))
 
+		// Módulo de Métricas / Tablero de Evolución (H-021) — proxy a Django.
+		r.Get("/metrics/{tipo}", handlers.MetricsProxy(s.config))
+
 		// Bandeja de salida "Conexión-Masajes" — proxy a Django (emails de
 		// seguimiento post-masaje que se revisan/editan/envían uno por uno).
 		// El backend Go agrega la X-API-Key; el navegador no la conoce (igual

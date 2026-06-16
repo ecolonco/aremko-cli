@@ -18,6 +18,7 @@ import {
   SparklesIcon,
   AcademicCapIcon,
   ClipboardDocumentCheckIcon,
+  ArrowTrendingUpIcon,
 } from '@heroicons/react/24/outline';
 import { UserRole } from '@/lib/types/user';
 import { allowedItems } from '@/lib/permissions';
@@ -46,6 +47,7 @@ const ICONS: Record<string, typeof DocumentTextIcon> = {
   aprendizaje: AcademicCapIcon,
   masajes: EnvelopeIcon,
   tableros: ChartBarIcon,
+  evolucion: ArrowTrendingUpIcon,
   metricas: TrophyIcon,
   sistema: BookOpenIcon,
   configuracion: CogIcon,
