@@ -208,6 +208,28 @@ func InstagramReply(cfg *config.Config) http.HandlerFunc {
 	}
 }
 
+// InstagramDiagUsername (TEMPORAL): muestra el perfil crudo que devuelve la API
+// de Instagram para un IGSID. Sirve para saber si el campo `name` está
+// disponible o si solo viene `username`. Quitar tras diagnosticar.
+func InstagramDiagUsername(cfg *config.Config) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		igsid := r.URL.Query().Get("igsid")
+		if igsid == "" {
+			respondError(w, http.StatusBadRequest, "falta igsid")
+			return
+		}
+		if cfg.InstagramAccessToken == "" || cfg.InstagramBusinessID == "" {
+			respondError(w, http.StatusServiceUnavailable, "Instagram no configurado")
+			return
+		}
+		status, raw := instagram.NewClient(cfg.InstagramAccessToken, cfg.InstagramBusinessID).GetProfileRaw(igsid)
+		respondJSON(w, http.StatusOK, map[string]interface{}{
+			"upstream_status": status,
+			"body_text":       string(raw),
+		})
+	}
+}
+
 // ---- Shape del payload del webhook (formato Messenger Platform) ----
 
 type instagramWebhookPayload struct {

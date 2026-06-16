@@ -185,6 +185,7 @@ func (s *Server) setupRoutes() {
 		r.Get("/instagram/webhook", handlers.InstagramWebhookVerify(s.config))
 		r.Post("/instagram/webhook", handlers.InstagramWebhookReceive(s.config))
 		r.Post("/instagram/reply", handlers.InstagramReply(s.config))
+		r.Get("/instagram/diag-username", handlers.InstagramDiagUsername(s.config)) // TEMPORAL (diag nombres)
 
 		// Bandeja omnicanal (H-016): reads unificados WhatsApp + Instagram.
 		// Proxy a Django /api/inbox/*; conversación identificada por (canal, external_id).
