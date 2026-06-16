@@ -73,8 +73,19 @@ func InstagramWebhookReceive(cfg *config.Config) http.HandlerFunc {
 		}
 
 		for _, entry := range payload.Entry {
+			// DMs reales: formato "messaging[]".
 			for _, ev := range entry.Messaging {
 				handleInstagramEvent(cfg, ev)
+			}
+			// Probador de webhooks de Meta y eventos no-DM (ej. comentarios):
+			// formato "changes[].value". El value de un "messages" tiene la misma
+			// forma que un evento de messaging (sender/recipient/message).
+			for _, ch := range entry.Changes {
+				if ch.Field == "messages" {
+					handleInstagramEvent(cfg, ch.Value)
+				} else {
+					log.Printf("[instagram] evento changes field=%q (ignorado en Fase 1)", ch.Field)
+				}
 			}
 		}
 
@@ -107,6 +118,11 @@ type instagramWebhookPayload struct {
 		ID        string                    `json:"id"` // IG Business Account ID
 		Time      int64                     `json:"time"`
 		Messaging []instagramMessagingEvent `json:"messaging"`
+		// Formato alterno usado por el probador de Meta y por eventos no-DM.
+		Changes []struct {
+			Field string                  `json:"field"`
+			Value instagramMessagingEvent `json:"value"`
+		} `json:"changes"`
 	} `json:"entry"`
 }
 
