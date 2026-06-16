@@ -1,10 +1,10 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ArrowLeft, Camera as Instagram, Loader2, RefreshCw, Check, AlertTriangle, Send } from 'lucide-react';
+import { ArrowLeft, Camera as Instagram, Loader2, RefreshCw, Check, AlertTriangle, Send, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { fetchConversacionInbox, marcarAtendidoInbox, responderInstagram } from './api';
-import type { MensajeInbox } from './types';
+import type { MensajeInbox, SugerenciaAgente } from './types';
 
 interface Props {
   externalId: string; // IGSID del cliente
@@ -31,14 +31,25 @@ export function ConversacionInstagram({ externalId, nombre, onVolver, onAtendido
   const [input, setInput] = useState('');
   const [enviando, setEnviando] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
+  const [sugerencia, setSugerencia] = useState<SugerenciaAgente | null>(null);
   const finRef = useRef<HTMLDivElement>(null);
 
   const cargar = useCallback(
-    async (silencioso = false) => {
+    // conSugerencia: pide el borrador del agente IA (H-019). Solo en la carga
+    // inicial / "Actualizar", NO en el auto-refresco (para no gastar LLM).
+    async (silencioso = false, conSugerencia = false) => {
       if (!silencioso) setCargando(true);
       try {
-        const data = await fetchConversacionInbox('instagram', externalId);
+        const data = await fetchConversacionInbox('instagram', externalId, 200, conSugerencia);
         setMensajes(data.messages || []);
+        if (conSugerencia && data.sugerencia_agente) {
+          setSugerencia(data.sugerencia_agente);
+          const s = data.sugerencia_agente;
+          // Precarga el cajón con el borrador (sin pisar lo que ya escribiste).
+          if (!s.escalar && s.texto) {
+            setInput((prev) => (prev.trim() ? prev : s.texto));
+          }
+        }
         setError(null);
       } catch (e: unknown) {
         setError(e instanceof Error ? e.message : 'Error al cargar la conversación');
@@ -50,7 +61,7 @@ export function ConversacionInstagram({ externalId, nombre, onVolver, onAtendido
   );
 
   useEffect(() => {
-    cargar();
+    cargar(false, true); // carga inicial: pide el borrador del agente
   }, [cargar]);
 
   // Auto-refresco del hilo (sin parpadear la pantalla).
@@ -112,7 +123,7 @@ export function ConversacionInstagram({ externalId, nombre, onVolver, onAtendido
           </span>
           <p className="truncate text-sm font-medium text-slate-900">{nombre}</p>
         </div>
-        <Button onClick={() => cargar()} variant="outline" size="sm" disabled={cargando}>
+        <Button onClick={() => cargar(false, true)} variant="outline" size="sm" disabled={cargando}>
           <RefreshCw className={`h-4 w-4 ${cargando ? 'animate-spin' : ''}`} />
         </Button>
         <Button onClick={atender} variant="outline" size="sm">
@@ -170,6 +181,20 @@ export function ConversacionInstagram({ externalId, nombre, onVolver, onAtendido
             <span>{sendError}</span>
           </p>
         )}
+        {sugerencia && sugerencia.escalar ? (
+          <p className="flex items-start gap-1.5 rounded-md border border-amber-200 bg-amber-50 p-2 text-xs text-amber-800">
+            <AlertTriangle className="mt-0.5 h-3.5 w-3.5 flex-shrink-0" />
+            <span>
+              El agente sugiere derivar a una persona
+              {sugerencia.motivo ? `: ${sugerencia.motivo}` : ''}.
+            </span>
+          </p>
+        ) : sugerencia && sugerencia.texto ? (
+          <p className="flex items-center gap-1.5 text-[11px] font-medium text-pink-600">
+            <Sparkles className="h-3.5 w-3.5 flex-shrink-0" />
+            Borrador sugerido por IA — revísalo antes de enviar.
+          </p>
+        ) : null}
         <form
           onSubmit={(e) => {
             e.preventDefault();

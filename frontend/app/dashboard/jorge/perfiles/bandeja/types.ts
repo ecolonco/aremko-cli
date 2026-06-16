@@ -207,6 +207,8 @@ export interface ConversacionInboxResponse {
   contact_name?: string | null;
   count: number;
   messages: MensajeInbox[];
+  // Borrador del agente IA (H-019), opt-in con &sugerencia=1. Null/ausente si no.
+  sugerencia_agente?: SugerenciaAgente | null;
 }
 
 // Sugerencia del agente IA (H-007, Fase 1) para el último entrante sin responder.

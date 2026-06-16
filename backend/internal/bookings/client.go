@@ -484,13 +484,17 @@ func (c *Client) GetInboxConversationsRaw(apiKey string, soloPendientes bool, li
 }
 
 // GetInboxConversationRaw devuelve el hilo de una conversación identificada por
-// (canal, external_id). JSON crudo de Django.
-func (c *Client) GetInboxConversationRaw(apiKey, canal, externalID string, limit int) ([]byte, error) {
+// (canal, external_id). JSON crudo de Django. conSugerencia pide el borrador del
+// agente IA (opt-in, H-019; lazy del lado Django).
+func (c *Client) GetInboxConversationRaw(apiKey, canal, externalID string, limit int, conSugerencia bool) ([]byte, error) {
 	if limit <= 0 {
 		limit = 200
 	}
 	u := fmt.Sprintf("%s/api/inbox/conversation/?canal=%s&external_id=%s&limit=%d",
 		c.BaseURL, url.QueryEscape(canal), url.QueryEscape(externalID), limit)
+	if conSugerencia {
+		u += "&sugerencia=1"
+	}
 	return c.getRaw(u, apiKey, "inbox conversation")
 }
 

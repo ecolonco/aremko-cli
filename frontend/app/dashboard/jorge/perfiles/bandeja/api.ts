@@ -460,17 +460,21 @@ export const fetchConversacionesInbox = async (
   return json as ConversacionesResponse;
 };
 
-/** Hilo de una conversación identificada por (canal, external_id). */
+/** Hilo de una conversación identificada por (canal, external_id). conSugerencia
+ * pide el borrador del agente IA (H-019; opt-in, no usar en el auto-refresco). */
 export const fetchConversacionInbox = async (
   canal: CanalMensaje,
   externalId: string,
-  limit = 200
+  limit = 200,
+  conSugerencia = false
 ): Promise<ConversacionInboxResponse> => {
-  const q = new URLSearchParams({
+  const params: Record<string, string> = {
     canal,
     external_id: externalId,
     limit: String(limit),
-  }).toString();
+  };
+  if (conSugerencia) params.sugerencia = '1';
+  const q = new URLSearchParams(params).toString();
   const res = await fetch(`${apiBase()}${INBOX}/conversation?${q}`);
   const json = await res.json().catch(() => ({}));
   if (!res.ok) {

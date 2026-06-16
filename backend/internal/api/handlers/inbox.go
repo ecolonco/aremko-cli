@@ -63,8 +63,10 @@ func InboxConversation(cfg *config.Config) http.HandlerFunc {
 				limit = n
 			}
 		}
+		// Opt-in del borrador del agente IA (H-019): se reenvía a Django.
+		conSug := r.URL.Query().Get("sugerencia") == "1"
 		raw, err := bookings.NewClient(cfg.BookingSystemURL).
-			GetInboxConversationRaw(cfg.LunaAPIKey, canal, externalID, limit)
+			GetInboxConversationRaw(cfg.LunaAPIKey, canal, externalID, limit, conSug)
 		if err != nil {
 			respondError(w, http.StatusBadGateway, err.Error())
 			return
