@@ -64,6 +64,32 @@ func (c *Client) SendMessage(recipientIGSID, text string) (*SendResult, error) {
 	return &out, nil
 }
 
+// DownloadMedia baja los bytes de una URL de adjunto de Instagram (CDN temporal
+// de Meta; es pre-firmada, no lleva token). Devuelve bytes + Content-Type. Corta
+// en maxBytes (devuelve error si lo supera).
+func (c *Client) DownloadMedia(mediaURL string, maxBytes int64) ([]byte, string, error) {
+	req, err := http.NewRequest(http.MethodGet, mediaURL, nil)
+	if err != nil {
+		return nil, "", err
+	}
+	resp, err := c.HTTPClient.Do(req)
+	if err != nil {
+		return nil, "", fmt.Errorf("error descargando media IG: %w", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return nil, "", fmt.Errorf("download IG status %d", resp.StatusCode)
+	}
+	data, err := io.ReadAll(io.LimitReader(resp.Body, maxBytes+1))
+	if err != nil {
+		return nil, "", err
+	}
+	if int64(len(data)) > maxBytes {
+		return nil, "", fmt.Errorf("adjunto IG excede %d bytes", maxBytes)
+	}
+	return data, resp.Header.Get("Content-Type"), nil
+}
+
 // GetUsername resuelve el @usuario (o el nombre) de un IGSID que nos escribió.
 // Devuelve "" si no se puede resolver — nunca rompe el flujo de inbound.
 func (c *Client) GetUsername(igsid string) string {

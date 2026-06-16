@@ -450,6 +450,64 @@ func (c *Client) PostInstagramInbound(apiKey string, req InstagramInboundReq) er
 	return c.postWhatsApp("/api/instagram/inbound", apiKey, req)
 }
 
+// InstagramInboundMediaReq son los metadatos de un adjunto entrante de Instagram
+// (los bytes van como archivo multipart). Idempotente por ig_message_id en Django.
+type InstagramInboundMediaReq struct {
+	IgMessageID string
+	FromIGSID   string
+	ToIGSID     string
+	Type        string // image | video | audio | voice | share | story_mention | sticker | document
+	Timestamp   string
+	ContactName string
+	Caption     string
+	MimeType    string
+	Filename    string
+	IsEcho      bool
+}
+
+// PostInstagramInboundMedia sube un adjunto entrante de IG a Django (multipart).
+// is_echo=true → saliente. Idempotente por ig_message_id del lado Django.
+func (c *Client) PostInstagramInboundMedia(apiKey string, m InstagramInboundMediaReq, data []byte) error {
+	var buf bytes.Buffer
+	mw := multipart.NewWriter(&buf)
+	_ = mw.WriteField("ig_message_id", m.IgMessageID)
+	_ = mw.WriteField("from_igsid", m.FromIGSID)
+	_ = mw.WriteField("to_igsid", m.ToIGSID)
+	_ = mw.WriteField("is_echo", fmt.Sprintf("%t", m.IsEcho))
+	_ = mw.WriteField("type", m.Type)
+	_ = mw.WriteField("timestamp", m.Timestamp)
+	_ = mw.WriteField("contact_name", m.ContactName)
+	_ = mw.WriteField("caption", m.Caption)
+	_ = mw.WriteField("mime_type", m.MimeType)
+	fw, err := mw.CreateFormFile("file", m.Filename)
+	if err != nil {
+		return fmt.Errorf("error armando multipart IG: %w", err)
+	}
+	if _, err := fw.Write(data); err != nil {
+		return fmt.Errorf("error escribiendo archivo IG: %w", err)
+	}
+	if err := mw.Close(); err != nil {
+		return fmt.Errorf("error cerrando multipart IG: %w", err)
+	}
+
+	req, err := http.NewRequest(http.MethodPost, c.BaseURL+"/api/instagram/inbound-media", &buf)
+	if err != nil {
+		return fmt.Errorf("error creando request inbound-media IG: %w", err)
+	}
+	req.Header.Set("Content-Type", mw.FormDataContentType())
+	req.Header.Set("X-API-Key", apiKey)
+	resp, err := c.HTTPClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("error en inbound-media IG: %w", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		b, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("django inbound-media IG status %d: %s", resp.StatusCode, b)
+	}
+	return nil
+}
+
 // getRaw hace un GET con X-API-Key y devuelve el body crudo (espera status 200).
 func (c *Client) getRaw(u, apiKey, label string) ([]byte, error) {
 	req, err := http.NewRequest(http.MethodGet, u, nil)

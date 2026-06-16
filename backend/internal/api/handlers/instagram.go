@@ -142,37 +142,77 @@ func handleInstagramEvent(cfg *config.Config, ev instagramMessagingEvent) {
 		return
 	}
 
-	// Fase 2/3: persistimos texto. Si el DM trae solo adjunto, dejamos una marca
-	// legible (descarga/subida de media = Fase 5).
-	if body == "" && len(ev.Message.Attachments) > 0 {
-		body = "📎 Adjunto de Instagram"
-	}
-
 	// El timestamp de IG viene en milisegundos; Django (como en WhatsApp) espera
 	// segundos → normalizamos si el valor parece estar en ms.
-	ts := int64(ev.Timestamp)
-	if ts > 9999999999 {
-		ts = ts / 1000
+	tsVal := int64(ev.Timestamp)
+	if tsVal > 9999999999 {
+		tsVal = tsVal / 1000
 	}
+	ts := strconv.FormatInt(tsVal, 10)
 
-	// Resolvemos el @usuario del cliente (no en ecos: ahí el sender somos nosotros).
-	// Si no hay token o no se puede resolver, queda vacío y Django usa el IGSID.
+	// Resolvemos el @usuario/nombre del cliente (no en ecos: ahí el sender somos
+	// nosotros). Vacío si no hay token o no se puede resolver → Django usa el IGSID.
 	contactName := ""
 	if !ev.Message.IsEcho && cfg.InstagramAccessToken != "" && cfg.InstagramBusinessID != "" {
 		contactName = instagram.NewClient(cfg.InstagramAccessToken, cfg.InstagramBusinessID).GetUsername(ev.Sender.ID)
 	}
 
-	err := bookings.NewClient(cfg.BookingSystemURL).PostInstagramInbound(cfg.LunaAPIKey, bookings.InstagramInboundReq{
+	bc := bookings.NewClient(cfg.BookingSystemURL)
+
+	// Adjuntos (foto/video/audio/historia/…): descargamos los bytes y los subimos
+	// a Django (H-020), igual que el flujo de media de WhatsApp.
+	if len(ev.Message.Attachments) > 0 {
+		handleInstagramMedia(cfg, bc, ev, ts, contactName)
+		return
+	}
+
+	if err := bc.PostInstagramInbound(cfg.LunaAPIKey, bookings.InstagramInboundReq{
 		IgMessageID: ev.Message.Mid,
 		FromIGSID:   ev.Sender.ID,
 		ToIGSID:     ev.Recipient.ID,
 		Text:        body,
-		Timestamp:   strconv.FormatInt(ts, 10),
+		Timestamp:   ts,
 		ContactName: contactName,
 		IsEcho:      ev.Message.IsEcho,
-	})
-	if err != nil {
+	}); err != nil {
 		log.Printf("[instagram] error guardando inbound en Django: %v", err)
+	}
+}
+
+// handleInstagramMedia baja cada adjunto del DM (CDN temporal de IG) y lo sube a
+// Django (multipart). El texto del mensaje acompaña al primer adjunto como caption.
+func handleInstagramMedia(cfg *config.Config, bc *bookings.Client, ev instagramMessagingEvent, ts, contactName string) {
+	ic := instagram.NewClient(cfg.InstagramAccessToken, cfg.InstagramBusinessID)
+	for i, att := range ev.Message.Attachments {
+		if att.Payload.URL == "" {
+			continue
+		}
+		data, mime, err := ic.DownloadMedia(att.Payload.URL, maxMediaBytes)
+		if err != nil {
+			log.Printf("[instagram] error descargando adjunto tipo=%s: %v", att.Type, err)
+			continue
+		}
+		mid := ev.Message.Mid
+		caption := ""
+		if i == 0 {
+			caption = ev.Message.Text
+		} else {
+			mid = mid + "#" + strconv.Itoa(i) // evita choque de idempotencia
+		}
+		if err := bc.PostInstagramInboundMedia(cfg.LunaAPIKey, bookings.InstagramInboundMediaReq{
+			IgMessageID: mid,
+			FromIGSID:   ev.Sender.ID,
+			ToIGSID:     ev.Recipient.ID,
+			Type:        att.Type,
+			Timestamp:   ts,
+			ContactName: contactName,
+			Caption:     caption,
+			MimeType:    mime,
+			Filename:    mid + extPorMime(mime),
+			IsEcho:      ev.Message.IsEcho,
+		}, data); err != nil {
+			log.Printf("[instagram] error subiendo adjunto a Django: %v", err)
+		}
 	}
 }
 

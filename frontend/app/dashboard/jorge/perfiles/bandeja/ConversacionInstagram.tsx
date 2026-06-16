@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ArrowLeft, Camera as Instagram, Loader2, RefreshCw, Check, AlertTriangle, Send, Sparkles } from 'lucide-react';
+import { ArrowLeft, Camera as Instagram, Loader2, RefreshCw, Check, AlertTriangle, Send, Sparkles, FileText, Mic } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { fetchConversacionInbox, marcarAtendidoInbox, responderInstagram } from './api';
 import type { MensajeInbox, SugerenciaAgente } from './types';
@@ -21,6 +21,52 @@ const hora = (iso: string): string => {
   if (Number.isNaN(d.getTime())) return '';
   return d.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' });
 };
+
+// Render del adjunto de un mensaje (H-020), espejo del de WhatsApp.
+function MediaIG({ m, saliente }: { m: MensajeInbox; saliente: boolean }) {
+  const url = m.media_url || undefined;
+  if (!url) return null;
+  const mime = m.mime_type || '';
+  const tipo = m.type || '';
+  if (
+    tipo === 'image' ||
+    tipo === 'sticker' ||
+    tipo === 'story_mention' ||
+    tipo === 'share' ||
+    mime.startsWith('image/')
+  ) {
+    return (
+      <a href={url} target="_blank" rel="noopener noreferrer" className="block">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={url} alt={m.filename || 'imagen'} className="max-h-56 w-auto rounded-lg" />
+      </a>
+    );
+  }
+  if (tipo === 'video' || mime.startsWith('video/')) {
+    return <video src={url} controls className="max-h-56 w-full rounded-lg" />;
+  }
+  if (tipo === 'audio' || tipo === 'voice' || mime.startsWith('audio/')) {
+    return (
+      <div className="flex items-center gap-2">
+        <Mic className={`h-4 w-4 flex-shrink-0 ${saliente ? 'text-pink-100' : 'text-slate-400'}`} />
+        <audio src={url} controls className="h-9 max-w-[220px]" />
+      </div>
+    );
+  }
+  return (
+    <a
+      href={url}
+      target="_blank"
+      rel="noopener noreferrer"
+      className={`flex items-center gap-2 rounded-md px-2 py-1.5 ${
+        saliente ? 'bg-pink-600/40' : 'bg-slate-100'
+      }`}
+    >
+      <FileText className="h-5 w-5 flex-shrink-0" />
+      <span className="truncate text-xs underline">{m.filename || 'Documento'}</span>
+    </a>
+  );
+}
 
 // Conversación de Instagram en SOLO LECTURA. Responder por IG llega en H-017
 // (necesita el token de envío). Por ahora se ve el hilo y se marca como leído.
@@ -151,15 +197,24 @@ export function ConversacionInstagram({ externalId, nombre, onVolver, onAtendido
               className={`flex ${m.direction === 'out' ? 'justify-end' : 'justify-start'}`}
             >
               <div
-                className={`max-w-[80%] rounded-lg px-3 py-2 text-sm ${
+                className={`max-w-[80%] space-y-1 rounded-lg px-3 py-2 text-sm ${
                   m.direction === 'out'
                     ? 'bg-pink-500 text-white'
                     : 'border border-slate-200 bg-white text-slate-800'
                 }`}
               >
-                <p className="whitespace-pre-wrap break-words">
-                  {m.body || (m.type !== 'text' ? `[${m.type}]` : '')}
-                </p>
+                {m.media_url ? (
+                  <>
+                    <MediaIG m={m} saliente={m.direction === 'out'} />
+                    {m.body && (
+                      <p className="whitespace-pre-wrap break-words">{m.body}</p>
+                    )}
+                  </>
+                ) : (
+                  <p className="whitespace-pre-wrap break-words">
+                    {m.body || (m.type !== 'text' ? `[${m.type}]` : '')}
+                  </p>
+                )}
                 <span
                   className={`mt-0.5 block text-right text-[10px] ${
                     m.direction === 'out' ? 'text-pink-100' : 'text-slate-400'

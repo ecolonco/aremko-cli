@@ -198,6 +198,9 @@ export interface MensajeInbox {
   type: string;
   status: string;
   timestamp: string;
+  media_url?: string | null; // adjunto en Django (H-020); null si es texto
+  mime_type?: string | null;
+  filename?: string | null;
 }
 
 export interface ConversacionInboxResponse {
