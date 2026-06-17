@@ -9,6 +9,7 @@ import (
 
 	"github.com/aremko/aremko-cli/internal/bookings"
 	"github.com/aremko/aremko-cli/internal/config"
+	"github.com/aremko/aremko-cli/internal/messenger"
 )
 
 // ============================================================================
@@ -108,14 +109,20 @@ func handleMessengerEvent(cfg *config.Config, ev instagramMessagingEvent) {
 	if ts > 9999999999 {
 		ts = ts / 1000
 	}
+	// Resolver el nombre del cliente (PSID) vía Graph API con el Page token.
+	// Solo para entrantes: el PSID del cliente es ev.Sender.ID (en un eco el
+	// sender es la Página). Si no se resuelve, Django muestra "Cliente Messenger #PSID".
+	contactName := ""
+	if !ev.Message.IsEcho && cfg.MessengerPageAccessToken != "" {
+		contactName = messenger.NewClient(cfg.MessengerPageAccessToken).GetName(ev.Sender.ID)
+	}
 	err := bookings.NewClient(cfg.BookingSystemURL).PostMessengerInbound(cfg.LunaAPIKey, bookings.MessengerInboundReq{
 		FbMessageID: ev.Message.Mid,
 		FromPSID:    ev.Sender.ID,
 		ToPageID:    ev.Recipient.ID,
 		Text:        body,
 		Timestamp:   strconv.FormatInt(ts, 10),
-		// TODO: resolver nombre del PSID vía Graph API (Page token) — fase posterior.
-		ContactName: "",
+		ContactName: contactName,
 		IsEcho:      ev.Message.IsEcho,
 	})
 	if err != nil {
