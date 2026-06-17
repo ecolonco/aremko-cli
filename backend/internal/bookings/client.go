@@ -450,6 +450,24 @@ func (c *Client) PostInstagramInbound(apiKey string, req InstagramInboundReq) er
 	return c.postWhatsApp("/api/instagram/inbound", apiKey, req)
 }
 
+// MessengerInboundReq es el body de POST /api/messenger/inbound (H-023). Django
+// keyea la conversación por el PSID del cliente (el que NO es la Página).
+type MessengerInboundReq struct {
+	FbMessageID string `json:"fb_message_id"`
+	FromPSID    string `json:"from_psid"`
+	ToPageID    string `json:"to_page_id"`
+	Text        string `json:"text"`
+	Timestamp   string `json:"timestamp"`
+	ContactName string `json:"contact_name,omitempty"`
+	IsEcho      bool   `json:"is_echo"`
+}
+
+// PostMessengerInbound guarda un DM de Messenger en Django (idempotente por
+// fb_message_id). is_echo=true se guarda como saliente.
+func (c *Client) PostMessengerInbound(apiKey string, req MessengerInboundReq) error {
+	return c.postWhatsApp("/api/messenger/inbound", apiKey, req)
+}
+
 // InstagramInboundMediaReq son los metadatos de un adjunto entrante de Instagram
 // (los bytes van como archivo multipart). Idempotente por ig_message_id en Django.
 type InstagramInboundMediaReq struct {

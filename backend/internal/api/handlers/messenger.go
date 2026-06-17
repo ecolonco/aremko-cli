@@ -5,7 +5,9 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"strconv"
 
+	"github.com/aremko/aremko-cli/internal/bookings"
 	"github.com/aremko/aremko-cli/internal/config"
 )
 
@@ -82,16 +84,41 @@ func MessengerWebhookReceive(cfg *config.Config) http.HandlerFunc {
 	}
 }
 
-// handleMessengerEvent procesa un evento. Fase 1: solo loguea. (La persistencia
-// en Django con canal='messenger' y el envío vienen en las fases siguientes.)
+// handleMessengerEvent persiste el evento en Django (canal='messenger', H-023).
+// is_echo=true se guarda como saliente. (Adjuntos/nombres/envío = fases siguientes.)
 func handleMessengerEvent(cfg *config.Config, ev instagramMessagingEvent) {
 	if ev.Message == nil {
 		log.Printf("[messenger] evento sin mensaje (sender=%s)", ev.Sender.ID)
 		return
 	}
+	body := ev.Message.Text
 	if ev.Message.IsEcho {
-		log.Printf("[messenger] echo (saliente propio) mid=%s a=%s: %q", ev.Message.Mid, ev.Recipient.ID, ev.Message.Text)
+		log.Printf("[messenger] echo (saliente propio) mid=%s a=%s: %q", ev.Message.Mid, ev.Recipient.ID, body)
+	} else {
+		log.Printf("[messenger] DM entrante de PSID=%s mid=%s texto=%q adjuntos=%d", ev.Sender.ID, ev.Message.Mid, body, len(ev.Message.Attachments))
+	}
+
+	if cfg.LunaAPIKey == "" || cfg.BookingSystemURL == "" {
 		return
 	}
-	log.Printf("[messenger] DM entrante de PSID=%s mid=%s texto=%q adjuntos=%d", ev.Sender.ID, ev.Message.Mid, ev.Message.Text, len(ev.Message.Attachments))
+	if body == "" && len(ev.Message.Attachments) > 0 {
+		body = "📎 Adjunto de Messenger"
+	}
+	ts := int64(ev.Timestamp)
+	if ts > 9999999999 {
+		ts = ts / 1000
+	}
+	err := bookings.NewClient(cfg.BookingSystemURL).PostMessengerInbound(cfg.LunaAPIKey, bookings.MessengerInboundReq{
+		FbMessageID: ev.Message.Mid,
+		FromPSID:    ev.Sender.ID,
+		ToPageID:    ev.Recipient.ID,
+		Text:        body,
+		Timestamp:   strconv.FormatInt(ts, 10),
+		// TODO: resolver nombre del PSID vía Graph API (Page token) — fase posterior.
+		ContactName: "",
+		IsEcho:      ev.Message.IsEcho,
+	})
+	if err != nil {
+		log.Printf("[messenger] error guardando inbound en Django: %v", err)
+	}
 }
