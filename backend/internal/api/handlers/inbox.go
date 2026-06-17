@@ -108,6 +108,31 @@ func MetricsProxy(cfg *config.Config) http.HandlerFunc {
 	}
 }
 
+// MetricsReservas proxea el detalle de reservas atribuidas a campañas (H-022).
+func MetricsReservas(cfg *config.Config) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if cfg.LunaAPIKey == "" || cfg.BookingSystemURL == "" {
+			respondError(w, http.StatusServiceUnavailable, "Django no configurado")
+			return
+		}
+		weeks := 12
+		if wq := r.URL.Query().Get("weeks"); wq != "" {
+			if n, err := strconv.Atoi(wq); err == nil && n > 0 {
+				weeks = n
+			}
+		}
+		semana := r.URL.Query().Get("semana")
+		raw, err := bookings.NewClient(cfg.BookingSystemURL).GetMetricsReservasRaw(cfg.LunaAPIKey, weeks, semana)
+		if err != nil {
+			respondError(w, http.StatusBadGateway, err.Error())
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write(raw)
+	}
+}
+
 // InboxMarcarAtendido saca de pendientes una conversación (canal, external_id).
 func InboxMarcarAtendido(cfg *config.Config) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {

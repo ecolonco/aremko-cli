@@ -537,6 +537,19 @@ func (c *Client) GetMetricsRaw(apiKey, tipo string, weeks int) ([]byte, error) {
 	return c.getRaw(u, apiKey, "metrics "+tipo)
 }
 
+// GetMetricsReservasRaw proxea el detalle de reservas atribuidas a campañas
+// (H-022). semana opcional ("YYYY-Www") para filtrar a una semana puntual.
+func (c *Client) GetMetricsReservasRaw(apiKey string, weeks int, semana string) ([]byte, error) {
+	if weeks <= 0 {
+		weeks = 12
+	}
+	u := fmt.Sprintf("%s/api/metrics/campanas/reservas?weeks=%d", c.BaseURL, weeks)
+	if semana != "" {
+		u += "&semana=" + url.QueryEscape(semana)
+	}
+	return c.getRaw(u, apiKey, "metrics reservas")
+}
+
 // GetInboxConversationsRaw lista conversaciones de TODOS los canales (WhatsApp +
 // Instagram) para la bandeja unificada. JSON crudo de Django.
 func (c *Client) GetInboxConversationsRaw(apiKey string, soloPendientes bool, limit int, canal string) ([]byte, error) {

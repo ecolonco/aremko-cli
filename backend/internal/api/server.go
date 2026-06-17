@@ -192,7 +192,8 @@ func (s *Server) setupRoutes() {
 		r.Get("/inbox/conversation", handlers.InboxConversation(s.config))
 		r.Post("/inbox/conversations/{canal}/{externalId}/marcar-atendido", handlers.InboxMarcarAtendido(s.config))
 
-		// Módulo de Métricas / Tablero de Evolución (H-021) — proxy a Django.
+		// Módulo de Métricas / Tablero de Evolución (H-021/H-022) — proxy a Django.
+		r.Get("/metrics/campanas/reservas", handlers.MetricsReservas(s.config))
 		r.Get("/metrics/{tipo}", handlers.MetricsProxy(s.config))
 
 		// Bandeja de salida "Conexión-Masajes" — proxy a Django (emails de

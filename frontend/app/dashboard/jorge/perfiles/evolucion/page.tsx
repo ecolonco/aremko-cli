@@ -54,12 +54,27 @@ interface CampanasResp {
   tarifa_plantilla_clp: number | null;
   series: {
     semana: string;
+    generados?: number;
+    aprobados?: number;
     enviados: number;
     costo: number | null;
     respondieron: number;
     reservaron: number;
     ingreso: number;
   }[];
+}
+interface ReservaItem {
+  venta_id: number;
+  cliente_nombre: string;
+  fecha_reserva: string;
+  fecha_atribucion?: string;
+  total: number;
+  servicios: { nombre: string; cantidad: number; valor: number }[];
+}
+interface ReservasResp {
+  reservas: ReservaItem[];
+  total_reservas?: number;
+  total_ingreso?: number;
 }
 interface AgenteResp {
   resumen: {
@@ -85,6 +100,15 @@ async function getMetric<T>(tipo: string, weeks: number): Promise<T> {
   const json = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(json.error || `HTTP ${res.status}`);
   return json as T;
+}
+
+async function getReservas(weeks: number, semana: string): Promise<ReservasResp> {
+  const q = new URLSearchParams({ weeks: String(weeks) });
+  if (semana) q.set('semana', semana);
+  const res = await fetch(`${apiBase()}${M}/campanas/reservas?${q.toString()}`);
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(json.error || `HTTP ${res.status}`);
+  return json as ReservasResp;
 }
 
 function Kpi({ label, value, sub }: { label: string; value: string; sub?: string }) {
@@ -113,6 +137,10 @@ export default function EvolucionPage() {
   const [masajes, setMasajes] = useState<MasajesResp | null>(null);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // Semana puntual seleccionada en el bloque Campañas ('' = todo el período).
+  const [semana, setSemana] = useState('');
+  const [reservas, setReservas] = useState<ReservaItem[]>([]);
+  const [reservasErr, setReservasErr] = useState<string | null>(null);
 
   const cargar = useCallback(async () => {
     setCargando(true);
@@ -139,16 +167,39 @@ export default function EvolucionPage() {
     cargar();
   }, [cargar]);
 
-  const fmax = campanas ? Math.max(campanas.resumen.generados, 1) : 1;
+  // Reservas atribuidas (drill-down, H-022): depende de la semana elegida.
+  const cargarReservas = useCallback(async () => {
+    try {
+      const r = await getReservas(weeks, semana);
+      setReservas(r.reservas || []);
+      setReservasErr(null);
+    } catch (e: unknown) {
+      setReservas([]);
+      setReservasErr(e instanceof Error ? e.message : 'No disponible');
+    }
+  }, [weeks, semana]);
+
+  useEffect(() => {
+    cargarReservas();
+  }, [cargarReservas]);
+
+  // Fuente del funnel: una semana puntual (de la serie) o todo el período (resumen).
+  const semSel = semana && campanas ? campanas.series.find((s) => s.semana === semana) : null;
+  const val = (k: 'generados' | 'aprobados' | 'enviados' | 'respondieron' | 'reservaron'): number | undefined =>
+    semSel ? (semSel[k] as number | undefined) : campanas?.resumen[k];
+  const ingresoScope = semSel ? semSel.ingreso : campanas?.resumen.ingreso_atribuido;
   const stages = campanas
-    ? [
-        { l: 'Generados', v: campanas.resumen.generados, c: '#85B7EB' },
-        { l: 'Aprobados', v: campanas.resumen.aprobados, c: '#378ADD' },
-        { l: 'Enviados', v: campanas.resumen.enviados, c: '#185FA5' },
-        { l: 'Respondieron', v: campanas.resumen.respondieron, c: '#5DCAA5' },
-        { l: 'Reservaron', v: campanas.resumen.reservaron, c: '#0F6E56' },
-      ]
+    ? (
+        [
+          { l: 'Generados', v: val('generados'), c: '#85B7EB' },
+          { l: 'Aprobados', v: val('aprobados'), c: '#378ADD' },
+          { l: 'Enviados', v: val('enviados'), c: '#185FA5' },
+          { l: 'Respondieron', v: val('respondieron'), c: '#5DCAA5' },
+          { l: 'Reservaron', v: val('reservaron'), c: '#0F6E56' },
+        ] as { l: string; v: number | undefined; c: string }[]
+      ).filter((s) => s.v != null)
     : [];
+  const fmax = Math.max(...stages.map((s) => s.v ?? 0), 1);
 
   return (
     <div className="flex h-full flex-col gap-4 overflow-y-auto p-3 md:p-6">
@@ -226,13 +277,29 @@ export default function EvolucionPage() {
           {/* Campañas: funnel + ROI */}
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-base">Campañas (Envíos por aprobar) — funnel y ROI</CardTitle>
+              <div className="flex items-start justify-between gap-2">
+                <CardTitle className="text-base">Campañas (Envíos por aprobar) — funnel y ROI</CardTitle>
+                {campanas && campanas.series.length > 0 && (
+                  <select
+                    value={semana}
+                    onChange={(e) => setSemana(e.target.value)}
+                    className="flex-shrink-0 rounded-md border border-slate-300 px-2 py-1 text-xs focus:border-emerald-500 focus:outline-none"
+                  >
+                    <option value="">Todo el período</option>
+                    {[...campanas.series].reverse().map((s) => (
+                      <option key={s.semana} value={s.semana}>
+                        {s.semana}
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </div>
               <CardDescription className="text-xs">
                 {campanas?.tarifa_plantilla_clp == null
                   ? '⚠️ Configura la tarifa de plantilla en el admin para ver costo y ROI'
                   : `Tarifa por plantilla: ${clp(campanas.tarifa_plantilla_clp)} · costo ${clp(
-                      campanas.resumen.costo_estimado
-                    )}`}
+                      semSel ? semSel.costo : campanas.resumen.costo_estimado
+                    )} · ingreso ${clp(ingresoScope)}`}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -242,7 +309,7 @@ export default function EvolucionPage() {
                     <span className="w-28 flex-shrink-0 text-slate-500">{s.l}</span>
                     <div className="h-5 flex-1 overflow-hidden rounded bg-slate-100">
                       <div
-                        style={{ width: `${Math.round((s.v / fmax) * 100)}%`, background: s.c }}
+                        style={{ width: `${Math.round(((s.v ?? 0) / fmax) * 100)}%`, background: s.c }}
                         className="h-full"
                       />
                     </div>
@@ -264,6 +331,55 @@ export default function EvolucionPage() {
                   </LineChart>
                 </Grafico>
               )}
+
+              {/* Drill-down: reservas atribuidas (H-022) */}
+              <div className="space-y-1.5 border-t border-slate-100 pt-3">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-sm font-medium text-slate-700">
+                    Reservas atribuidas{semana ? ` · ${semana}` : ''}
+                  </span>
+                  <span className="text-xs text-slate-400">
+                    {reservas.length} ·{' '}
+                    {clp(reservas.reduce((a, r) => a + (r.total || 0), 0))}
+                  </span>
+                </div>
+                {reservasErr ? (
+                  <p className="text-xs text-slate-400">Detalle de reservas aún no disponible.</p>
+                ) : reservas.length === 0 ? (
+                  <p className="text-xs text-slate-400">Sin reservas atribuidas en este período.</p>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-xs">
+                      <thead>
+                        <tr className="border-b border-slate-200 text-left text-slate-500">
+                          <th className="py-1 pr-2 font-medium">Cliente</th>
+                          <th className="py-1 pr-2 font-medium">N°</th>
+                          <th className="py-1 pr-2 font-medium">Servicios</th>
+                          <th className="py-1 pr-2 font-medium">Fecha</th>
+                          <th className="py-1 text-right font-medium">Total</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {reservas.map((r) => (
+                          <tr key={r.venta_id} className="border-b border-slate-100 align-top">
+                            <td className="py-1.5 pr-2">{r.cliente_nombre || '—'}</td>
+                            <td className="py-1.5 pr-2 font-mono text-slate-500">#{r.venta_id}</td>
+                            <td className="py-1.5 pr-2">
+                              {r.servicios.map((sv, i) => (
+                                <div key={i} className="text-slate-600">
+                                  {sv.nombre} ×{sv.cantidad} · {clp(sv.valor)}
+                                </div>
+                              ))}
+                            </td>
+                            <td className="whitespace-nowrap py-1.5 pr-2 text-slate-600">{r.fecha_reserva}</td>
+                            <td className="py-1.5 text-right font-semibold">{clp(r.total)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
             </CardContent>
           </Card>
 
