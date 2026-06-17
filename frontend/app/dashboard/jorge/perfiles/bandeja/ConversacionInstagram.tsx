@@ -1,14 +1,15 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ArrowLeft, Camera as Instagram, Loader2, RefreshCw, Check, AlertTriangle, Send, Sparkles, FileText, Mic } from 'lucide-react';
+import { ArrowLeft, Camera as Instagram, MessageCircle, Loader2, RefreshCw, Check, AlertTriangle, Send, Sparkles, FileText, Mic } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { fetchConversacionInbox, marcarAtendidoInbox, responderInstagram } from './api';
-import type { MensajeInbox, SugerenciaAgente } from './types';
+import type { CanalMensaje, MensajeInbox, SugerenciaAgente } from './types';
 
 interface Props {
-  externalId: string; // IGSID del cliente
+  externalId: string; // IGSID (Instagram) o PSID (Messenger) del cliente
   nombre: string;
+  canal?: CanalMensaje; // 'instagram' (default) | 'messenger'
   onVolver?: () => void;
   onAtendido?: () => void;
   onReplySent?: () => void;
@@ -68,9 +69,15 @@ function MediaIG({ m, saliente }: { m: MensajeInbox; saliente: boolean }) {
   );
 }
 
-// Conversación de Instagram en SOLO LECTURA. Responder por IG llega en H-017
-// (necesita el token de envío). Por ahora se ve el hilo y se marca como leído.
-export function ConversacionInstagram({ externalId, nombre, onVolver, onAtendido, onReplySent }: Props) {
+// Conversación de un canal Meta en la bandeja (Instagram o Messenger).
+// Instagram: responder + borrador IA (H-017/H-019). Messenger: solo lectura
+// por ahora (responder llega en una fase posterior, necesita el Page token).
+export function ConversacionInstagram({ externalId, nombre, canal = 'instagram', onVolver, onAtendido, onReplySent }: Props) {
+  const esIG = canal === 'instagram';
+  // Tema visual por canal: Instagram rosado, Messenger azul.
+  const tema = esIG
+    ? { Icono: Instagram, label: 'Conversación de Instagram', card: 'border-pink-200', hBorder: 'border-pink-100', hBg: 'bg-pink-50/60', hHover: 'hover:bg-pink-100', accent: 'text-pink-600', outBg: 'bg-pink-500', outTs: 'text-pink-100' }
+    : { Icono: MessageCircle, label: 'Conversación de Messenger', card: 'border-blue-200', hBorder: 'border-blue-100', hBg: 'bg-blue-50/60', hHover: 'hover:bg-blue-100', accent: 'text-blue-600', outBg: 'bg-blue-600', outTs: 'text-blue-100' };
   const [mensajes, setMensajes] = useState<MensajeInbox[]>([]);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -86,7 +93,7 @@ export function ConversacionInstagram({ externalId, nombre, onVolver, onAtendido
     async (silencioso = false, conSugerencia = false) => {
       if (!silencioso) setCargando(true);
       try {
-        const data = await fetchConversacionInbox('instagram', externalId, 200, conSugerencia);
+        const data = await fetchConversacionInbox(canal, externalId, 200, conSugerencia);
         setMensajes(data.messages || []);
         if (conSugerencia && data.sugerencia_agente) {
           setSugerencia(data.sugerencia_agente);
@@ -103,12 +110,12 @@ export function ConversacionInstagram({ externalId, nombre, onVolver, onAtendido
         setCargando(false);
       }
     },
-    [externalId]
+    [canal, externalId]
   );
 
   useEffect(() => {
-    cargar(false, true); // carga inicial: pide el borrador del agente
-  }, [cargar]);
+    cargar(false, esIG); // carga inicial: el borrador del agente solo aplica a Instagram
+  }, [cargar, esIG]);
 
   // Auto-refresco del hilo (sin parpadear la pantalla).
   const cargarRef = useRef(cargar);
@@ -124,7 +131,7 @@ export function ConversacionInstagram({ externalId, nombre, onVolver, onAtendido
 
   const atender = async () => {
     try {
-      await marcarAtendidoInbox('instagram', externalId);
+      await marcarAtendidoInbox(canal, externalId);
       onAtendido?.();
     } catch {
       /* no bloquea la vista */
@@ -150,26 +157,26 @@ export function ConversacionInstagram({ externalId, nombre, onVolver, onAtendido
   };
 
   return (
-    <section className="flex h-full min-h-0 w-full min-w-0 flex-col overflow-hidden rounded-lg border border-pink-200 bg-white">
-      <header className="flex flex-shrink-0 items-center gap-2 border-b border-pink-100 bg-pink-50/60 p-3">
+    <section className={`flex h-full min-h-0 w-full min-w-0 flex-col overflow-hidden rounded-lg border ${tema.card} bg-white`}>
+      <header className={`flex flex-shrink-0 items-center gap-2 border-b ${tema.hBorder} ${tema.hBg} p-3`}>
         {onVolver && (
           <button
             type="button"
             onClick={onVolver}
             aria-label="Volver a la lista"
-            className="md:hidden -ml-1 rounded-md p-1.5 text-slate-600 hover:bg-pink-100"
+            className={`md:hidden -ml-1 rounded-md p-1.5 text-slate-600 ${tema.hHover}`}
           >
             <ArrowLeft className="h-5 w-5" />
           </button>
         )}
         <div className="min-w-0 flex-1">
-          <span className="inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide text-pink-600">
-            <Instagram className="h-3 w-3" />
-            Conversación de Instagram
+          <span className={`inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide ${tema.accent}`}>
+            <tema.Icono className="h-3 w-3" />
+            {tema.label}
           </span>
           <p className="truncate text-sm font-medium text-slate-900">{nombre}</p>
         </div>
-        <Button onClick={() => cargar(false, true)} variant="outline" size="sm" disabled={cargando}>
+        <Button onClick={() => cargar(false, esIG)} variant="outline" size="sm" disabled={cargando}>
           <RefreshCw className={`h-4 w-4 ${cargando ? 'animate-spin' : ''}`} />
         </Button>
         <Button onClick={atender} variant="outline" size="sm">
@@ -199,7 +206,7 @@ export function ConversacionInstagram({ externalId, nombre, onVolver, onAtendido
               <div
                 className={`max-w-[80%] space-y-1 rounded-lg px-3 py-2 text-sm ${
                   m.direction === 'out'
-                    ? 'bg-pink-500 text-white'
+                    ? `${tema.outBg} text-white`
                     : 'border border-slate-200 bg-white text-slate-800'
                 }`}
               >
@@ -217,7 +224,7 @@ export function ConversacionInstagram({ externalId, nombre, onVolver, onAtendido
                 )}
                 <span
                   className={`mt-0.5 block text-right text-[10px] ${
-                    m.direction === 'out' ? 'text-pink-100' : 'text-slate-400'
+                    m.direction === 'out' ? tema.outTs : 'text-slate-400'
                   }`}
                 >
                   {hora(m.timestamp)}
@@ -230,6 +237,12 @@ export function ConversacionInstagram({ externalId, nombre, onVolver, onAtendido
       </div>
 
       <div className="flex-shrink-0 space-y-2 border-t border-slate-200 p-3">
+        {!esIG ? (
+          <p className="text-center text-[11px] text-slate-400">
+            Conversación de Messenger en solo lectura. Responder desde aquí llegará en una próxima fase.
+          </p>
+        ) : (
+          <>
         {sendError && (
           <p className="flex items-start gap-1.5 text-xs text-amber-700">
             <AlertTriangle className="mt-0.5 h-3.5 w-3.5 flex-shrink-0" />
@@ -282,6 +295,8 @@ export function ConversacionInstagram({ externalId, nombre, onVolver, onAtendido
           Solo se puede responder dentro de las 24 h del último mensaje del cliente · Enter envía ·
           Shift+Enter salto de línea
         </p>
+          </>
+        )}
       </div>
 
       {/* Botón al fondo para volver al listado sin scrollear arriba (solo móvil). */}
@@ -289,7 +304,7 @@ export function ConversacionInstagram({ externalId, nombre, onVolver, onAtendido
         <button
           type="button"
           onClick={onVolver}
-          className="flex flex-shrink-0 items-center justify-center gap-1.5 border-t border-slate-200 bg-slate-50 py-3 text-sm font-medium text-pink-600 hover:bg-slate-100 md:hidden"
+          className={`flex flex-shrink-0 items-center justify-center gap-1.5 border-t border-slate-200 bg-slate-50 py-3 text-sm font-medium ${tema.accent} hover:bg-slate-100 md:hidden`}
         >
           <ArrowLeft className="h-4 w-4" />
           Volver al listado

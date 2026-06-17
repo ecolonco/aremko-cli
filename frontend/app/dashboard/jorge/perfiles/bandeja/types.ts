@@ -173,7 +173,7 @@ export interface DelDiaResponse {
 export type DireccionMensaje = 'in' | 'out';
 
 // Canal de la conversación (bandeja omnicanal, H-016).
-export type CanalMensaje = 'whatsapp' | 'instagram';
+export type CanalMensaje = 'whatsapp' | 'instagram' | 'messenger';
 
 export interface MensajeWhatsApp {
   wa_message_id: string;

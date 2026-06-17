@@ -11,6 +11,7 @@ import {
 import { Button } from '@/components/ui/button';
 import {
   MessageSquare,
+  MessageCircle,
   Search,
   RefreshCw,
   Loader2,
@@ -218,6 +219,8 @@ export default function MensajesWhatsAppPage() {
                           <span className="flex min-w-0 items-center gap-1.5">
                             {canal === 'instagram' ? (
                               <InstagramIcon className="h-3.5 w-3.5 flex-shrink-0 text-pink-500" />
+                            ) : canal === 'messenger' ? (
+                              <MessageCircle className="h-3.5 w-3.5 flex-shrink-0 text-blue-600" />
                             ) : (
                               <MessageSquare className="h-3.5 w-3.5 flex-shrink-0 text-emerald-600" />
                             )}
@@ -267,9 +270,10 @@ export default function MensajesWhatsAppPage() {
           } min-h-0 min-w-0 flex-1`}
         >
           {activo ? (
-            activo.canal === 'instagram' ? (
+            activo.canal === 'instagram' || activo.canal === 'messenger' ? (
               <ConversacionInstagram
-                key={`ig:${activo.externalId}`}
+                key={`${activo.canal}:${activo.externalId}`}
+                canal={activo.canal}
                 externalId={activo.externalId}
                 nombre={nombreActivo}
                 onReplySent={() => cargar(true)}
