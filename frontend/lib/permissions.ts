@@ -23,7 +23,7 @@ export const MENU_ITEMS: MenuItemDef[] = [
   { key: 'meta-ads', name: 'Campañas Meta', href: '/dashboard/jorge/meta-ads' },
   { key: 'perfiles', name: 'Perfiles', href: '/dashboard/jorge/perfiles' },
   { key: 'bandeja', name: 'Bandeja WhatsApp', href: '/dashboard/jorge/perfiles/bandeja' },
-  { key: 'mensajes', name: 'Mensajes WhatsApp', href: '/dashboard/jorge/perfiles/whatsapp' },
+  { key: 'mensajes', name: 'Mensajes', href: '/dashboard/jorge/perfiles/whatsapp' },
   { key: 'contactando', name: 'Contactando', href: '/dashboard/jorge/perfiles/contactando' },
   { key: 'envios', name: 'Envíos por aprobar', href: '/dashboard/jorge/perfiles/envios' },
   { key: 'agente', name: 'Agente IA', href: '/dashboard/jorge/perfiles/agente' },
