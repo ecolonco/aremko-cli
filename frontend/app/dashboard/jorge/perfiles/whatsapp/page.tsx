@@ -124,12 +124,14 @@ export default function MensajesWhatsAppPage() {
           <h2 className="flex items-center gap-2 text-xl font-bold tracking-tight md:text-3xl">
             <MessageSquare className="h-6 w-6 flex-shrink-0 text-emerald-600 md:h-7 md:w-7" />
             <InstagramIcon className="-ml-1 h-5 w-5 flex-shrink-0 text-pink-500 md:h-6 md:w-6" />
+            <MessageCircle className="-ml-1 h-5 w-5 flex-shrink-0 text-blue-600 md:h-6 md:w-6" />
             Mensajes
           </h2>
           <p className="mt-1 hidden text-sm text-muted-foreground md:block">
-            Bandeja unificada de <strong>WhatsApp</strong> e <strong>Instagram</strong> — respondés
-            ambos canales desde acá. Lo de WhatsApp queda en la ficha del cliente. Instagram solo
-            permite responder dentro de las 24 h del último mensaje del cliente.
+            Bandeja unificada de <strong>WhatsApp</strong>, <strong>Instagram</strong> y{' '}
+            <strong>Messenger</strong> — respondés WhatsApp e Instagram desde acá (Instagram solo
+            dentro de las 24 h del último mensaje). <strong>Messenger</strong> por ahora se ve en
+            solo lectura. Lo de WhatsApp queda en la ficha del cliente.
           </p>
         </div>
         <Button onClick={() => cargar()} variant="outline" size="sm" disabled={cargando}>
