@@ -113,8 +113,13 @@ func handleMessengerEvent(cfg *config.Config, ev instagramMessagingEvent) {
 	// Solo para entrantes: el PSID del cliente es ev.Sender.ID (en un eco el
 	// sender es la Página). Si no se resuelve, Django muestra "Cliente Messenger #PSID".
 	contactName := ""
-	if !ev.Message.IsEcho && cfg.MessengerPageAccessToken != "" {
-		contactName = messenger.NewClient(cfg.MessengerPageAccessToken).GetName(ev.Sender.ID)
+	if !ev.Message.IsEcho {
+		if cfg.MessengerPageAccessToken == "" {
+			log.Printf("[messenger] sin MESSENGER_PAGE_ACCESS_TOKEN → no resuelvo nombre del PSID=%s", ev.Sender.ID)
+		} else {
+			contactName = messenger.NewClient(cfg.MessengerPageAccessToken).GetName(ev.Sender.ID)
+			log.Printf("[messenger] nombre resuelto para PSID=%s → %q", ev.Sender.ID, contactName)
+		}
 	}
 	err := bookings.NewClient(cfg.BookingSystemURL).PostMessengerInbound(cfg.LunaAPIKey, bookings.MessengerInboundReq{
 		FbMessageID: ev.Message.Mid,
