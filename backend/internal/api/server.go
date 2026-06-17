@@ -186,6 +186,11 @@ func (s *Server) setupRoutes() {
 		r.Post("/instagram/webhook", handlers.InstagramWebhookReceive(s.config))
 		r.Post("/instagram/reply", handlers.InstagramReply(s.config))
 
+		// Facebook Messenger (object "page") — bandeja omnicanal. Mismo formato
+		// Messenger Platform que Instagram. Fase 1: recibir + loguear.
+		r.Get("/messenger/webhook", handlers.MessengerWebhookVerify(s.config))
+		r.Post("/messenger/webhook", handlers.MessengerWebhookReceive(s.config))
+
 		// Bandeja omnicanal (H-016): reads unificados WhatsApp + Instagram.
 		// Proxy a Django /api/inbox/*; conversación identificada por (canal, external_id).
 		r.Get("/inbox/conversations", handlers.InboxConversations(s.config))

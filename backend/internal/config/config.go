@@ -52,6 +52,12 @@ type Config struct {
 	InstagramVerifyToken string // string compartido para el handshake del webhook
 	InstagramAppSecret   string // valida X-Hub-Signature-256 de los webhooks IG
 
+	// Facebook Messenger (Messenger Platform, object "page") — misma app aremko-wa2.
+	MessengerVerifyToken     string // handshake del webhook de Messenger
+	MessengerAppSecret       string // valida firma; si vacío, usa WhatsAppAppSecret (misma app)
+	MessengerPageAccessToken string // token de la Página (responder/nombres, fase posterior)
+	MessengerPageID          string // ID de la Página de FB de Aremko
+
 	// Google Analytics 4
 	GA4PropertyID      string
 	GA4CredentialsPath string
@@ -136,6 +142,10 @@ func LoadConfig() (*Config, error) {
 		InstagramBusinessID:        getEnvOrDefault("INSTAGRAM_BUSINESS_ID", ""),
 		InstagramVerifyToken:       getEnvOrDefault("INSTAGRAM_VERIFY_TOKEN", ""),
 		InstagramAppSecret:         getEnvOrDefault("INSTAGRAM_APP_SECRET", ""),
+		MessengerVerifyToken:       getEnvOrDefault("MESSENGER_VERIFY_TOKEN", ""),
+		MessengerAppSecret:         getEnvOrDefault("MESSENGER_APP_SECRET", ""),
+		MessengerPageAccessToken:   getEnvOrDefault("MESSENGER_PAGE_ACCESS_TOKEN", ""),
+		MessengerPageID:            getEnvOrDefault("MESSENGER_PAGE_ID", ""),
 		GA4PropertyID:              getEnvOrDefault("GA4_PROPERTY_ID", ""),
 		GA4CredentialsPath:         getEnvOrDefault("GA4_CREDENTIALS_PATH", "ga4-credentials.json"),
 		OpenRouterAPIKey:           getEnvOrDefault("OPENROUTER_API_KEY", ""),
