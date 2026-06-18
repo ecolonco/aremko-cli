@@ -39,6 +39,14 @@ const clp = (n: number | null | undefined) =>
         maximumFractionDigits: 0,
       }).format(n);
 
+// Fecha legible (dd-mm-aaaa) desde un ISO; si no parsea, devuelve el crudo.
+const fechaCorta = (iso: string | null | undefined): string => {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  return d.toLocaleDateString('es-CL', { day: '2-digit', month: '2-digit', year: 'numeric' });
+};
+
 interface CampanasResp {
   resumen: {
     generados: number;
@@ -365,13 +373,21 @@ export default function EvolucionPage() {
                             <td className="py-1.5 pr-2">{r.cliente_nombre || '—'}</td>
                             <td className="py-1.5 pr-2 font-mono text-slate-500">#{r.venta_id}</td>
                             <td className="py-1.5 pr-2">
-                              {r.servicios.map((sv, i) => (
-                                <div key={i} className="text-slate-600">
-                                  {sv.nombre} ×{sv.cantidad} · {clp(sv.valor)}
-                                </div>
-                              ))}
+                              {r.servicios.map((sv, i) => {
+                                // "Descuento_Servicios" es un pseudo-servicio: la rebaja va
+                                // en `cantidad` y `valor` es un centinela (-1). Lo mostramos
+                                // como un descuento legible en vez de "×12000 · $-1".
+                                const esDescuento = sv.valor < 0 || /descuento/i.test(sv.nombre);
+                                return (
+                                  <div key={i} className={esDescuento ? 'text-rose-600' : 'text-slate-600'}>
+                                    {esDescuento
+                                      ? `Descuento −${clp(sv.cantidad)}`
+                                      : `${sv.nombre} ×${sv.cantidad} · ${clp(sv.valor)}`}
+                                  </div>
+                                );
+                              })}
                             </td>
-                            <td className="whitespace-nowrap py-1.5 pr-2 text-slate-600">{r.fecha_reserva}</td>
+                            <td className="whitespace-nowrap py-1.5 pr-2 text-slate-600">{fechaCorta(r.fecha_reserva)}</td>
                             <td className="py-1.5 text-right font-semibold">{clp(r.total)}</td>
                           </tr>
                         ))}
