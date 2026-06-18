@@ -559,6 +559,52 @@ export const enviarAdjuntoMeta = async (
   return json as ResponderWhatsAppResult;
 };
 
+// --- Biblioteca de medios (H-025): fotos/videos del catálogo para enviar rápido ---
+export interface MediaItem {
+  id: number;
+  nombre: string;
+  fotos: string[];
+  video: string | null;
+}
+export interface MediaGrupo {
+  tipo: string;
+  label: string;
+  items: MediaItem[];
+}
+export interface MediaLibraryResp {
+  grupos: MediaGrupo[];
+}
+
+/** Trae el catálogo de fotos/videos publicados (tinas/cabañas/masajes) para la galería. */
+export const fetchBibliotecaMedios = async (): Promise<MediaLibraryResp> => {
+  const res = await fetch(`${apiBase()}/api/v1/inbox/media-library`);
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(json.error || `HTTP ${res.status}`);
+  return json as MediaLibraryResp;
+};
+
+/** Envía una foto/video de la biblioteca (por URL pública) por el canal indicado. */
+export const enviarAdjuntoURL = async (
+  canal: 'whatsapp' | 'instagram' | 'messenger',
+  externalId: string,
+  mediaUrl: string,
+  caption?: string
+): Promise<ResponderWhatsAppResult> => {
+  const fd = new FormData();
+  fd.append('to', externalId);
+  fd.append('media_url', mediaUrl);
+  if (caption) fd.append('caption', caption);
+  const res = await fetch(`${apiBase()}/api/v1/${canal}/send-media`, {
+    method: 'POST',
+    body: fd,
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok || json.success === false) {
+    throw new Error(json.error || `HTTP ${res.status}`);
+  }
+  return json as ResponderWhatsAppResult;
+};
+
 export interface EditarNombreResult {
   ok: boolean;
   cliente_id?: number;

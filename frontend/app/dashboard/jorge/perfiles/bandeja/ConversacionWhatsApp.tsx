@@ -20,16 +20,19 @@ import {
   X,
   Sparkles,
   ChevronUp,
+  Images,
 } from 'lucide-react';
 import {
   fetchConversacionWhatsApp,
   responderWhatsApp,
   enviarAdjuntoWhatsApp,
+  enviarAdjuntoURL,
   editarNombreWhatsApp,
   marcarAtendidoWhatsApp,
   reportarFeedbackAgente,
   telefonoE164,
 } from './api';
+import { BibliotecaMedios } from './BibliotecaMedios';
 import type { MensajeWhatsApp, SugerenciaAgente } from './types';
 
 interface ConversacionWhatsAppProps {
@@ -161,6 +164,7 @@ export function ConversacionWhatsApp({
   const [enviando, setEnviando] = useState(false);
   const [enviarError, setEnviarError] = useState<string | null>(null);
   const [copiado, setCopiado] = useState(false);
+  const [biblioteca, setBiblioteca] = useState(false);
   const finRef = useRef<HTMLDivElement | null>(null);
 
   const copiarTelefono = useCallback(() => {
@@ -390,10 +394,35 @@ export function ConversacionWhatsApp({
     }
   };
 
+  // Enviar una foto/video del catálogo (biblioteca, H-025) por WhatsApp (por URL).
+  const enviarDesdeBiblioteca = async (url: string) => {
+    if (disabled) return;
+    setBiblioteca(false);
+    setEnviando(true);
+    setEnviarError(null);
+    try {
+      await enviarAdjuntoURL('whatsapp', phone, url, texto.trim() || undefined);
+      setTexto('');
+      await cargar(true);
+      onReplySent?.();
+    } catch (e: unknown) {
+      setEnviarError(e instanceof Error ? e.message : 'No se pudo enviar la foto de la biblioteca');
+    } finally {
+      setEnviando(false);
+    }
+  };
+
   const ventanaAbierta = dentroVentana24h(mensajes);
 
   return (
-    <section className="flex h-full min-h-0 w-full min-w-0 flex-col overflow-hidden rounded-lg border border-emerald-200 bg-white">
+    <section className="relative flex h-full min-h-0 w-full min-w-0 flex-col overflow-hidden rounded-lg border border-emerald-200 bg-white">
+      {biblioteca && (
+        <BibliotecaMedios
+          accent="text-emerald-600"
+          onClose={() => setBiblioteca(false)}
+          onSelect={(url) => enviarDesdeBiblioteca(url)}
+        />
+      )}
       {/* Encabezado del hilo */}
       <div className="flex flex-shrink-0 items-center justify-between gap-2 border-b border-emerald-100 bg-emerald-50/60 px-3 py-2">
         {onVolver && (
@@ -636,6 +665,15 @@ export function ConversacionWhatsApp({
             className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg border border-slate-300 text-slate-500 hover:bg-slate-100 disabled:opacity-50"
           >
             <Paperclip className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            onClick={() => setBiblioteca(true)}
+            disabled={disabled || enviando || !phone}
+            title="Enviar foto/video del catálogo (tinas, cabañas, masajes)"
+            className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg border border-slate-300 text-slate-500 hover:bg-slate-100 disabled:opacity-50"
+          >
+            <Images className="h-4 w-4" />
           </button>
           <textarea
             value={texto}

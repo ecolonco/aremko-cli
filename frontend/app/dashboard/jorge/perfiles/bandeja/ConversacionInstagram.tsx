@@ -1,9 +1,10 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ArrowLeft, Camera as Instagram, MessageCircle, Loader2, RefreshCw, Check, AlertTriangle, Send, Sparkles, FileText, Mic, Paperclip } from 'lucide-react';
+import { ArrowLeft, Camera as Instagram, MessageCircle, Loader2, RefreshCw, Check, AlertTriangle, Send, Sparkles, FileText, Mic, Paperclip, Images } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { fetchConversacionInbox, marcarAtendidoInbox, responderInstagram, responderMessenger, enviarAdjuntoMeta } from './api';
+import { fetchConversacionInbox, marcarAtendidoInbox, responderInstagram, responderMessenger, enviarAdjuntoMeta, enviarAdjuntoURL } from './api';
+import { BibliotecaMedios } from './BibliotecaMedios';
 import type { CanalMensaje, MensajeInbox, SugerenciaAgente } from './types';
 
 interface Props {
@@ -85,6 +86,7 @@ export function ConversacionInstagram({ externalId, nombre, canal = 'instagram',
   const [enviando, setEnviando] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
   const [sugerencia, setSugerencia] = useState<SugerenciaAgente | null>(null);
+  const [biblioteca, setBiblioteca] = useState(false);
   const finRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -175,8 +177,32 @@ export function ConversacionInstagram({ externalId, nombre, canal = 'instagram',
     }
   };
 
+  // Enviar una foto/video elegido de la biblioteca del catálogo (por URL).
+  const enviarDesdeBiblioteca = async (url: string) => {
+    setBiblioteca(false);
+    setEnviando(true);
+    setSendError(null);
+    try {
+      await enviarAdjuntoURL(canal as 'instagram' | 'messenger', externalId, url, input.trim() || undefined);
+      setInput('');
+      setTimeout(() => cargarRef.current(true), 1500);
+      onReplySent?.();
+    } catch (e: unknown) {
+      setSendError(e instanceof Error ? e.message : 'No se pudo enviar la foto de la biblioteca');
+    } finally {
+      setEnviando(false);
+    }
+  };
+
   return (
-    <section className={`flex h-full min-h-0 w-full min-w-0 flex-col overflow-hidden rounded-lg border ${tema.card} bg-white`}>
+    <section className={`relative flex h-full min-h-0 w-full min-w-0 flex-col overflow-hidden rounded-lg border ${tema.card} bg-white`}>
+      {biblioteca && (
+        <BibliotecaMedios
+          accent={tema.accent}
+          onClose={() => setBiblioteca(false)}
+          onSelect={(url) => enviarDesdeBiblioteca(url)}
+        />
+      )}
       <header className={`flex flex-shrink-0 items-center gap-2 border-b ${tema.hBorder} ${tema.hBg} p-3`}>
         {onVolver && (
           <button
@@ -298,6 +324,15 @@ export function ConversacionInstagram({ externalId, nombre, canal = 'instagram',
             className="flex h-[38px] w-[38px] flex-shrink-0 items-center justify-center rounded-md border border-slate-300 text-slate-500 hover:bg-slate-100 disabled:opacity-50"
           >
             <Paperclip className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            onClick={() => setBiblioteca(true)}
+            disabled={enviando}
+            title="Enviar foto/video del catálogo (tinas, cabañas, masajes)"
+            className="flex h-[38px] w-[38px] flex-shrink-0 items-center justify-center rounded-md border border-slate-300 text-slate-500 hover:bg-slate-100 disabled:opacity-50"
+          >
+            <Images className="h-4 w-4" />
           </button>
           <textarea
             value={input}
