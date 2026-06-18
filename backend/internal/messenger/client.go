@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"net/url"
 	"strings"
@@ -52,6 +53,9 @@ func (c *Client) GetName(psid string) string {
 	defer resp.Body.Close()
 	b, _ := io.ReadAll(resp.Body)
 	if resp.StatusCode != http.StatusOK {
+		// DIAGNÓSTICO temporal: distinguir error de permiso/token (no-200) de
+		// un perfil que simplemente no expone el nombre.
+		log.Printf("[messenger] GetName PSID=%s status %d: %s", psid, resp.StatusCode, b)
 		return ""
 	}
 	var out struct {
@@ -59,7 +63,12 @@ func (c *Client) GetName(psid string) string {
 		LastName  string `json:"last_name"`
 	}
 	if err := json.Unmarshal(b, &out); err != nil {
+		log.Printf("[messenger] GetName PSID=%s body no parseable: %s", psid, b)
 		return ""
 	}
-	return strings.TrimSpace(out.FirstName + " " + out.LastName)
+	name := strings.TrimSpace(out.FirstName + " " + out.LastName)
+	if name == "" {
+		log.Printf("[messenger] GetName PSID=%s status 200 pero sin nombre: %s", psid, b)
+	}
+	return name
 }
