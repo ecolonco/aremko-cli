@@ -67,6 +67,32 @@ func (c *Client) SendMessage(recipientPSID, text string) (*SendResult, error) {
 	return &out, nil
 }
 
+// DownloadMedia baja los bytes de una URL de adjunto de Messenger (CDN de Meta;
+// la URL del payload es accesible sin token). Devuelve bytes + Content-Type.
+// Corta en maxBytes (devuelve error si lo supera).
+func (c *Client) DownloadMedia(mediaURL string, maxBytes int64) ([]byte, string, error) {
+	req, err := http.NewRequest(http.MethodGet, mediaURL, nil)
+	if err != nil {
+		return nil, "", err
+	}
+	resp, err := c.HTTPClient.Do(req)
+	if err != nil {
+		return nil, "", fmt.Errorf("error descargando media Messenger: %w", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return nil, "", fmt.Errorf("download Messenger status %d", resp.StatusCode)
+	}
+	data, err := io.ReadAll(io.LimitReader(resp.Body, maxBytes+1))
+	if err != nil {
+		return nil, "", err
+	}
+	if int64(len(data)) > maxBytes {
+		return nil, "", fmt.Errorf("adjunto Messenger excede %d bytes", maxBytes)
+	}
+	return data, resp.Header.Get("Content-Type"), nil
+}
+
 // GetName resuelve el nombre de un PSID que nos escribió por Messenger (User
 // Profile API: GET /{PSID}?fields=first_name,last_name). Devuelve "" si no se
 // puede resolver — nunca rompe el flujo de inbound. NOTA: en modo desarrollo

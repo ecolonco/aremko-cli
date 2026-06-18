@@ -468,6 +468,64 @@ func (c *Client) PostMessengerInbound(apiKey string, req MessengerInboundReq) er
 	return c.postWhatsApp("/api/messenger/inbound", apiKey, req)
 }
 
+// MessengerInboundMediaReq son los metadatos de un adjunto entrante de Messenger
+// (los bytes van como archivo multipart). Idempotente por fb_message_id en Django.
+type MessengerInboundMediaReq struct {
+	FbMessageID string
+	FromPSID    string
+	ToPageID    string
+	Type        string // image | video | audio | file
+	Timestamp   string
+	ContactName string
+	Caption     string
+	MimeType    string
+	Filename    string
+	IsEcho      bool
+}
+
+// PostMessengerInboundMedia sube un adjunto entrante de Messenger a Django
+// (multipart). is_echo=true → saliente. Idempotente por fb_message_id.
+func (c *Client) PostMessengerInboundMedia(apiKey string, m MessengerInboundMediaReq, data []byte) error {
+	var buf bytes.Buffer
+	mw := multipart.NewWriter(&buf)
+	_ = mw.WriteField("fb_message_id", m.FbMessageID)
+	_ = mw.WriteField("from_psid", m.FromPSID)
+	_ = mw.WriteField("to_page_id", m.ToPageID)
+	_ = mw.WriteField("is_echo", fmt.Sprintf("%t", m.IsEcho))
+	_ = mw.WriteField("type", m.Type)
+	_ = mw.WriteField("timestamp", m.Timestamp)
+	_ = mw.WriteField("contact_name", m.ContactName)
+	_ = mw.WriteField("caption", m.Caption)
+	_ = mw.WriteField("mime_type", m.MimeType)
+	fw, err := mw.CreateFormFile("file", m.Filename)
+	if err != nil {
+		return fmt.Errorf("error armando multipart Messenger: %w", err)
+	}
+	if _, err := fw.Write(data); err != nil {
+		return fmt.Errorf("error escribiendo archivo Messenger: %w", err)
+	}
+	if err := mw.Close(); err != nil {
+		return fmt.Errorf("error cerrando multipart Messenger: %w", err)
+	}
+
+	req, err := http.NewRequest(http.MethodPost, c.BaseURL+"/api/messenger/inbound-media", &buf)
+	if err != nil {
+		return fmt.Errorf("error creando request inbound-media Messenger: %w", err)
+	}
+	req.Header.Set("Content-Type", mw.FormDataContentType())
+	req.Header.Set("X-API-Key", apiKey)
+	resp, err := c.HTTPClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("error en inbound-media Messenger: %w", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		b, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("django inbound-media Messenger status %d: %s", resp.StatusCode, b)
+	}
+	return nil
+}
+
 // InstagramInboundMediaReq son los metadatos de un adjunto entrante de Instagram
 // (los bytes van como archivo multipart). Idempotente por ig_message_id en Django.
 type InstagramInboundMediaReq struct {

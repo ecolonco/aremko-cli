@@ -87,7 +87,7 @@ func MessengerWebhookReceive(cfg *config.Config) http.HandlerFunc {
 }
 
 // handleMessengerEvent persiste el evento en Django (canal='messenger', H-023).
-// is_echo=true se guarda como saliente. (Adjuntos/nombres/envío = fases siguientes.)
+// is_echo=true se guarda como saliente.
 func handleMessengerEvent(cfg *config.Config, ev instagramMessagingEvent) {
 	if ev.Message == nil {
 		log.Printf("[messenger] evento sin mensaje (sender=%s)", ev.Sender.ID)
@@ -103,13 +103,12 @@ func handleMessengerEvent(cfg *config.Config, ev instagramMessagingEvent) {
 	if cfg.LunaAPIKey == "" || cfg.BookingSystemURL == "" {
 		return
 	}
-	if body == "" && len(ev.Message.Attachments) > 0 {
-		body = "📎 Adjunto de Messenger"
-	}
 	ts := int64(ev.Timestamp)
 	if ts > 9999999999 {
 		ts = ts / 1000
 	}
+	tsStr := strconv.FormatInt(ts, 10)
+
 	// Resolver el nombre del cliente (PSID) vía Graph API con el Page token.
 	// Solo para entrantes: el PSID del cliente es ev.Sender.ID (en un eco el
 	// sender es la Página). Si no se resuelve (modo desarrollo sin Acceso
@@ -118,17 +117,63 @@ func handleMessengerEvent(cfg *config.Config, ev instagramMessagingEvent) {
 	if !ev.Message.IsEcho && cfg.MessengerPageAccessToken != "" {
 		contactName = messenger.NewClient(cfg.MessengerPageAccessToken, cfg.MessengerPageID).GetName(ev.Sender.ID)
 	}
-	err := bookings.NewClient(cfg.BookingSystemURL).PostMessengerInbound(cfg.LunaAPIKey, bookings.MessengerInboundReq{
+
+	bc := bookings.NewClient(cfg.BookingSystemURL)
+
+	// Adjuntos (foto/video/audio/documento): descargamos los bytes del CDN de
+	// Meta y los subimos a Django (H-024), igual que el flujo de media de IG.
+	if len(ev.Message.Attachments) > 0 {
+		handleMessengerMedia(cfg, bc, ev, tsStr, contactName)
+		return
+	}
+
+	if err := bc.PostMessengerInbound(cfg.LunaAPIKey, bookings.MessengerInboundReq{
 		FbMessageID: ev.Message.Mid,
 		FromPSID:    ev.Sender.ID,
 		ToPageID:    ev.Recipient.ID,
 		Text:        body,
-		Timestamp:   strconv.FormatInt(ts, 10),
+		Timestamp:   tsStr,
 		ContactName: contactName,
 		IsEcho:      ev.Message.IsEcho,
-	})
-	if err != nil {
+	}); err != nil {
 		log.Printf("[messenger] error guardando inbound en Django: %v", err)
+	}
+}
+
+// handleMessengerMedia baja cada adjunto del DM (CDN de Meta) y lo sube a Django
+// (multipart). El texto del mensaje acompaña al primer adjunto como caption.
+func handleMessengerMedia(cfg *config.Config, bc *bookings.Client, ev instagramMessagingEvent, ts, contactName string) {
+	mc := messenger.NewClient(cfg.MessengerPageAccessToken, cfg.MessengerPageID)
+	for i, att := range ev.Message.Attachments {
+		if att.Payload.URL == "" {
+			continue
+		}
+		data, mime, err := mc.DownloadMedia(att.Payload.URL, maxMediaBytes)
+		if err != nil {
+			log.Printf("[messenger] error descargando adjunto tipo=%s: %v", att.Type, err)
+			continue
+		}
+		mid := ev.Message.Mid
+		caption := ""
+		if i == 0 {
+			caption = ev.Message.Text
+		} else {
+			mid = mid + "#" + strconv.Itoa(i) // evita choque de idempotencia
+		}
+		if err := bc.PostMessengerInboundMedia(cfg.LunaAPIKey, bookings.MessengerInboundMediaReq{
+			FbMessageID: mid,
+			FromPSID:    ev.Sender.ID,
+			ToPageID:    ev.Recipient.ID,
+			Type:        att.Type,
+			Timestamp:   ts,
+			ContactName: contactName,
+			Caption:     caption,
+			MimeType:    mime,
+			Filename:    mid + extPorMime(mime),
+			IsEcho:      ev.Message.IsEcho,
+		}, data); err != nil {
+			log.Printf("[messenger] error subiendo adjunto a Django: %v", err)
+		}
 	}
 }
 
