@@ -212,6 +212,23 @@ export interface ConversacionInboxResponse {
   messages: MensajeInbox[];
   // Borrador del agente IA (H-019), opt-in con &sugerencia=1. Null/ausente si no.
   sugerencia_agente?: SugerenciaAgente | null;
+  // Propuesta de reserva pendiente de aprobación de Deborah (H-028). Null si no hay.
+  propuesta_reserva?: PropuestaReserva | null;
+}
+
+// Propuesta de reserva que Luna armó y el cliente confirmó (H-028). Deborah la
+// aprueba con un botón → se crea la reserva en el sistema.
+export interface PropuestaReserva {
+  propuesta_id: string;
+  resumen: string;
+  total: number;
+  servicios: {
+    servicio_nombre: string;
+    fecha: string;
+    hora: string;
+    cantidad_personas: number;
+    subtotal: number;
+  }[];
 }
 
 // Sugerencia del agente IA (H-007, Fase 1) para el último entrante sin responder.
@@ -232,6 +249,7 @@ export interface ConversacionWhatsAppResponse {
   count: number;
   messages: MensajeWhatsApp[];
   sugerencia_agente?: SugerenciaAgente | null;
+  propuesta_reserva?: PropuestaReserva | null;
 }
 
 // Config del agente IA de WhatsApp (H-007). El backend la proxea a Django.

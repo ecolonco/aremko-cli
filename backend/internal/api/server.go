@@ -199,6 +199,8 @@ func (s *Server) setupRoutes() {
 		r.Get("/inbox/conversations", handlers.InboxConversations(s.config))
 		r.Get("/inbox/conversation", handlers.InboxConversation(s.config))
 		r.Get("/inbox/media-library", handlers.InboxMediaLibrary(s.config))
+		// H-028: Deborah aprueba una propuesta → crea la reserva + trae el resumen.
+		r.Post("/luna/crear-reserva", handlers.LunaCrearReserva(s.config))
 		r.Post("/inbox/conversations/{canal}/{externalId}/marcar-atendido", handlers.InboxMarcarAtendido(s.config))
 
 		// Módulo de Métricas / Tablero de Evolución (H-021/H-022) — proxy a Django.

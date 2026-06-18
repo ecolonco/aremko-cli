@@ -605,6 +605,27 @@ export const enviarAdjuntoURL = async (
   return json as ResponderWhatsAppResult;
 };
 
+/** Resultado de aprobar (crear) una propuesta de reserva (H-028). */
+export interface CrearReservaResult {
+  success: boolean;
+  reserva: { id: number; numero: string; total: number; estado_pago: string };
+  resumen_texto: string;
+}
+
+/** Deborah aprueba una propuesta → crea la reserva y trae el resumen para el cliente. */
+export const crearReservaLuna = async (propuestaId: string): Promise<CrearReservaResult> => {
+  const res = await fetch(`${apiBase()}/api/v1/luna/crear-reserva`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ propuesta_id: propuestaId }),
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok || json.success === false) {
+    throw new Error(json.error || `HTTP ${res.status}`);
+  }
+  return json as CrearReservaResult;
+};
+
 export interface EditarNombreResult {
   ok: boolean;
   cliente_id?: number;

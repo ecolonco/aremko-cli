@@ -33,7 +33,8 @@ import {
   telefonoE164,
 } from './api';
 import { BibliotecaMedios } from './BibliotecaMedios';
-import type { MensajeWhatsApp, SugerenciaAgente } from './types';
+import type { MensajeWhatsApp, SugerenciaAgente, PropuestaReserva } from './types';
+import { BotonCrearReserva } from './BotonCrearReserva';
 
 interface ConversacionWhatsAppProps {
   /** Teléfono del cliente en cualquier formato; se normaliza a E.164 internamente. */
@@ -148,6 +149,7 @@ export function ConversacionWhatsApp({
   const phone = telefonoE164(telefono);
   const [mensajes, setMensajes] = useState<MensajeWhatsApp[]>([]);
   const [sugerencia, setSugerencia] = useState<SugerenciaAgente | null>(null);
+  const [propuesta, setPropuesta] = useState<PropuestaReserva | null>(null);
   const sugerenciaAplicadaRef = useRef<string | null>(null);
   // Para auto-generar el borrador al llegar un entrante nuevo (sin tocar nada).
   const ultimoInboundRef = useRef<string | null>(null);
@@ -265,6 +267,7 @@ export function ConversacionWhatsApp({
         // Solo pisamos la sugerencia cuando la pedimos (el auto-refresco no la
         // pide → conservamos la última).
         if (pedirSugerencia) setSugerencia(data.sugerencia_agente ?? null);
+        setPropuesta(data.propuesta_reserva ?? null); // H-028: propuesta pendiente de aprobar
         setError(null);
       } catch (e: unknown) {
         setError(e instanceof Error ? e.message : 'Error al cargar la conversación');
@@ -634,6 +637,16 @@ export function ConversacionWhatsApp({
 
       {/* Caja de respuesta */}
       <div className="flex-shrink-0 space-y-2 border-t border-slate-200 p-3">
+        {propuesta && (
+          <BotonCrearReserva
+            propuesta={propuesta}
+            onCreada={(resumenTexto) => {
+              setPropuesta(null);
+              if (resumenTexto) setTexto(resumenTexto); // Deborah lo envía al cliente
+              setTimeout(() => cargar(true), 800);
+            }}
+          />
+        )}
         {!ventanaAbierta && mensajes.length > 0 && (
           <div className="flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 p-2 text-[11px] text-amber-900">
             <AlertTriangle className="mt-0.5 h-3.5 w-3.5 flex-shrink-0" />

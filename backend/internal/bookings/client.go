@@ -647,6 +647,21 @@ func (c *Client) GetMediaLibraryRaw(apiKey string) ([]byte, error) {
 	return c.getRaw(u, apiKey, "media library")
 }
 
+// CrearReservaLuna finaliza una propuesta de reserva (H-028): POST a la Luna API
+// con el propuesta_id. Django crea la reserva (idempotente, re-verifica
+// disponibilidad). Devuelve el JSON crudo `{success, reserva:{id,numero,total,estado_pago}}`.
+func (c *Client) CrearReservaLuna(apiKey, propuestaID string) ([]byte, error) {
+	return c.postWhatsAppRaw("/api/luna/reservas/create/", apiKey,
+		map[string]string{"propuesta_id": propuestaID})
+}
+
+// GetResumenReservaRaw trae el resumen de una reserva creada (H-028): nº + detalle
+// + banco/transferencia + mail comprobante. Es el texto que Luna manda al cliente.
+func (c *Client) GetResumenReservaRaw(apiKey string, reservaID int) ([]byte, error) {
+	u := fmt.Sprintf("%s/api/v1/resumen-reserva/%d/", c.BaseURL, reservaID)
+	return c.getRaw(u, apiKey, "resumen reserva")
+}
+
 // GetInboxConversationRaw devuelve el hilo de una conversación identificada por
 // (canal, external_id). JSON crudo de Django. conSugerencia pide el borrador del
 // agente IA (opt-in, H-019; lazy del lado Django).
