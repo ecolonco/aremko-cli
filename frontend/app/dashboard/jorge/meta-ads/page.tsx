@@ -57,6 +57,8 @@ export default function MetaAdsPage() {
   const [refugio, setRefugio] = useState<RefugioCampaign | null>(null);
   const [mounted, setMounted] = useState(false);
   const [aviso, setAviso] = useState<string | null>(null);
+  // Filtro de estado de campaña. Por defecto solo las activas (lo operativo del día).
+  const [filtroEstado, setFiltroEstado] = useState<'active' | 'paused' | 'all'>('active');
 
   const cargar = useCallback(async () => {
     try {
@@ -118,6 +120,15 @@ export default function MetaAdsPage() {
 
   const displaySummary = summary || defaultSummary;
   const hasRealData = summary !== null && !error;
+
+  // Campañas según el filtro de estado (ACTIVE vs el resto = pausadas).
+  const filteredCampaigns = campaigns.filter((c) => {
+    if (filtroEstado === 'all') return true;
+    const activa = (c.status ?? '').toUpperCase() === 'ACTIVE';
+    return filtroEstado === 'active' ? activa : !activa;
+  });
+  const conteoActivas = campaigns.filter((c) => (c.status ?? '').toUpperCase() === 'ACTIVE').length;
+  const conteoPausadas = campaigns.length - conteoActivas;
 
   if (!mounted || loading) {
     return (
@@ -296,13 +307,32 @@ export default function MetaAdsPage() {
 
         {/* Campañas */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-          <div className="px-6 py-4 border-b border-gray-200">
+          <div className="px-6 py-4 border-b border-gray-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <h2 className="text-lg font-semibold text-gray-900">
-              Campañas ({campaigns.length})
+              Campañas ({filteredCampaigns.length})
             </h2>
+            <div className="inline-flex rounded-lg border border-gray-200 bg-gray-50 p-0.5 text-sm">
+              {([
+                { key: 'active', label: `Activas (${conteoActivas})` },
+                { key: 'paused', label: `Pausadas (${conteoPausadas})` },
+                { key: 'all', label: `Todas (${campaigns.length})` },
+              ] as const).map((opt) => (
+                <button
+                  key={opt.key}
+                  onClick={() => setFiltroEstado(opt.key)}
+                  className={`rounded-md px-3 py-1.5 font-medium transition-colors ${
+                    filtroEstado === opt.key
+                      ? 'bg-white text-gray-900 shadow-sm'
+                      : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
           </div>
 
-          {campaigns.length > 0 ? (
+          {filteredCampaigns.length > 0 ? (
             <>
               {/* Vista Desktop - Tabla */}
               <div className="hidden lg:block overflow-x-auto">
@@ -336,7 +366,7 @@ export default function MetaAdsPage() {
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {campaigns.map((campaign) => (
+                    {filteredCampaigns.map((campaign) => (
                       <tr key={campaign.id} className="hover:bg-gray-50 transition-colors">
                         <td className="px-6 py-4">
                           <div className="text-sm font-medium text-gray-900 max-w-md truncate">
@@ -394,7 +424,7 @@ export default function MetaAdsPage() {
 
               {/* Vista Móvil - Cards */}
               <div className="lg:hidden divide-y divide-gray-200">
-                {campaigns.map((campaign) => (
+                {filteredCampaigns.map((campaign) => (
                   <div key={campaign.id} className="p-4 hover:bg-gray-50 transition-colors">
                     <div className="flex items-start justify-between gap-2 mb-3">
                       <h3 className="text-sm font-medium text-gray-900 flex-1">
@@ -460,9 +490,13 @@ export default function MetaAdsPage() {
                 No hay campañas disponibles
               </h3>
               <p className="mt-1 text-sm text-gray-500">
-                {hasRealData
-                  ? 'No se encontraron campañas activas en este período.'
-                  : 'Configura las credenciales de Meta Ads para ver tus campañas.'}
+                {!hasRealData
+                  ? 'Configura las credenciales de Meta Ads para ver tus campañas.'
+                  : campaigns.length > 0
+                  ? `No hay campañas ${
+                      filtroEstado === 'active' ? 'activas' : filtroEstado === 'paused' ? 'pausadas' : ''
+                    } en este período.`
+                  : 'No se encontraron campañas en este período.'}
               </p>
             </div>
           )}
