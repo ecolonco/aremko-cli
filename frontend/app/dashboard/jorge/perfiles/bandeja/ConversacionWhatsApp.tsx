@@ -166,6 +166,7 @@ export function ConversacionWhatsApp({
   const [copiado, setCopiado] = useState(false);
   const [biblioteca, setBiblioteca] = useState(false);
   const finRef = useRef<HTMLDivElement | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
   const copiarTelefono = useCallback(() => {
     if (!phone) return;
@@ -326,6 +327,15 @@ export function ConversacionWhatsApp({
     }
     finRef.current?.scrollIntoView({ block: 'end' });
   }, [mensajes.length]);
+
+  // Auto-alto del cajón: crece con el contenido (hasta un tope) para que el
+  // borrador de IA, que suele ser largo, se vea completo sin scrollear.
+  useEffect(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = `${Math.min(el.scrollHeight, 220)}px`;
+  }, [texto]);
 
   // Auto-genera el borrador del agente al llegar un entrante NUEVO (una vez por
   // mensaje), sin tener que tocar "Actualizar". La carga inicial ya pide
@@ -676,6 +686,7 @@ export function ConversacionWhatsApp({
             <Images className="h-4 w-4" />
           </button>
           <textarea
+            ref={textareaRef}
             value={texto}
             onChange={(e) => setTexto(e.target.value)}
             onKeyDown={(e) => {
@@ -693,7 +704,7 @@ export function ConversacionWhatsApp({
             disabled={disabled || enviando || !phone}
             rows={2}
             placeholder={`Responder a ${nombre.split(' ')[0]} por WhatsApp…`}
-            className="w-full resize-y rounded-lg border border-slate-300 bg-white p-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 disabled:bg-slate-100"
+            className="max-h-[220px] w-full resize-y overflow-y-auto rounded-lg border border-slate-300 bg-white p-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 disabled:bg-slate-100"
           />
           <Button
             onClick={handleEnviar}
