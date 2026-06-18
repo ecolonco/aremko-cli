@@ -117,8 +117,8 @@ export function ConversacionInstagram({ externalId, nombre, canal = 'instagram',
   );
 
   useEffect(() => {
-    cargar(false, esIG); // carga inicial: el borrador del agente solo aplica a Instagram
-  }, [cargar, esIG]);
+    cargar(false, true); // carga inicial: pide el borrador del agente (IG y Messenger)
+  }, [cargar]);
 
   // Auto-refresco del hilo (sin parpadear la pantalla).
   const cargarRef = useRef(cargar);
@@ -221,7 +221,7 @@ export function ConversacionInstagram({ externalId, nombre, canal = 'instagram',
           </span>
           <p className="truncate text-sm font-medium text-slate-900">{nombre}</p>
         </div>
-        <Button onClick={() => cargar(false, esIG)} variant="outline" size="sm" disabled={cargando}>
+        <Button onClick={() => cargar(false, true)} variant="outline" size="sm" disabled={cargando}>
           <RefreshCw className={`h-4 w-4 ${cargando ? 'animate-spin' : ''}`} />
         </Button>
         <Button onClick={atender} variant="outline" size="sm">
@@ -297,7 +297,7 @@ export function ConversacionInstagram({ externalId, nombre, canal = 'instagram',
             </span>
           </p>
         ) : sugerencia && sugerencia.texto ? (
-          <p className="flex items-center gap-1.5 text-[11px] font-medium text-pink-600">
+          <p className={`flex items-center gap-1.5 text-[11px] font-medium ${tema.accent}`}>
             <Sparkles className="h-3.5 w-3.5 flex-shrink-0" />
             Borrador sugerido por IA — revísalo antes de enviar.
           </p>
