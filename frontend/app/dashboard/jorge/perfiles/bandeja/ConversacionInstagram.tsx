@@ -89,6 +89,7 @@ export function ConversacionInstagram({ externalId, nombre, canal = 'instagram',
   const [biblioteca, setBiblioteca] = useState(false);
   const finRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const cargar = useCallback(
     // conSugerencia: pide el borrador del agente IA (H-019). Solo en la carga
@@ -131,6 +132,15 @@ export function ConversacionInstagram({ externalId, nombre, canal = 'instagram',
   useEffect(() => {
     finRef.current?.scrollIntoView({ behavior: 'auto' });
   }, [mensajes]);
+
+  // Auto-alto del cajón: crece con el contenido (hasta un tope) para que el
+  // borrador de IA, que suele ser largo, se vea completo sin scrollear.
+  useEffect(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = `${Math.min(el.scrollHeight, 220)}px`;
+  }, [input]);
 
   const atender = async () => {
     try {
@@ -335,6 +345,7 @@ export function ConversacionInstagram({ externalId, nombre, canal = 'instagram',
             <Images className="h-4 w-4" />
           </button>
           <textarea
+            ref={textareaRef}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => {
@@ -343,9 +354,9 @@ export function ConversacionInstagram({ externalId, nombre, canal = 'instagram',
                 enviar();
               }
             }}
-            rows={1}
+            rows={2}
             placeholder={`Responder por ${tema.nombre}…`}
-            className={`max-h-32 min-h-[38px] w-full resize-none rounded-md border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-1 ${tema.focus}`}
+            className={`max-h-[220px] min-h-[58px] w-full resize-y overflow-y-auto rounded-md border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-1 ${tema.focus}`}
           />
           <Button
             type="submit"
