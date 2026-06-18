@@ -8,8 +8,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"mime/multipart"
 	"net/http"
+	"net/textproto"
 	"net/url"
+	"strings"
 	"time"
 )
 
@@ -58,6 +61,105 @@ func (c *Client) SendMessage(recipientIGSID, text string) (*SendResult, error) {
 	b, _ := io.ReadAll(resp.Body)
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("instagram send status %d: %s", resp.StatusCode, b)
+	}
+	var out SendResult
+	_ = json.Unmarshal(b, &out)
+	return &out, nil
+}
+
+// AttachmentTypeForMime mapea un MIME al tipo de adjunto de la API (image | video | audio | file).
+func AttachmentTypeForMime(mime string) string {
+	switch {
+	case strings.HasPrefix(mime, "image/"):
+		return "image"
+	case strings.HasPrefix(mime, "video/"):
+		return "video"
+	case strings.HasPrefix(mime, "audio/"):
+		return "audio"
+	default:
+		return "file"
+	}
+}
+
+// uploadAttachment sube los bytes a la Attachment Upload API y devuelve el
+// attachment_id (Instagram no acepta bytes en el envío; hay que subir primero).
+func (c *Client) uploadAttachment(attType, mime, filename string, data []byte) (string, error) {
+	var buf bytes.Buffer
+	mw := multipart.NewWriter(&buf)
+	_ = mw.WriteField("message", fmt.Sprintf(`{"attachment":{"type":"%s","payload":{"is_reusable":true}}}`, attType))
+	h := make(textproto.MIMEHeader)
+	h.Set("Content-Disposition", fmt.Sprintf(`form-data; name="filedata"; filename="%s"`, filename))
+	if mime != "" {
+		h.Set("Content-Type", mime)
+	}
+	fw, err := mw.CreatePart(h)
+	if err != nil {
+		return "", err
+	}
+	if _, err := fw.Write(data); err != nil {
+		return "", err
+	}
+	if err := mw.Close(); err != nil {
+		return "", err
+	}
+	u := fmt.Sprintf("%s/%s/message_attachments", graphBase, url.PathEscape(c.BusinessID))
+	req, err := http.NewRequest(http.MethodPost, u, &buf)
+	if err != nil {
+		return "", err
+	}
+	req.Header.Set("Content-Type", mw.FormDataContentType())
+	req.Header.Set("Authorization", "Bearer "+c.Token)
+	resp, err := c.HTTPClient.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("error subiendo adjunto IG: %w", err)
+	}
+	defer resp.Body.Close()
+	b, _ := io.ReadAll(resp.Body)
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("instagram upload status %d: %s", resp.StatusCode, b)
+	}
+	var out struct {
+		AttachmentID string `json:"attachment_id"`
+	}
+	if err := json.Unmarshal(b, &out); err != nil || out.AttachmentID == "" {
+		return "", fmt.Errorf("instagram upload sin attachment_id: %s", b)
+	}
+	return out.AttachmentID, nil
+}
+
+// SendMedia envía un adjunto a un IGSID: sube los bytes (attachment_id) y luego
+// manda el mensaje con ese id. Solo dentro de la ventana de 24h.
+func (c *Client) SendMedia(recipientIGSID, mime, filename string, data []byte) (*SendResult, error) {
+	attType := AttachmentTypeForMime(mime)
+	attID, err := c.uploadAttachment(attType, mime, filename, data)
+	if err != nil {
+		return nil, err
+	}
+	payload := map[string]interface{}{
+		"recipient": map[string]string{"id": recipientIGSID},
+		"message": map[string]interface{}{
+			"attachment": map[string]interface{}{
+				"type":    attType,
+				"payload": map[string]string{"attachment_id": attID},
+			},
+		},
+	}
+	body, _ := json.Marshal(payload)
+	u := fmt.Sprintf("%s/%s/messages", graphBase, url.PathEscape(c.BusinessID))
+	req, err := http.NewRequest(http.MethodPost, u, bytes.NewReader(body))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+c.Token)
+	resp, err := c.HTTPClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("error enviando adjunto de Instagram: %w", err)
+	}
+	defer resp.Body.Close()
+	b, _ := io.ReadAll(resp.Body)
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("instagram send-media status %d: %s", resp.StatusCode, b)
 	}
 	var out SendResult
 	_ = json.Unmarshal(b, &out)

@@ -208,3 +208,62 @@ func MessengerReply(cfg *config.Config) http.HandlerFunc {
 		})
 	}
 }
+
+// MessengerSendMedia recibe un archivo del frontend (multipart), lo envía al
+// cliente por Messenger y deja que el eco lo persista. Tope 16 MB. Si viene
+// 'caption', se manda como un mensaje de texto aparte antes del adjunto
+// (Messenger no permite texto+adjunto en el mismo mensaje).
+func MessengerSendMedia(cfg *config.Config) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if cfg.MessengerPageAccessToken == "" || cfg.MessengerPageID == "" {
+			respondError(w, http.StatusServiceUnavailable, "Messenger no configurado")
+			return
+		}
+		r.Body = http.MaxBytesReader(w, r.Body, maxMediaBytes+(1<<20))
+		if err := r.ParseMultipartForm(maxMediaBytes + (1 << 20)); err != nil {
+			respondError(w, http.StatusRequestEntityTooLarge, "archivo demasiado grande (máx 16 MB)")
+			return
+		}
+		to := strings.TrimSpace(r.FormValue("to"))
+		caption := strings.TrimSpace(r.FormValue("caption"))
+		if to == "" {
+			respondError(w, http.StatusBadRequest, "falta 'to'")
+			return
+		}
+		file, hdr, err := r.FormFile("file")
+		if err != nil {
+			respondError(w, http.StatusBadRequest, "falta el archivo 'file'")
+			return
+		}
+		defer file.Close()
+		data, err := io.ReadAll(file)
+		if err != nil {
+			respondError(w, http.StatusBadRequest, "no se pudo leer el archivo")
+			return
+		}
+		if int64(len(data)) > maxMediaBytes {
+			respondError(w, http.StatusRequestEntityTooLarge, "archivo demasiado grande (máx 16 MB)")
+			return
+		}
+		mime := hdr.Header.Get("Content-Type")
+		if mime == "" {
+			mime = "application/octet-stream"
+		}
+		mc := messenger.NewClient(cfg.MessengerPageAccessToken, cfg.MessengerPageID)
+		if caption != "" {
+			if _, err := mc.SendMessage(to, caption); err != nil {
+				respondError(w, http.StatusBadGateway, err.Error())
+				return
+			}
+		}
+		res, err := mc.SendMedia(to, mime, hdr.Filename, data)
+		if err != nil {
+			respondError(w, http.StatusBadGateway, err.Error())
+			return
+		}
+		respondJSON(w, http.StatusOK, map[string]interface{}{
+			"success":    true,
+			"message_id": res.MessageID,
+		})
+	}
+}

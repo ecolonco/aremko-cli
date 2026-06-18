@@ -535,6 +535,30 @@ export const responderMessenger = async (
   return json as ResponderWhatsAppResult;
 };
 
+/** Envía un adjunto por Instagram o Messenger (ventana 24h). El texto va como
+ *  mensaje aparte. Se persiste vía el eco. canal: 'instagram' | 'messenger'. */
+export const enviarAdjuntoMeta = async (
+  canal: 'instagram' | 'messenger',
+  externalId: string,
+  file: File,
+  caption?: string
+): Promise<ResponderWhatsAppResult> => {
+  const fd = new FormData();
+  fd.append('to', externalId);
+  if (caption) fd.append('caption', caption);
+  fd.append('file', file);
+  const res = await fetch(`${apiBase()}/api/v1/${canal}/send-media`, {
+    method: 'POST',
+    body: fd,
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok || json.success === false) {
+    if (res.status === 413) throw new Error('El archivo supera el límite de 16 MB');
+    throw new Error(json.error || `HTTP ${res.status}`);
+  }
+  return json as ResponderWhatsAppResult;
+};
+
 export interface EditarNombreResult {
   ok: boolean;
   cliente_id?: number;

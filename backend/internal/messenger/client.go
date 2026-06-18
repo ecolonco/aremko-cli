@@ -9,7 +9,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"mime/multipart"
 	"net/http"
+	"net/textproto"
 	"net/url"
 	"strings"
 	"time"
@@ -61,6 +63,66 @@ func (c *Client) SendMessage(recipientPSID, text string) (*SendResult, error) {
 	b, _ := io.ReadAll(resp.Body)
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("messenger send status %d: %s", resp.StatusCode, b)
+	}
+	var out SendResult
+	_ = json.Unmarshal(b, &out)
+	return &out, nil
+}
+
+// AttachmentTypeForMime mapea un MIME al tipo de adjunto de la Send API
+// (image | video | audio | file).
+func AttachmentTypeForMime(mime string) string {
+	switch {
+	case strings.HasPrefix(mime, "image/"):
+		return "image"
+	case strings.HasPrefix(mime, "video/"):
+		return "video"
+	case strings.HasPrefix(mime, "audio/"):
+		return "audio"
+	default:
+		return "file"
+	}
+}
+
+// SendMedia envía un adjunto (foto/video/audio/documento) a un PSID por Messenger
+// en una sola llamada (multipart con filedata). Solo dentro de la ventana de 24h.
+func (c *Client) SendMedia(recipientPSID, mime, filename string, data []byte) (*SendResult, error) {
+	attType := AttachmentTypeForMime(mime)
+	var buf bytes.Buffer
+	mw := multipart.NewWriter(&buf)
+	_ = mw.WriteField("messaging_type", "RESPONSE")
+	_ = mw.WriteField("recipient", fmt.Sprintf(`{"id":"%s"}`, recipientPSID))
+	_ = mw.WriteField("message", fmt.Sprintf(`{"attachment":{"type":"%s","payload":{"is_reusable":false}}}`, attType))
+	h := make(textproto.MIMEHeader)
+	h.Set("Content-Disposition", fmt.Sprintf(`form-data; name="filedata"; filename="%s"`, filename))
+	if mime != "" {
+		h.Set("Content-Type", mime)
+	}
+	fw, err := mw.CreatePart(h)
+	if err != nil {
+		return nil, err
+	}
+	if _, err := fw.Write(data); err != nil {
+		return nil, err
+	}
+	if err := mw.Close(); err != nil {
+		return nil, err
+	}
+	u := fmt.Sprintf("%s/%s/messages?access_token=%s",
+		graphBase, url.PathEscape(c.PageID), url.QueryEscape(c.PageToken))
+	req, err := http.NewRequest(http.MethodPost, u, &buf)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", mw.FormDataContentType())
+	resp, err := c.HTTPClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("error enviando adjunto de Messenger: %w", err)
+	}
+	defer resp.Body.Close()
+	b, _ := io.ReadAll(resp.Body)
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("messenger send-media status %d: %s", resp.StatusCode, b)
 	}
 	var out SendResult
 	_ = json.Unmarshal(b, &out)

@@ -1,9 +1,9 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ArrowLeft, Camera as Instagram, MessageCircle, Loader2, RefreshCw, Check, AlertTriangle, Send, Sparkles, FileText, Mic } from 'lucide-react';
+import { ArrowLeft, Camera as Instagram, MessageCircle, Loader2, RefreshCw, Check, AlertTriangle, Send, Sparkles, FileText, Mic, Paperclip } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { fetchConversacionInbox, marcarAtendidoInbox, responderInstagram, responderMessenger } from './api';
+import { fetchConversacionInbox, marcarAtendidoInbox, responderInstagram, responderMessenger, enviarAdjuntoMeta } from './api';
 import type { CanalMensaje, MensajeInbox, SugerenciaAgente } from './types';
 
 interface Props {
@@ -86,6 +86,7 @@ export function ConversacionInstagram({ externalId, nombre, canal = 'instagram',
   const [sendError, setSendError] = useState<string | null>(null);
   const [sugerencia, setSugerencia] = useState<SugerenciaAgente | null>(null);
   const finRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const cargar = useCallback(
     // conSugerencia: pide el borrador del agente IA (H-019). Solo en la carga
@@ -153,6 +154,24 @@ export function ConversacionInstagram({ externalId, nombre, canal = 'instagram',
       setSendError(e instanceof Error ? e.message : 'No se pudo enviar el mensaje');
     } finally {
       setEnviando(false);
+    }
+  };
+
+  const adjuntar = async (file: File | undefined) => {
+    if (!file || enviando) return;
+    setEnviando(true);
+    setSendError(null);
+    try {
+      // El texto escrito viaja como mensaje aparte (Meta no permite texto+adjunto juntos).
+      await enviarAdjuntoMeta(canal as 'instagram' | 'messenger', externalId, file, input.trim() || undefined);
+      setInput('');
+      setTimeout(() => cargarRef.current(true), 1500);
+      onReplySent?.();
+    } catch (e: unknown) {
+      setSendError(e instanceof Error ? e.message : 'No se pudo enviar el adjunto');
+    } finally {
+      setEnviando(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
 
@@ -264,6 +283,22 @@ export function ConversacionInstagram({ externalId, nombre, canal = 'instagram',
           }}
           className="flex items-end gap-2"
         >
+          <input
+            ref={fileInputRef}
+            type="file"
+            className="hidden"
+            accept="image/*,video/*,audio/*,application/pdf"
+            onChange={(e) => adjuntar(e.target.files?.[0])}
+          />
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={enviando}
+            title="Adjuntar foto, PDF, audio o video (máx 16 MB)"
+            className="flex h-[38px] w-[38px] flex-shrink-0 items-center justify-center rounded-md border border-slate-300 text-slate-500 hover:bg-slate-100 disabled:opacity-50"
+          >
+            <Paperclip className="h-4 w-4" />
+          </button>
           <textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
@@ -287,7 +322,7 @@ export function ConversacionInstagram({ externalId, nombre, canal = 'instagram',
         </form>
         <p className="text-[10px] text-slate-400">
           Solo se puede responder dentro de las 24 h del último mensaje del cliente · Enter envía ·
-          Shift+Enter salto de línea
+          Shift+Enter salto de línea · 📎 adjunta foto/PDF/audio/video
         </p>
       </div>
 
