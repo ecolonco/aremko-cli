@@ -137,11 +137,11 @@ func AnalyzeProfiles(cfg *config.Config) http.HandlerFunc {
 				continue
 			}
 			topCohorts = append(topCohorts, map[string]interface{}{
-				"estilo":      cell.Estilo,
-				"contexto":    cell.Contexto,
-				"count":       cell.Count,
-				"stats":       cohortResp.Stats,
-				"top_10_ids":  extractClienteIDs(cohortResp.Clientes),
+				"estilo":     cell.Estilo,
+				"contexto":   cell.Contexto,
+				"count":      cell.Count,
+				"stats":      cohortResp.Stats,
+				"top_10_ids": extractClienteIDs(cohortResp.Clientes),
 			})
 			if len(topCohorts) >= 5 {
 				break

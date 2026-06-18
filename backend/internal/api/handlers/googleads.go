@@ -127,13 +127,13 @@ func GetGoogleAdsRefugio(cfg *config.Config) http.HandlerFunc {
 		respondJSON(w, http.StatusOK, map[string]interface{}{
 			"success": true,
 			"data": map[string]interface{}{
-				"campaign_id":   cfg.GoogleAdsRefugioCampaignID,
-				"campaign_name": campaignNameGA(summary),
-				"period":        map[string]string{"start": dateStart, "end": dateStop},
-				"summary":       summaryOut,
-				"search_terms":  searchTerms,
+				"campaign_id":    cfg.GoogleAdsRefugioCampaignID,
+				"campaign_name":  campaignNameGA(summary),
+				"period":         map[string]string{"start": dateStart, "end": dateStop},
+				"summary":        summaryOut,
+				"search_terms":   searchTerms,
 				"quality_scores": qsKeywords,
-				"thresholds":    googleAdsRefugioThresholds(),
+				"thresholds":     googleAdsRefugioThresholds(),
 			},
 		})
 	}
@@ -219,18 +219,18 @@ func GetGoogleAdsQualityScores(cfg *config.Config) http.HandlerFunc {
 
 func googleAdsRefugioSummary(s *googleads.CampaignInsights, budgetCLP float64) map[string]interface{} {
 	out := map[string]interface{}{
-		"spend":                  0.0,
-		"impressions":            int64(0),
-		"clicks":                 int64(0),
-		"conversions":            0.0,
-		"conversions_value":      0.0,
-		"ctr":                    0.0,
-		"avg_cpc":                0.0,
-		"cpl":                    0.0,
-		"conversion_rate":        0.0,
+		"spend":                   0.0,
+		"impressions":             int64(0),
+		"clicks":                  int64(0),
+		"conversions":             0.0,
+		"conversions_value":       0.0,
+		"ctr":                     0.0,
+		"avg_cpc":                 0.0,
+		"cpl":                     0.0,
+		"conversion_rate":         0.0,
 		"search_impression_share": 0.0,
-		"budget_total_clp":       budgetCLP,
-		"budget_pct_used":        0.0,
+		"budget_total_clp":        budgetCLP,
+		"budget_pct_used":         0.0,
 	}
 	if s == nil {
 		return out

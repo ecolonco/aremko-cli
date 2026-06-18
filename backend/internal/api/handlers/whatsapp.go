@@ -459,26 +459,11 @@ func WhatsAppSendMedia(cfg *config.Config) http.HandlerFunc {
 			respondError(w, http.StatusBadRequest, "falta 'to'")
 			return
 		}
-		file, hdr, err := r.FormFile("file")
+		data, mime, filename, err := mediaFromRequest(r)
 		if err != nil {
-			respondError(w, http.StatusBadRequest, "falta el archivo 'file'")
+			respondError(w, http.StatusBadRequest, err.Error())
 			return
 		}
-		defer file.Close()
-		data, err := io.ReadAll(file)
-		if err != nil {
-			respondError(w, http.StatusBadRequest, "no se pudo leer el archivo")
-			return
-		}
-		if int64(len(data)) > maxMediaBytes {
-			respondError(w, http.StatusRequestEntityTooLarge, "archivo demasiado grande (máx 16 MB)")
-			return
-		}
-		mime := hdr.Header.Get("Content-Type")
-		if mime == "" {
-			mime = "application/octet-stream"
-		}
-		filename := hdr.Filename
 		mediaType := whatsapp.MediaTypeForSend(mime)
 
 		wc := whatsapp.NewClient(cfg.WhatsAppAccessToken, cfg.WhatsAppPhoneNumberID)

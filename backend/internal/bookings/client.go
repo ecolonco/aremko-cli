@@ -640,6 +640,13 @@ func (c *Client) GetInboxConversationsRaw(apiKey string, soloPendientes bool, li
 	return c.getRaw(u, apiKey, "inbox conversations")
 }
 
+// GetMediaLibraryRaw devuelve la biblioteca de medios (fotos/videos del catálogo
+// publicado, agrupados por tipo) para la galería de la bandeja (H-025). JSON crudo.
+func (c *Client) GetMediaLibraryRaw(apiKey string) ([]byte, error) {
+	u := c.BaseURL + "/api/inbox/media-library"
+	return c.getRaw(u, apiKey, "media library")
+}
+
 // GetInboxConversationRaw devuelve el hilo de una conversación identificada por
 // (canal, external_id). JSON crudo de Django. conSugerencia pide el borrador del
 // agente IA (opt-in, H-019; lazy del lado Django).

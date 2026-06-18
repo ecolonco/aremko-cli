@@ -44,6 +44,25 @@ func InboxConversations(cfg *config.Config) http.HandlerFunc {
 	}
 }
 
+// InboxMediaLibrary proxea la biblioteca de medios del catálogo (H-025): fotos
+// y videos de tinas/cabañas/masajes publicados, para la galería de adjuntos.
+func InboxMediaLibrary(cfg *config.Config) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if cfg.LunaAPIKey == "" || cfg.BookingSystemURL == "" {
+			respondError(w, http.StatusServiceUnavailable, "Django no configurado")
+			return
+		}
+		raw, err := bookings.NewClient(cfg.BookingSystemURL).GetMediaLibraryRaw(cfg.LunaAPIKey)
+		if err != nil {
+			respondError(w, http.StatusBadGateway, err.Error())
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write(raw)
+	}
+}
+
 // InboxConversation proxea el hilo de una conversación (canal, external_id).
 func InboxConversation(cfg *config.Config) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {

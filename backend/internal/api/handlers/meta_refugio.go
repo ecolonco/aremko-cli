@@ -66,17 +66,17 @@ func GetRefugioCampaign(cfg *config.Config) http.HandlerFunc {
 
 		// Resumen ejecutivo
 		summary := map[string]interface{}{
-			"spend":             0.0,
-			"impressions":       int64(0),
-			"clicks":            int64(0),
-			"reach":             int64(0),
-			"frequency":         0.0,
-			"ctr":               0.0,
-			"cpc":               0.0,
-			"leads":             int64(0),
-			"cpl":               0.0,
-			"budget_total_clp":  cfg.MetaRefugioBudgetCLP,
-			"budget_pct_used":   0.0,
+			"spend":            0.0,
+			"impressions":      int64(0),
+			"clicks":           int64(0),
+			"reach":            int64(0),
+			"frequency":        0.0,
+			"ctr":              0.0,
+			"cpc":              0.0,
+			"leads":            int64(0),
+			"cpl":              0.0,
+			"budget_total_clp": cfg.MetaRefugioBudgetCLP,
+			"budget_pct_used":  0.0,
 		}
 		if campaignInsight != nil {
 			leads := campaignInsight.Leads()
@@ -127,17 +127,17 @@ func GetRefugioCampaign(cfg *config.Config) http.HandlerFunc {
 		respondJSON(w, http.StatusOK, map[string]interface{}{
 			"success": true,
 			"data": map[string]interface{}{
-				"campaign_id":    cfg.MetaRefugioCampaignID,
-				"campaign_name":  campaignName(campaignInsight),
-				"account_id":     accountID,
-				"account_label":  accountLabel,
-				"period":         map[string]string{"start": dateStart, "end": dateStop},
-				"summary":        summary,
-				"adsets":         adsetRows,
-				"variants":       variants,
-				"platforms":      platformRows(platforms),
-				"positions":      positionRows(positions),
-				"thresholds":     refugioThresholds(),
+				"campaign_id":   cfg.MetaRefugioCampaignID,
+				"campaign_name": campaignName(campaignInsight),
+				"account_id":    accountID,
+				"account_label": accountLabel,
+				"period":        map[string]string{"start": dateStart, "end": dateStop},
+				"summary":       summary,
+				"adsets":        adsetRows,
+				"variants":      variants,
+				"platforms":     platformRows(platforms),
+				"positions":     positionRows(positions),
+				"thresholds":    refugioThresholds(),
 			},
 		})
 	}

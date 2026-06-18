@@ -198,6 +198,7 @@ func (s *Server) setupRoutes() {
 		// Proxy a Django /api/inbox/*; conversación identificada por (canal, external_id).
 		r.Get("/inbox/conversations", handlers.InboxConversations(s.config))
 		r.Get("/inbox/conversation", handlers.InboxConversation(s.config))
+		r.Get("/inbox/media-library", handlers.InboxMediaLibrary(s.config))
 		r.Post("/inbox/conversations/{canal}/{externalId}/marcar-atendido", handlers.InboxMarcarAtendido(s.config))
 
 		// Módulo de Métricas / Tablero de Evolución (H-021/H-022) — proxy a Django.

@@ -277,8 +277,8 @@ func GetGA4Conversions(cfg *config.Config) http.HandlerFunc {
 		respondJSON(w, http.StatusOK, map[string]interface{}{
 			"success": true,
 			"data": map[string]interface{}{
-				"events":      byEvent,
-				"by_source":   bySource,
+				"events":            byEvent,
+				"by_source":         bySource,
 				"total_conversions": totalConv,
 				"total_users":       totalUsers,
 				"period": map[string]string{

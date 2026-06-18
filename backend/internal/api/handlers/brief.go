@@ -61,25 +61,25 @@ func GetWeeklyBrief(cfg *config.Config) http.HandlerFunc {
 					// Obtener fuentes de tráfico
 					trafficSources, _ := ga4Client.GetTrafficSources(ctx, dateStart, dateStop)
 
-				// Obtener tendencias semanales (últimas 4 semanas)
-				weeklyTrends, _ := ga4Client.GetWeeklyTrends(ctx)
-				topPagesWeekly, _ := ga4Client.GetTopPagesWeekly(ctx, 50)
-				trafficSourcesWeekly, _ := ga4Client.GetTrafficSourcesWeekly(ctx)
+					// Obtener tendencias semanales (últimas 4 semanas)
+					weeklyTrends, _ := ga4Client.GetWeeklyTrends(ctx)
+					topPagesWeekly, _ := ga4Client.GetTopPagesWeekly(ctx, 50)
+					trafficSourcesWeekly, _ := ga4Client.GetTrafficSourcesWeekly(ctx)
 
 					brief["web_analytics"] = map[string]interface{}{
-						"active_users":         ga4Stats.ActiveUsers,
-						"total_users":          ga4Stats.TotalUsers,
-						"sessions":             ga4Stats.Sessions,
-						"page_views":           ga4Stats.PageViews,
-						"bounce_rate":          ga4Stats.BounceRate,
-						"avg_session_duration": ga4Stats.AvgSessionDuration,
-						"new_users":            ga4Stats.NewUsers,
-						"event_count":          ga4Stats.EventCount,
-						"top_pages":            topPages,
-						"traffic_sources":      trafficSources,
-						"weekly_trends":        weeklyTrends,
-						"top_pages_weekly":        topPagesWeekly,
-						"traffic_sources_weekly":  trafficSourcesWeekly,
+						"active_users":           ga4Stats.ActiveUsers,
+						"total_users":            ga4Stats.TotalUsers,
+						"sessions":               ga4Stats.Sessions,
+						"page_views":             ga4Stats.PageViews,
+						"bounce_rate":            ga4Stats.BounceRate,
+						"avg_session_duration":   ga4Stats.AvgSessionDuration,
+						"new_users":              ga4Stats.NewUsers,
+						"event_count":            ga4Stats.EventCount,
+						"top_pages":              topPages,
+						"traffic_sources":        trafficSources,
+						"weekly_trends":          weeklyTrends,
+						"top_pages_weekly":       topPagesWeekly,
+						"traffic_sources_weekly": trafficSourcesWeekly,
 					}
 				}
 			}
@@ -162,56 +162,56 @@ func GetWeeklyBrief(cfg *config.Config) http.HandlerFunc {
 		}
 
 		// Reviews/Opinions section
-	// Instagram Organic section
-	if cfg.EnableMetaAds && cfg.MetaAccessToken != "" {
-		igClient := social.NewInstagramClient(cfg.MetaAccessToken)
-		ctx := context.Background()
+		// Instagram Organic section
+		if cfg.EnableMetaAds && cfg.MetaAccessToken != "" {
+			igClient := social.NewInstagramClient(cfg.MetaAccessToken)
+			ctx := context.Background()
 
-		accountInfo, err := igClient.GetAccountInfo(ctx)
-		if err == nil {
-			accountID := accountInfo["account_id"].(string)
+			accountInfo, err := igClient.GetAccountInfo(ctx)
+			if err == nil {
+				accountID := accountInfo["account_id"].(string)
 
-			// Obtener insights semanales
-			weeklyInsights, _ := igClient.GetWeeklyInsights(ctx, accountID)
+				// Obtener insights semanales
+				weeklyInsights, _ := igClient.GetWeeklyInsights(ctx, accountID)
 
-			// Obtener top posts
-			topPosts, _ := igClient.GetTopPosts(ctx, accountID, 10)
+				// Obtener top posts
+				topPosts, _ := igClient.GetTopPosts(ctx, accountID, 10)
 
-			brief["instagram_organic"] = map[string]interface{}{
-				"account_info":    accountInfo,
-				"weekly_insights": weeklyInsights,
-				"top_posts":       topPosts,
-				"status":          "real_data",
-			}
-		} else {
-			brief["instagram_organic"] = map[string]interface{}{
-				"status": "error",
-				"error":  err.Error(),
-			}
-		}
-	}
-
-	// Facebook Organic section
-	if cfg.EnableMetaAds && cfg.MetaAccessToken != "" {
-		fbClient := social.NewFacebookClient(cfg.MetaAccessToken)
-		fbInsights, err := fbClient.GetPageInsights(context.Background(), 10)
-		if err == nil {
-			brief["facebook_organic"] = map[string]interface{}{
-				"page_info": map[string]interface{}{
-					"name":            fbInsights.Name,
-					"fan_count":       fbInsights.FanCount,
-					"followers_count": fbInsights.FollowersCount,
-				},
-				"top_posts": fbInsights.TopPosts,
-				"status":    "real_data",
-			}
-		} else {
-			brief["facebook_organic"] = map[string]interface{}{
-				"status": "error",
-				"error":  err.Error(),
+				brief["instagram_organic"] = map[string]interface{}{
+					"account_info":    accountInfo,
+					"weekly_insights": weeklyInsights,
+					"top_posts":       topPosts,
+					"status":          "real_data",
+				}
+			} else {
+				brief["instagram_organic"] = map[string]interface{}{
+					"status": "error",
+					"error":  err.Error(),
+				}
 			}
 		}
-	}
+
+		// Facebook Organic section
+		if cfg.EnableMetaAds && cfg.MetaAccessToken != "" {
+			fbClient := social.NewFacebookClient(cfg.MetaAccessToken)
+			fbInsights, err := fbClient.GetPageInsights(context.Background(), 10)
+			if err == nil {
+				brief["facebook_organic"] = map[string]interface{}{
+					"page_info": map[string]interface{}{
+						"name":            fbInsights.Name,
+						"fan_count":       fbInsights.FanCount,
+						"followers_count": fbInsights.FollowersCount,
+					},
+					"top_posts": fbInsights.TopPosts,
+					"status":    "real_data",
+				}
+			} else {
+				brief["facebook_organic"] = map[string]interface{}{
+					"status": "error",
+					"error":  err.Error(),
+				}
+			}
+		}
 
 		if cfg.EnableBookings {
 			reviewsClient := reviews.NewClient(cfg.BookingSystemURL)
@@ -232,37 +232,36 @@ func GetWeeklyBrief(cfg *config.Config) http.HandlerFunc {
 			}
 		}
 
-
-	// Competitors Analysis section
-	if cfg.EnableBookings {
-		competitorsClient := competitors.NewClient(cfg.BookingSystemURL)
-		competitorsSummary, err := competitorsClient.GetCompetitorsSummary()
-		if err == nil {
-			brief["competitors"] = map[string]interface{}{
-				"competitors":              competitorsSummary.Competitors,
-				"aremko_precio_referencia": competitorsSummary.AremkoPrecio,
-				"generated_at":             competitorsSummary.GeneratedAt,
-				"status":                   "real_data",
-			}
-		} else {
-			brief["competitors"] = map[string]interface{}{
-				"status": "error",
-				"error":  err.Error(),
+		// Competitors Analysis section
+		if cfg.EnableBookings {
+			competitorsClient := competitors.NewClient(cfg.BookingSystemURL)
+			competitorsSummary, err := competitorsClient.GetCompetitorsSummary()
+			if err == nil {
+				brief["competitors"] = map[string]interface{}{
+					"competitors":              competitorsSummary.Competitors,
+					"aremko_precio_referencia": competitorsSummary.AremkoPrecio,
+					"generated_at":             competitorsSummary.GeneratedAt,
+					"status":                   "real_data",
+				}
+			} else {
+				brief["competitors"] = map[string]interface{}{
+					"status": "error",
+					"error":  err.Error(),
+				}
 			}
 		}
-	}
 
-	// LinkedIn section (placeholder)
-	if cfg.EnableLinkedIn {
-		brief["linkedin"] = map[string]interface{}{
-			"status": "coming_soon",
+		// LinkedIn section (placeholder)
+		if cfg.EnableLinkedIn {
+			brief["linkedin"] = map[string]interface{}{
+				"status": "coming_soon",
+			}
 		}
-	}
 
-	respondJSON(w, http.StatusOK, map[string]interface{}{
-		"success": true,
-		"data":    brief,
-	})
+		respondJSON(w, http.StatusOK, map[string]interface{}{
+			"success": true,
+			"data":    brief,
+		})
 	}
 }
 
@@ -386,74 +385,73 @@ func GetStatsOverview(cfg *config.Config) http.HandlerFunc {
 			}
 		}
 
+		// Reviews/Opinions section
+		// Instagram Organic section
+		if cfg.EnableMetaAds && cfg.MetaAccessToken != "" {
+			igClient := social.NewInstagramClient(cfg.MetaAccessToken)
+			ctx := context.Background()
 
-	// Reviews/Opinions section
-	// Instagram Organic section
-	if cfg.EnableMetaAds && cfg.MetaAccessToken != "" {
-		igClient := social.NewInstagramClient(cfg.MetaAccessToken)
-		ctx := context.Background()
+			accountInfo, err := igClient.GetAccountInfo(ctx)
+			if err == nil {
+				accountID := accountInfo["account_id"].(string)
 
-		accountInfo, err := igClient.GetAccountInfo(ctx)
-		if err == nil {
-			accountID := accountInfo["account_id"].(string)
+				// Obtener insights semanales
+				weeklyInsights, _ := igClient.GetWeeklyInsights(ctx, accountID)
 
-			// Obtener insights semanales
-			weeklyInsights, _ := igClient.GetWeeklyInsights(ctx, accountID)
+				// Obtener top posts
+				topPosts, _ := igClient.GetTopPosts(ctx, accountID, 10)
 
-			// Obtener top posts
-			topPosts, _ := igClient.GetTopPosts(ctx, accountID, 10)
-
-			overview["instagram_organic"] = map[string]interface{}{
-				"account_info":    accountInfo,
-				"weekly_insights": weeklyInsights,
-				"top_posts":       topPosts,
-				"status":          "real_data",
-			}
-		} else {
-			overview["instagram_organic"] = map[string]interface{}{
-				"status": "error",
-				"error":  err.Error(),
-			}
-		}
-	}
-
-	if cfg.EnableBookings {
-		reviewsClient := reviews.NewClient(cfg.BookingSystemURL)
-		reviewsSummary, err := reviewsClient.GetReviewsSummary()
-		if err == nil {
-			overview["reviews"] = map[string]interface{}{
-				"surveys":   reviewsSummary.Surveys,
-				"snapshots": reviewsSummary.Snapshots,
-				"recent":    reviewsSummary.Recent,
-				"period":    reviewsSummary.Period,
-				"status":    "real_data",
-			}
-		} else {
-			overview["reviews"] = map[string]interface{}{
-				"status": "error",
-				"error":  err.Error(),
+				overview["instagram_organic"] = map[string]interface{}{
+					"account_info":    accountInfo,
+					"weekly_insights": weeklyInsights,
+					"top_posts":       topPosts,
+					"status":          "real_data",
+				}
+			} else {
+				overview["instagram_organic"] = map[string]interface{}{
+					"status": "error",
+					"error":  err.Error(),
+				}
 			}
 		}
-	}
 
-	// Competitors Analysis section
-	if cfg.EnableBookings {
-		competitorsClient := competitors.NewClient(cfg.BookingSystemURL)
-		competitorsSummary, err := competitorsClient.GetCompetitorsSummary()
-		if err == nil {
-			overview["competitors"] = map[string]interface{}{
-				"competitors":              competitorsSummary.Competitors,
-				"aremko_precio_referencia": competitorsSummary.AremkoPrecio,
-				"generated_at":             competitorsSummary.GeneratedAt,
-				"status":                   "real_data",
-			}
-		} else {
-			overview["competitors"] = map[string]interface{}{
-				"status": "error",
-				"error":  err.Error(),
+		if cfg.EnableBookings {
+			reviewsClient := reviews.NewClient(cfg.BookingSystemURL)
+			reviewsSummary, err := reviewsClient.GetReviewsSummary()
+			if err == nil {
+				overview["reviews"] = map[string]interface{}{
+					"surveys":   reviewsSummary.Surveys,
+					"snapshots": reviewsSummary.Snapshots,
+					"recent":    reviewsSummary.Recent,
+					"period":    reviewsSummary.Period,
+					"status":    "real_data",
+				}
+			} else {
+				overview["reviews"] = map[string]interface{}{
+					"status": "error",
+					"error":  err.Error(),
+				}
 			}
 		}
-	}
+
+		// Competitors Analysis section
+		if cfg.EnableBookings {
+			competitorsClient := competitors.NewClient(cfg.BookingSystemURL)
+			competitorsSummary, err := competitorsClient.GetCompetitorsSummary()
+			if err == nil {
+				overview["competitors"] = map[string]interface{}{
+					"competitors":              competitorsSummary.Competitors,
+					"aremko_precio_referencia": competitorsSummary.AremkoPrecio,
+					"generated_at":             competitorsSummary.GeneratedAt,
+					"status":                   "real_data",
+				}
+			} else {
+				overview["competitors"] = map[string]interface{}{
+					"status": "error",
+					"error":  err.Error(),
+				}
+			}
+		}
 
 		respondJSON(w, http.StatusOK, map[string]interface{}{
 			"success": true,
@@ -987,19 +985,19 @@ func GetWeeklyBriefWithAI(cfg *config.Config) http.HandlerFunc {
 					trafficSourcesWeekly, _ := ga4Client.GetTrafficSourcesWeekly(ctx)
 
 					briefData["web_analytics"] = map[string]interface{}{
-						"active_users":         ga4Stats.ActiveUsers,
-						"total_users":          ga4Stats.TotalUsers,
-						"sessions":             ga4Stats.Sessions,
-						"page_views":           ga4Stats.PageViews,
-						"bounce_rate":          ga4Stats.BounceRate,
-						"avg_session_duration": ga4Stats.AvgSessionDuration,
-						"new_users":            ga4Stats.NewUsers,
-						"event_count":          ga4Stats.EventCount,
-						"top_pages":            topPages,
-						"traffic_sources":      trafficSources,
-						"weekly_trends":        weeklyTrends,
-						"top_pages_weekly":        topPagesWeekly,
-						"traffic_sources_weekly":  trafficSourcesWeekly,
+						"active_users":           ga4Stats.ActiveUsers,
+						"total_users":            ga4Stats.TotalUsers,
+						"sessions":               ga4Stats.Sessions,
+						"page_views":             ga4Stats.PageViews,
+						"bounce_rate":            ga4Stats.BounceRate,
+						"avg_session_duration":   ga4Stats.AvgSessionDuration,
+						"new_users":              ga4Stats.NewUsers,
+						"event_count":            ga4Stats.EventCount,
+						"top_pages":              topPages,
+						"traffic_sources":        trafficSources,
+						"weekly_trends":          weeklyTrends,
+						"top_pages_weekly":       topPagesWeekly,
+						"traffic_sources_weekly": trafficSourcesWeekly,
 					}
 				}
 			}
@@ -1046,34 +1044,34 @@ func GetWeeklyBriefWithAI(cfg *config.Config) http.HandlerFunc {
 
 		// Reviews/Opinions section
 		if cfg.EnableBookings {
-	// Instagram Organic section
-	if cfg.EnableMetaAds && cfg.MetaAccessToken != "" {
-		igClient := social.NewInstagramClient(cfg.MetaAccessToken)
-		ctx := context.Background()
+			// Instagram Organic section
+			if cfg.EnableMetaAds && cfg.MetaAccessToken != "" {
+				igClient := social.NewInstagramClient(cfg.MetaAccessToken)
+				ctx := context.Background()
 
-		accountInfo, err := igClient.GetAccountInfo(ctx)
-		if err == nil {
-			accountID := accountInfo["account_id"].(string)
+				accountInfo, err := igClient.GetAccountInfo(ctx)
+				if err == nil {
+					accountID := accountInfo["account_id"].(string)
 
-			// Obtener insights semanales
-			weeklyInsights, _ := igClient.GetWeeklyInsights(ctx, accountID)
+					// Obtener insights semanales
+					weeklyInsights, _ := igClient.GetWeeklyInsights(ctx, accountID)
 
-			// Obtener top posts
-			topPosts, _ := igClient.GetTopPosts(ctx, accountID, 10)
+					// Obtener top posts
+					topPosts, _ := igClient.GetTopPosts(ctx, accountID, 10)
 
-			briefData["instagram_organic"] = map[string]interface{}{
-				"account_info":    accountInfo,
-				"weekly_insights": weeklyInsights,
-				"top_posts":       topPosts,
-				"status":          "real_data",
+					briefData["instagram_organic"] = map[string]interface{}{
+						"account_info":    accountInfo,
+						"weekly_insights": weeklyInsights,
+						"top_posts":       topPosts,
+						"status":          "real_data",
+					}
+				} else {
+					briefData["instagram_organic"] = map[string]interface{}{
+						"status": "error",
+						"error":  err.Error(),
+					}
+				}
 			}
-		} else {
-			briefData["instagram_organic"] = map[string]interface{}{
-				"status": "error",
-				"error":  err.Error(),
-			}
-		}
-	}
 
 			reviewsClient := reviews.NewClient(cfg.BookingSystemURL)
 			reviewsSummary, err := reviewsClient.GetReviewsSummary()
@@ -1093,32 +1091,32 @@ func GetWeeklyBriefWithAI(cfg *config.Config) http.HandlerFunc {
 			}
 		}
 
-	// Competitors Analysis section
-	if cfg.EnableBookings {
-		competitorsClient := competitors.NewClient(cfg.BookingSystemURL)
-		competitorsSummary, err := competitorsClient.GetCompetitorsSummary()
-		if err == nil {
-			briefData["competitors"] = map[string]interface{}{
-				"competitors":              competitorsSummary.Competitors,
-				"aremko_precio_referencia": competitorsSummary.AremkoPrecio,
-				"generated_at":             competitorsSummary.GeneratedAt,
-				"status":                   "real_data",
-			}
-		} else {
-			briefData["competitors"] = map[string]interface{}{
-				"status": "error",
-				"error":  err.Error(),
+		// Competitors Analysis section
+		if cfg.EnableBookings {
+			competitorsClient := competitors.NewClient(cfg.BookingSystemURL)
+			competitorsSummary, err := competitorsClient.GetCompetitorsSummary()
+			if err == nil {
+				briefData["competitors"] = map[string]interface{}{
+					"competitors":              competitorsSummary.Competitors,
+					"aremko_precio_referencia": competitorsSummary.AremkoPrecio,
+					"generated_at":             competitorsSummary.GeneratedAt,
+					"status":                   "real_data",
+				}
+			} else {
+				briefData["competitors"] = map[string]interface{}{
+					"status": "error",
+					"error":  err.Error(),
+				}
 			}
 		}
-	}
 
-	// Generar análisis con IA si está habilitado
-	var aiAnalysis *ai.LLMResult
-	var contentCalendar *ai.LLMResult
+		// Generar análisis con IA si está habilitado
+		var aiAnalysis *ai.LLMResult
+		var contentCalendar *ai.LLMResult
 
-	if cfg.EnableAI && cfg.OpenRouterAPIKey != "" {
-		aiClient := newAIClientWithOperatingContext(cfg)
-		ctx := context.Background()
+		if cfg.EnableAI && cfg.OpenRouterAPIKey != "" {
+			aiClient := newAIClientWithOperatingContext(cfg)
+			ctx := context.Background()
 
 			// Generar análisis del brief
 			fmt.Println("[AI] Generando análisis del brief...")
@@ -1630,13 +1628,13 @@ func AnalyzeSales(cfg *config.Config) http.HandlerFunc {
 			taxClient := taxonomy.NewClient(cfg.BookingSystemURL)
 			if segs, terr := taxClient.GetSegments(); terr == nil && segs != nil {
 				salesData["customer_segments_summary"] = map[string]interface{}{
-					"total_clientes":      segs.TotalClientes,
-					"n_sistema_actual":    segs.NSistemaActual,
-					"n_pre_sistema":       segs.NPreSistema,
-					"top_3_estilos":       topNBuckets(segs.EjeEstilo, 3),
-					"top_3_contextos":     topNBuckets(segs.EjeContexto, 3),
-					"valor_distribucion":  segs.EjeValor,
-					"nota":                "Para drill-down completo de cohortes, ver pestaña Perfiles del dashboard.",
+					"total_clientes":     segs.TotalClientes,
+					"n_sistema_actual":   segs.NSistemaActual,
+					"n_pre_sistema":      segs.NPreSistema,
+					"top_3_estilos":      topNBuckets(segs.EjeEstilo, 3),
+					"top_3_contextos":    topNBuckets(segs.EjeContexto, 3),
+					"valor_distribucion": segs.EjeValor,
+					"nota":               "Para drill-down completo de cohortes, ver pestaña Perfiles del dashboard.",
 				}
 			}
 		}
