@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/aremko/aremko-cli/internal/bookings"
 	"github.com/aremko/aremko-cli/internal/config"
@@ -111,15 +112,11 @@ func handleMessengerEvent(cfg *config.Config, ev instagramMessagingEvent) {
 	}
 	// Resolver el nombre del cliente (PSID) vía Graph API con el Page token.
 	// Solo para entrantes: el PSID del cliente es ev.Sender.ID (en un eco el
-	// sender es la Página). Si no se resuelve, Django muestra "Cliente Messenger #PSID".
+	// sender es la Página). Si no se resuelve (modo desarrollo sin Acceso
+	// Avanzado), Django muestra el fallback "Cliente Messenger #PSID".
 	contactName := ""
-	if !ev.Message.IsEcho {
-		if cfg.MessengerPageAccessToken == "" {
-			log.Printf("[messenger] sin MESSENGER_PAGE_ACCESS_TOKEN → no resuelvo nombre del PSID=%s", ev.Sender.ID)
-		} else {
-			contactName = messenger.NewClient(cfg.MessengerPageAccessToken).GetName(ev.Sender.ID)
-			log.Printf("[messenger] nombre resuelto para PSID=%s → %q", ev.Sender.ID, contactName)
-		}
+	if !ev.Message.IsEcho && cfg.MessengerPageAccessToken != "" {
+		contactName = messenger.NewClient(cfg.MessengerPageAccessToken, cfg.MessengerPageID).GetName(ev.Sender.ID)
 	}
 	err := bookings.NewClient(cfg.BookingSystemURL).PostMessengerInbound(cfg.LunaAPIKey, bookings.MessengerInboundReq{
 		FbMessageID: ev.Message.Mid,
@@ -132,5 +129,37 @@ func handleMessengerEvent(cfg *config.Config, ev instagramMessagingEvent) {
 	})
 	if err != nil {
 		log.Printf("[messenger] error guardando inbound en Django: %v", err)
+	}
+}
+
+// MessengerReply envía una respuesta de texto a un PSID por Messenger.
+// El saliente se persiste solo vía el webhook de eco (message_echoes), igual
+// que en Instagram → no hace falta endpoint outbound en Django.
+func MessengerReply(cfg *config.Config) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if cfg.MessengerPageAccessToken == "" || cfg.MessengerPageID == "" {
+			respondError(w, http.StatusServiceUnavailable, "Messenger no configurado (falta page token o page id)")
+			return
+		}
+		var body struct {
+			To   string `json:"to"`
+			Text string `json:"text"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil ||
+			strings.TrimSpace(body.To) == "" || strings.TrimSpace(body.Text) == "" {
+			respondError(w, http.StatusBadRequest, "se requieren 'to' (PSID) y 'text'")
+			return
+		}
+		res, err := messenger.NewClient(cfg.MessengerPageAccessToken, cfg.MessengerPageID).
+			SendMessage(strings.TrimSpace(body.To), body.Text)
+		if err != nil {
+			// Fuera de la ventana de 24h, token vencido, perfil sin permiso, etc.
+			respondError(w, http.StatusBadGateway, err.Error())
+			return
+		}
+		respondJSON(w, http.StatusOK, map[string]interface{}{
+			"success":    true,
+			"message_id": res.MessageID,
+		})
 	}
 }

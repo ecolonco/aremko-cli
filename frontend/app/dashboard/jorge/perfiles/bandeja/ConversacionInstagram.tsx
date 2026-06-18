@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ArrowLeft, Camera as Instagram, MessageCircle, Loader2, RefreshCw, Check, AlertTriangle, Send, Sparkles, FileText, Mic } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { fetchConversacionInbox, marcarAtendidoInbox, responderInstagram } from './api';
+import { fetchConversacionInbox, marcarAtendidoInbox, responderInstagram, responderMessenger } from './api';
 import type { CanalMensaje, MensajeInbox, SugerenciaAgente } from './types';
 
 interface Props {
@@ -76,8 +76,8 @@ export function ConversacionInstagram({ externalId, nombre, canal = 'instagram',
   const esIG = canal === 'instagram';
   // Tema visual por canal: Instagram rosado, Messenger azul.
   const tema = esIG
-    ? { Icono: Instagram, label: 'Conversación de Instagram', card: 'border-pink-200', hBorder: 'border-pink-100', hBg: 'bg-pink-50/60', hHover: 'hover:bg-pink-100', accent: 'text-pink-600', outBg: 'bg-pink-500', outTs: 'text-pink-100' }
-    : { Icono: MessageCircle, label: 'Conversación de Messenger', card: 'border-blue-200', hBorder: 'border-blue-100', hBg: 'bg-blue-50/60', hHover: 'hover:bg-blue-100', accent: 'text-blue-600', outBg: 'bg-blue-600', outTs: 'text-blue-100' };
+    ? { nombre: 'Instagram', Icono: Instagram, label: 'Conversación de Instagram', card: 'border-pink-200', hBorder: 'border-pink-100', hBg: 'bg-pink-50/60', hHover: 'hover:bg-pink-100', accent: 'text-pink-600', outBg: 'bg-pink-500', outTs: 'text-pink-100', focus: 'focus:border-pink-500 focus:ring-pink-500', sendBg: 'bg-pink-500 hover:bg-pink-600' }
+    : { nombre: 'Messenger', Icono: MessageCircle, label: 'Conversación de Messenger', card: 'border-blue-200', hBorder: 'border-blue-100', hBg: 'bg-blue-50/60', hHover: 'hover:bg-blue-100', accent: 'text-blue-600', outBg: 'bg-blue-600', outTs: 'text-blue-100', focus: 'focus:border-blue-500 focus:ring-blue-500', sendBg: 'bg-blue-600 hover:bg-blue-700' };
   const [mensajes, setMensajes] = useState<MensajeInbox[]>([]);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -144,7 +144,7 @@ export function ConversacionInstagram({ externalId, nombre, canal = 'instagram',
     setEnviando(true);
     setSendError(null);
     try {
-      await responderInstagram(externalId, text);
+      await (esIG ? responderInstagram : responderMessenger)(externalId, text);
       setInput('');
       // El saliente llega por el webhook "echo" de Meta; refrescamos en breve.
       setTimeout(() => cargarRef.current(true), 1500);
@@ -237,12 +237,6 @@ export function ConversacionInstagram({ externalId, nombre, canal = 'instagram',
       </div>
 
       <div className="flex-shrink-0 space-y-2 border-t border-slate-200 p-3">
-        {!esIG ? (
-          <p className="text-center text-[11px] text-slate-400">
-            Conversación de Messenger en solo lectura. Responder desde aquí llegará en una próxima fase.
-          </p>
-        ) : (
-          <>
         {sendError && (
           <p className="flex items-start gap-1.5 text-xs text-amber-700">
             <AlertTriangle className="mt-0.5 h-3.5 w-3.5 flex-shrink-0" />
@@ -280,13 +274,13 @@ export function ConversacionInstagram({ externalId, nombre, canal = 'instagram',
               }
             }}
             rows={1}
-            placeholder="Responder por Instagram…"
-            className="max-h-32 min-h-[38px] w-full resize-none rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-pink-500 focus:outline-none focus:ring-1 focus:ring-pink-500"
+            placeholder={`Responder por ${tema.nombre}…`}
+            className={`max-h-32 min-h-[38px] w-full resize-none rounded-md border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-1 ${tema.focus}`}
           />
           <Button
             type="submit"
             disabled={!input.trim() || enviando}
-            className="bg-pink-500 hover:bg-pink-600"
+            className={tema.sendBg}
           >
             {enviando ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
           </Button>
@@ -295,8 +289,6 @@ export function ConversacionInstagram({ externalId, nombre, canal = 'instagram',
           Solo se puede responder dentro de las 24 h del último mensaje del cliente · Enter envía ·
           Shift+Enter salto de línea
         </p>
-          </>
-        )}
       </div>
 
       {/* Botón al fondo para volver al listado sin scrollear arriba (solo móvil). */}

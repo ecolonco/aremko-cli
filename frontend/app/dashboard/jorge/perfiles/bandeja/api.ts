@@ -518,6 +518,23 @@ export const responderInstagram = async (
   return json as ResponderWhatsAppResult;
 };
 
+/** Responde un DM de Messenger (ventana 24h). El saliente se persiste vía el eco. */
+export const responderMessenger = async (
+  psid: string,
+  text: string
+): Promise<ResponderWhatsAppResult> => {
+  const res = await fetch(`${apiBase()}/api/v1/messenger/reply`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ to: psid, text }),
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok || json.success === false) {
+    throw new Error(json.error || `HTTP ${res.status}`);
+  }
+  return json as ResponderWhatsAppResult;
+};
+
 export interface EditarNombreResult {
   ok: boolean;
   cliente_id?: number;

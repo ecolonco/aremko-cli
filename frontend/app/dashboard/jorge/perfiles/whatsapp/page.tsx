@@ -129,9 +129,9 @@ export default function MensajesWhatsAppPage() {
           </h2>
           <p className="mt-1 hidden text-sm text-muted-foreground md:block">
             Bandeja unificada de <strong>WhatsApp</strong>, <strong>Instagram</strong> y{' '}
-            <strong>Messenger</strong> — respondés WhatsApp e Instagram desde acá (Instagram solo
-            dentro de las 24 h del último mensaje). <strong>Messenger</strong> por ahora se ve en
-            solo lectura. Lo de WhatsApp queda en la ficha del cliente.
+            <strong>Messenger</strong> — respondés los tres canales desde acá. Instagram y Messenger
+            solo dentro de las 24 h del último mensaje del cliente. Lo de WhatsApp queda en la ficha
+            del cliente.
           </p>
         </div>
         <Button onClick={() => cargar()} variant="outline" size="sm" disabled={cargando}>

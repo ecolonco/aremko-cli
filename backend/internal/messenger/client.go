@@ -1,15 +1,14 @@
 // Package messenger habla con la Graph API de Facebook (graph.facebook.com)
-// para resolver el perfil de quien escribe por Messenger (User Profile API).
-// Usa el Page Access Token de la Página de Aremko. Espeja el patrón del cliente
-// de Instagram (internal/instagram), pero por ahora SOLO resuelve nombre — el
-// envío de DMs llega en una fase posterior.
+// para enviar mensajes por Messenger y resolver el perfil de quien escribe
+// (User Profile API), usando el Page Access Token de la Página de Aremko.
+// Espeja el patrón del cliente de Instagram (internal/instagram).
 package messenger
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"net/url"
 	"strings"
@@ -20,22 +19,60 @@ const graphBase = "https://graph.facebook.com/v21.0"
 
 type Client struct {
 	PageToken  string // Page Access Token de la Página de Aremko
+	PageID     string // ID de la Página (para el endpoint de envío)
 	HTTPClient *http.Client
 }
 
-func NewClient(pageToken string) *Client {
+func NewClient(pageToken, pageID string) *Client {
 	return &Client{
 		PageToken:  pageToken,
+		PageID:     pageID,
 		HTTPClient: &http.Client{Timeout: 10 * time.Second},
 	}
 }
 
+type SendResult struct {
+	RecipientID string `json:"recipient_id"`
+	MessageID   string `json:"message_id"`
+}
+
+// SendMessage envía un mensaje de texto a un PSID por Messenger. Solo funciona
+// dentro de la ventana de 24h desde el último mensaje del cliente (messaging_type
+// RESPONSE); fuera de eso Meta devuelve error, que se propaga tal cual.
+func (c *Client) SendMessage(recipientPSID, text string) (*SendResult, error) {
+	payload := map[string]interface{}{
+		"messaging_type": "RESPONSE",
+		"recipient":      map[string]string{"id": recipientPSID},
+		"message":        map[string]string{"text": text},
+	}
+	body, _ := json.Marshal(payload)
+	u := fmt.Sprintf("%s/%s/messages?access_token=%s",
+		graphBase, url.PathEscape(c.PageID), url.QueryEscape(c.PageToken))
+	req, err := http.NewRequest(http.MethodPost, u, bytes.NewReader(body))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := c.HTTPClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("error enviando mensaje de Messenger: %w", err)
+	}
+	defer resp.Body.Close()
+	b, _ := io.ReadAll(resp.Body)
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("messenger send status %d: %s", resp.StatusCode, b)
+	}
+	var out SendResult
+	_ = json.Unmarshal(b, &out)
+	return &out, nil
+}
+
 // GetName resuelve el nombre de un PSID que nos escribió por Messenger (User
 // Profile API: GET /{PSID}?fields=first_name,last_name). Devuelve "" si no se
-// puede resolver — nunca rompe el flujo de inbound (perfiles privados o sin
-// Acceso Avanzado pueden no exponer el nombre). Se piden solo first_name/last_name
-// (campos documentados del perfil de usuario de Messenger) para evitar que un
-// campo inválido tumbe toda la respuesta con un 400.
+// puede resolver — nunca rompe el flujo de inbound. NOTA: en modo desarrollo
+// (sin Acceso Avanzado de pages_messaging) Meta responde 400 code 100 subcode 33
+// para clientes sin rol en la app → queda "" y Django usa el fallback. Se
+// destraba con App Review.
 func (c *Client) GetName(psid string) string {
 	if c.PageToken == "" || psid == "" {
 		return ""
@@ -53,9 +90,6 @@ func (c *Client) GetName(psid string) string {
 	defer resp.Body.Close()
 	b, _ := io.ReadAll(resp.Body)
 	if resp.StatusCode != http.StatusOK {
-		// DIAGNÓSTICO temporal: distinguir error de permiso/token (no-200) de
-		// un perfil que simplemente no expone el nombre.
-		log.Printf("[messenger] GetName PSID=%s status %d: %s", psid, resp.StatusCode, b)
 		return ""
 	}
 	var out struct {
@@ -63,12 +97,7 @@ func (c *Client) GetName(psid string) string {
 		LastName  string `json:"last_name"`
 	}
 	if err := json.Unmarshal(b, &out); err != nil {
-		log.Printf("[messenger] GetName PSID=%s body no parseable: %s", psid, b)
 		return ""
 	}
-	name := strings.TrimSpace(out.FirstName + " " + out.LastName)
-	if name == "" {
-		log.Printf("[messenger] GetName PSID=%s status 200 pero sin nombre: %s", psid, b)
-	}
-	return name
+	return strings.TrimSpace(out.FirstName + " " + out.LastName)
 }
