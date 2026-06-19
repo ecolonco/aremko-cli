@@ -3,11 +3,38 @@ package handlers
 import (
 	"encoding/json"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/aremko/aremko-cli/internal/bookings"
 	"github.com/aremko/aremko-cli/internal/config"
+	"github.com/go-chi/chi/v5"
 )
+
+// ResumenReserva proxea el texto del resumen de una reserva (nº + servicios +
+// banco/transferencia + condiciones). Sirve para mostrar/reenviar el resumen y
+// para diagnosticar. GET /api/v1/resumen-reserva/{id}.
+func ResumenReserva(cfg *config.Config) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if cfg.LunaAPIKey == "" || cfg.BookingSystemURL == "" {
+			respondError(w, http.StatusServiceUnavailable, "Django no configurado")
+			return
+		}
+		id, err := strconv.Atoi(chi.URLParam(r, "id"))
+		if err != nil || id <= 0 {
+			respondError(w, http.StatusBadRequest, "id de reserva inválido")
+			return
+		}
+		raw, err := bookings.NewClient(cfg.BookingSystemURL).GetResumenReservaRaw(cfg.LunaAPIKey, id)
+		if err != nil {
+			respondError(w, http.StatusBadGateway, err.Error())
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write(raw)
+	}
+}
 
 // LunaCrearReserva finaliza una propuesta de reserva tras la aprobación de Deborah
 // (H-028). Hace dos cosas contra Django en una sola llamada para el front:
