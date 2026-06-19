@@ -827,7 +827,9 @@ func (c *Client) postWhatsAppRaw(path, apiKey string, payload interface{}) ([]by
 	}
 	defer resp.Body.Close()
 	b, _ := io.ReadAll(resp.Body)
-	if resp.StatusCode != http.StatusOK {
+	// Django devuelve 201 Created al crear la reserva (semántica REST correcta);
+	// aceptamos cualquier 2xx, no solo 200, para no tratar el 201 como error.
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		return nil, fmt.Errorf("django %s status %d: %s", path, resp.StatusCode, b)
 	}
 	return b, nil
