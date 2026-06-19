@@ -21,6 +21,7 @@ import {
   Sparkles,
   ChevronUp,
   Images,
+  Trash2,
 } from 'lucide-react';
 import {
   fetchConversacionWhatsApp,
@@ -31,6 +32,7 @@ import {
   marcarAtendidoWhatsApp,
   reportarFeedbackAgente,
   telefonoE164,
+  limpiarConversacion,
 } from './api';
 import { BibliotecaMedios } from './BibliotecaMedios';
 import type { MensajeWhatsApp, SugerenciaAgente, PropuestaReserva } from './types';
@@ -245,6 +247,22 @@ export function ConversacionWhatsApp({
       // Silencioso: marcar leído es idempotente; si falla, el "1" permanece.
     } finally {
       setMarcandoLeido(false);
+    }
+  };
+  // PRUEBAS: borra el historial + carrito de este teléfono (destructivo → confirma).
+  const [borrando, setBorrando] = useState(false);
+  const borrarConversacion = async () => {
+    if (!phone || borrando) return;
+    if (!window.confirm(`⚠️ PRUEBA — Borrar TODOS los mensajes y el carrito de ${phone}?\nEsto no se puede deshacer.`)) return;
+    setBorrando(true);
+    try {
+      await limpiarConversacion(phone);
+      await cargar(true);
+      onAtendido?.(); // refresca la lista de la izquierda
+    } catch (e: unknown) {
+      window.alert(e instanceof Error ? e.message : 'No se pudo borrar la conversación');
+    } finally {
+      setBorrando(false);
     }
   };
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -556,6 +574,16 @@ export function ConversacionWhatsApp({
           >
             <RefreshCw className={`h-3.5 w-3.5 ${cargando || regenerando ? 'animate-spin' : ''}`} />
             Actualizar
+          </button>
+          <button
+            type="button"
+            onClick={borrarConversacion}
+            disabled={borrando || !phone}
+            className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs text-rose-600 hover:bg-rose-50 disabled:opacity-50"
+            title="PRUEBA: borrar todos los mensajes y el carrito de este teléfono"
+          >
+            {borrando ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+            Borrar (test)
           </button>
         </div>
       </div>

@@ -662,6 +662,13 @@ func (c *Client) GetResumenReservaRaw(apiKey string, reservaID int) ([]byte, err
 	return c.getRaw(u, apiKey, "resumen reserva")
 }
 
+// LimpiarConversacion borra el historial de WhatsApp + el carrito de un teléfono
+// (utilidad de PRUEBAS). Destructivo. Devuelve el JSON crudo de Django.
+func (c *Client) LimpiarConversacion(apiKey, phone string) ([]byte, error) {
+	return c.postWhatsAppRaw("/api/luna/admin/limpiar-conversacion/", apiKey,
+		map[string]interface{}{"phone": phone, "force": true})
+}
+
 // GetInboxConversationRaw devuelve el hilo de una conversación identificada por
 // (canal, external_id). JSON crudo de Django. conSugerencia pide el borrador del
 // agente IA (opt-in, H-019; lazy del lado Django).

@@ -626,6 +626,22 @@ export const crearReservaLuna = async (propuestaId: string): Promise<CrearReserv
   return json as CrearReservaResult;
 };
 
+/** PRUEBAS: borra el historial + carrito de un teléfono. Destructivo (confirmar antes). */
+export const limpiarConversacion = async (
+  phone: string
+): Promise<{ success: boolean; mensaje?: string; borrados?: unknown }> => {
+  const res = await fetch(`${apiBase()}/api/v1/inbox/limpiar-conversacion`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ phone }),
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok || json.success === false) {
+    throw new Error(json.error || json.mensaje || `HTTP ${res.status}`);
+  }
+  return json;
+};
+
 export interface EditarNombreResult {
   ok: boolean;
   cliente_id?: number;

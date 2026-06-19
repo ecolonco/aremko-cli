@@ -1,8 +1,10 @@
 package handlers
 
 import (
+	"encoding/json"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/aremko/aremko-cli/internal/bookings"
 	"github.com/aremko/aremko-cli/internal/config"
@@ -53,6 +55,33 @@ func InboxMediaLibrary(cfg *config.Config) http.HandlerFunc {
 			return
 		}
 		raw, err := bookings.NewClient(cfg.BookingSystemURL).GetMediaLibraryRaw(cfg.LunaAPIKey)
+		if err != nil {
+			respondError(w, http.StatusBadGateway, err.Error())
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write(raw)
+	}
+}
+
+// InboxLimpiarConversacion borra el historial + carrito de un teléfono (PRUEBAS).
+// Destructivo; el front confirma antes. Default el teléfono de Jorge si no viene.
+func InboxLimpiarConversacion(cfg *config.Config) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if cfg.LunaAPIKey == "" || cfg.BookingSystemURL == "" {
+			respondError(w, http.StatusServiceUnavailable, "Django no configurado")
+			return
+		}
+		var body struct {
+			Phone string `json:"phone"`
+		}
+		_ = json.NewDecoder(r.Body).Decode(&body)
+		phone := strings.TrimSpace(body.Phone)
+		if phone == "" {
+			phone = "+56958655810" // default de pruebas (Jorge)
+		}
+		raw, err := bookings.NewClient(cfg.BookingSystemURL).LimpiarConversacion(cfg.LunaAPIKey, phone)
 		if err != nil {
 			respondError(w, http.StatusBadGateway, err.Error())
 			return
