@@ -29,7 +29,14 @@ export function BotonCrearReserva({ propuesta, onCreada }: Props) {
       const res = await crearReservaLuna(propuesta.propuesta_id);
       onCreada(res.resumen_texto || '');
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'No se pudo crear la reserva');
+      const raw = e instanceof Error ? e.message : '';
+      // La propuesta caduca (TTL) → mensaje accionable en vez del error técnico.
+      const expirada = /propuesta_not_found|expir|no existe/i.test(raw);
+      setError(
+        expirada
+          ? 'La propuesta caducó. Pídele a Luna que la regenere (el cliente reconfirma) y vuelve a intentar.'
+          : raw || 'No se pudo crear la reserva',
+      );
     } finally {
       setCreando(false);
     }
