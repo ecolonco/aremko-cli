@@ -183,11 +183,21 @@ func handleInstagramEvent(cfg *config.Config, ev instagramMessagingEvent) {
 // Django (multipart). El texto del mensaje acompaña al primer adjunto como caption.
 func handleInstagramMedia(cfg *config.Config, bc *bookings.Client, ev instagramMessagingEvent, ts, contactName string) {
 	ic := instagram.NewClient(cfg.InstagramAccessToken, cfg.InstagramBusinessID)
+	posted := 0
 	for i, att := range ev.Message.Attachments {
-		if att.Payload.URL == "" {
+		var pl struct {
+			URL string `json:"url"`
+		}
+		_ = json.Unmarshal(att.Payload, &pl)
+		// Diagnóstico (H-030): los `share` y los adjuntos sin URL nunca se habían
+		// visto en prod; logueamos el payload crudo para conocer su estructura real.
+		if att.Type == "share" || pl.URL == "" {
+			log.Printf("[instagram] adjunto tipo=%s payload_crudo=%s", att.Type, string(att.Payload))
+		}
+		if pl.URL == "" {
 			continue
 		}
-		data, mime, err := ic.DownloadMedia(att.Payload.URL, maxMediaBytes)
+		data, mime, err := ic.DownloadMedia(pl.URL, maxMediaBytes)
 		if err != nil {
 			log.Printf("[instagram] error descargando adjunto tipo=%s: %v", att.Type, err)
 			continue
@@ -212,6 +222,32 @@ func handleInstagramMedia(cfg *config.Config, bc *bookings.Client, ev instagramM
 			IsEcho:      ev.Message.IsEcho,
 		}, data); err != nil {
 			log.Printf("[instagram] error subiendo adjunto a Django: %v", err)
+			continue
+		}
+		posted++
+	}
+
+	// Si ningún adjunto se pudo subir (típico de un `share` sin media descargable
+	// estándar), NO perdemos el mensaje: lo registramos como texto para que aparezca
+	// en la bandeja con el contexto de que el cliente compartió algo. H-030.
+	if posted == 0 {
+		nota := strings.TrimSpace(ev.Message.Text)
+		marca := "📎 [el cliente compartió una publicación por Instagram]"
+		if nota == "" {
+			nota = marca
+		} else {
+			nota = nota + "\n" + marca
+		}
+		if err := bc.PostInstagramInbound(cfg.LunaAPIKey, bookings.InstagramInboundReq{
+			IgMessageID: ev.Message.Mid,
+			FromIGSID:   ev.Sender.ID,
+			ToIGSID:     ev.Recipient.ID,
+			Text:        nota,
+			Timestamp:   ts,
+			ContactName: contactName,
+			IsEcho:      ev.Message.IsEcho,
+		}); err != nil {
+			log.Printf("[instagram] error registrando inbound fallback (share sin media): %v", err)
 		}
 	}
 }
@@ -325,9 +361,10 @@ type instagramInboundMessage struct {
 	Text        string `json:"text"`
 	IsEcho      bool   `json:"is_echo"`
 	Attachments []struct {
-		Type    string `json:"type"` // image | video | audio | file | share | story_mention | ...
-		Payload struct {
-			URL string `json:"url"`
-		} `json:"payload"`
+		Type string `json:"type"` // image | video | audio | file | share | story_mention | ...
+		// Payload crudo: los `share` (publicación compartida por DM) no siempre traen
+		// la misma forma que image/video, así que lo guardamos completo y extraemos la
+		// URL aparte (y lo logueamos para conocer su estructura real). H-030.
+		Payload json.RawMessage `json:"payload"`
 	} `json:"attachments"`
 }

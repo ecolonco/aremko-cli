@@ -145,10 +145,14 @@ func handleMessengerEvent(cfg *config.Config, ev instagramMessagingEvent) {
 func handleMessengerMedia(cfg *config.Config, bc *bookings.Client, ev instagramMessagingEvent, ts, contactName string) {
 	mc := messenger.NewClient(cfg.MessengerPageAccessToken, cfg.MessengerPageID)
 	for i, att := range ev.Message.Attachments {
-		if att.Payload.URL == "" {
+		var pl struct {
+			URL string `json:"url"`
+		}
+		_ = json.Unmarshal(att.Payload, &pl)
+		if pl.URL == "" {
 			continue
 		}
-		data, mime, err := mc.DownloadMedia(att.Payload.URL, maxMediaBytes)
+		data, mime, err := mc.DownloadMedia(pl.URL, maxMediaBytes)
 		if err != nil {
 			log.Printf("[messenger] error descargando adjunto tipo=%s: %v", att.Type, err)
 			continue
