@@ -174,6 +174,12 @@ func (c *Client) DownloadMedia(mediaURL string, maxBytes int64) ([]byte, string,
 	if err != nil {
 		return nil, "", err
 	}
+	// La media de historias compartidas (lookaside ig_messaging_cdn) requiere el
+	// token de acceso; las URLs de CDN normales (scontent) son pre-firmadas y lo
+	// ignoran. H-030.
+	if c.Token != "" && (strings.Contains(mediaURL, "lookaside") || strings.Contains(mediaURL, "messaging_cdn")) {
+		req.Header.Set("Authorization", "Bearer "+c.Token)
+	}
 	resp, err := c.HTTPClient.Do(req)
 	if err != nil {
 		return nil, "", fmt.Errorf("error descargando media IG: %w", err)
