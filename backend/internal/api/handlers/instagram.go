@@ -186,18 +186,23 @@ func handleInstagramMedia(cfg *config.Config, bc *bookings.Client, ev instagramM
 	posted := 0
 	for i, att := range ev.Message.Attachments {
 		var pl struct {
-			URL string `json:"url"`
+			URL           string `json:"url"`
+			StoryMediaURL string `json:"story_media_url"` // ig_story trae la media acá (H-030)
 		}
 		_ = json.Unmarshal(att.Payload, &pl)
-		// Diagnóstico (H-030): los `share` y los adjuntos sin URL nunca se habían
-		// visto en prod; logueamos el payload crudo para conocer su estructura real.
-		if att.Type == "share" || pl.URL == "" {
+		mediaURL := pl.URL
+		if mediaURL == "" {
+			mediaURL = pl.StoryMediaURL
+		}
+		// Diagnóstico (H-030): logueamos el payload crudo de shares/historias y de
+		// adjuntos sin URL conocida, para conocer su estructura real.
+		if att.Type == "share" || att.Type == "ig_story" || mediaURL == "" {
 			log.Printf("[instagram] adjunto tipo=%s payload_crudo=%s", att.Type, string(att.Payload))
 		}
-		if pl.URL == "" {
+		if mediaURL == "" {
 			continue
 		}
-		data, mime, err := ic.DownloadMedia(pl.URL, maxMediaBytes)
+		data, mime, err := ic.DownloadMedia(mediaURL, maxMediaBytes)
 		if err != nil {
 			log.Printf("[instagram] error descargando adjunto tipo=%s: %v", att.Type, err)
 			continue
@@ -209,11 +214,27 @@ func handleInstagramMedia(cfg *config.Config, bc *bookings.Client, ev instagramM
 		} else {
 			mid = mid + "#" + strconv.Itoa(i) // evita choque de idempotencia
 		}
+		// Un 'ig_story'/'share' es en realidad una imagen o un video: normalizamos el
+		// tipo por su mime a uno que Django acepta y la bandeja sabe renderizar.
+		postType := att.Type
+		switch {
+		case strings.HasPrefix(mime, "image/"):
+			postType = "image"
+		case strings.HasPrefix(mime, "video/"):
+			postType = "video"
+		case strings.HasPrefix(mime, "audio/"):
+			postType = "audio"
+		case att.Type == "ig_story" || att.Type == "share":
+			postType = "share"
+		}
+		if (att.Type == "ig_story" || att.Type == "share") && strings.TrimSpace(caption) == "" {
+			caption = "📲 publicación/historia compartida"
+		}
 		if err := bc.PostInstagramInboundMedia(cfg.LunaAPIKey, bookings.InstagramInboundMediaReq{
 			IgMessageID: mid,
 			FromIGSID:   ev.Sender.ID,
 			ToIGSID:     ev.Recipient.ID,
-			Type:        att.Type,
+			Type:        postType,
 			Timestamp:   ts,
 			ContactName: contactName,
 			Caption:     caption,
