@@ -1439,6 +1439,7 @@ export default function BriefPage() {
                                   <tr className="border-b text-xs text-muted-foreground">
                                     <th className="text-left py-2 px-2 font-medium">Source</th>
                                     <th className="text-left py-2 px-2 font-medium">Medium</th>
+                                    <th className="text-left py-2 px-2 font-medium">Campaña (UTM)</th>
                                     <th className="text-right py-2 px-2 font-medium">Sesiones</th>
                                     <th className="text-right py-2 px-2 font-medium">Usuarios</th>
                                     <th className="text-right py-2 px-2 font-medium">% del tráfico</th>
@@ -1455,6 +1456,7 @@ export default function BriefPage() {
                                           {isMeta && <span className="ml-1 inline-flex px-1.5 py-0.5 text-[10px] rounded-full bg-blue-100 text-blue-800">Meta</span>}
                                         </td>
                                         <td className="py-2 px-2 text-muted-foreground">{src.medium}</td>
+                                        <td className="py-2 px-2 text-muted-foreground">{src.campaign || '—'}</td>
                                         <td className="py-2 px-2 text-right">{formatNumber(src.sessions)}</td>
                                         <td className="py-2 px-2 text-right">{formatNumber(src.users)}</td>
                                         <td className="py-2 px-2 text-right">{pct.toFixed(1)}%</td>

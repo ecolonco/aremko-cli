@@ -15,14 +15,14 @@ type GA4Client struct {
 }
 
 type GA4Stats struct {
-	ActiveUsers       int64   `json:"active_users"`
-	TotalUsers        int64   `json:"total_users"`
-	Sessions          int64   `json:"sessions"`
-	PageViews         int64   `json:"page_views"`
-	BounceRate        float64 `json:"bounce_rate"`
+	ActiveUsers        int64   `json:"active_users"`
+	TotalUsers         int64   `json:"total_users"`
+	Sessions           int64   `json:"sessions"`
+	PageViews          int64   `json:"page_views"`
+	BounceRate         float64 `json:"bounce_rate"`
 	AvgSessionDuration float64 `json:"avg_session_duration"`
-	NewUsers          int64   `json:"new_users"`
-	EventCount        int64   `json:"event_count"`
+	NewUsers           int64   `json:"new_users"`
+	EventCount         int64   `json:"event_count"`
 }
 
 // NewGA4Client crea un nuevo cliente de Google Analytics 4
@@ -216,17 +216,17 @@ func (c *GA4Client) GetTrafficSources(ctx context.Context, startDate, endDate st
 
 // WeeklyStats representa las estadísticas de una semana
 type WeeklyStats struct {
-	WeekLabel         string  `json:"week_label"`
-	StartDate         string  `json:"start_date"`
-	EndDate           string  `json:"end_date"`
-	ActiveUsers       int64   `json:"active_users"`
-	TotalUsers        int64   `json:"total_users"`
-	Sessions          int64   `json:"sessions"`
-	PageViews         int64   `json:"page_views"`
-	BounceRate        float64 `json:"bounce_rate"`
+	WeekLabel          string  `json:"week_label"`
+	StartDate          string  `json:"start_date"`
+	EndDate            string  `json:"end_date"`
+	ActiveUsers        int64   `json:"active_users"`
+	TotalUsers         int64   `json:"total_users"`
+	Sessions           int64   `json:"sessions"`
+	PageViews          int64   `json:"page_views"`
+	BounceRate         float64 `json:"bounce_rate"`
 	AvgSessionDuration float64 `json:"avg_session_duration"`
-	NewUsers          int64   `json:"new_users"`
-	EventCount        int64   `json:"event_count"`
+	NewUsers           int64   `json:"new_users"`
+	EventCount         int64   `json:"event_count"`
 }
 
 // GetWeeklyTrends obtiene estadísticas de las últimas 4 semanas
@@ -238,7 +238,7 @@ func (c *GA4Client) GetWeeklyTrends(ctx context.Context) ([]WeeklyStats, error) 
 	for i := 0; i < 4; i++ {
 		// Calcular fechas de la semana (de lunes a domingo)
 		weekEnd := now.AddDate(0, 0, -1-(i*7)) // Ayer menos i semanas
-		weekStart := weekEnd.AddDate(0, 0, -6)  // 6 días antes
+		weekStart := weekEnd.AddDate(0, 0, -6) // 6 días antes
 
 		startDate := weekStart.Format("2006-01-02")
 		endDate := weekEnd.Format("2006-01-02")
@@ -720,6 +720,7 @@ func (c *GA4Client) GetTrafficSourcesForPage(ctx context.Context, pagePath, star
 		Dimensions: []*analyticsdata.Dimension{
 			{Name: "sessionSource"},
 			{Name: "sessionMedium"},
+			{Name: "sessionCampaignName"}, // UTM campaign (atribución de pauta) — H-034
 		},
 		Metrics: []*analyticsdata.Metric{
 			{Name: "sessions"},
@@ -739,7 +740,7 @@ func (c *GA4Client) GetTrafficSourcesForPage(ctx context.Context, pagePath, star
 
 	sources := make([]map[string]interface{}, 0, len(resp.Rows))
 	for _, row := range resp.Rows {
-		if len(row.DimensionValues) < 2 || len(row.MetricValues) < 2 {
+		if len(row.DimensionValues) < 3 || len(row.MetricValues) < 2 {
 			continue
 		}
 		var sessions, users int64
@@ -748,6 +749,7 @@ func (c *GA4Client) GetTrafficSourcesForPage(ctx context.Context, pagePath, star
 		sources = append(sources, map[string]interface{}{
 			"source":   row.DimensionValues[0].Value,
 			"medium":   row.DimensionValues[1].Value,
+			"campaign": row.DimensionValues[2].Value, // UTM campaign — H-034
 			"sessions": sessions,
 			"users":    users,
 		})
