@@ -120,6 +120,7 @@ export default function BriefPage() {
   // Lista de URLs predefinidas + opción "custom" para el selector
   const LANDING_PRESETS = [
     { value: '/refugio/', label: '/refugio/ (campaña Meta Ads)' },
+    { value: '/ritual-del-rio/', label: '/ritual-del-rio/ (Ritual del Río — pauta)' },
     { value: '/', label: '/ (Home)' },
     { value: '/alojamientos/', label: '/alojamientos/' },
     { value: '/tinas/', label: '/tinas/' },
