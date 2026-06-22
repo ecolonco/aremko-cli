@@ -37,9 +37,12 @@ func NormalizeImageForSend(data []byte, mime, filename string) ([]byte, string, 
 	if !strings.HasPrefix(real, "image/") {
 		return data, mime, filename, nil
 	}
-	// jpeg y png los acepta WhatsApp directamente.
+	// jpeg y png los acepta WhatsApp directamente — pero igual normalizamos el
+	// nombre: si el filename trae puntos sin una extensión de imagen válida al
+	// final (ej. "WhatsApp_Image_..._21.07.11_btlwof"), WhatsApp interpreta una
+	// "extensión" inválida y rechaza con #546. H-035.
 	if real == "image/jpeg" || real == "image/png" {
-		return data, real, filename, nil
+		return data, real, withImageExt(filename, real), nil
 	}
 
 	// Resto (webp, gif, bmp, tiff…): decodificar y re-encodear a JPEG.
@@ -53,18 +56,32 @@ func NormalizeImageForSend(data []byte, mime, filename string) ([]byte, string, 
 	if err := jpeg.Encode(&out, img, &jpeg.Options{Quality: 85}); err != nil {
 		return nil, "", "", fmt.Errorf("error transcodificando la imagen a JPEG: %w", err)
 	}
-	return out.Bytes(), "image/jpeg", swapExtToJPG(filename), nil
+	return out.Bytes(), "image/jpeg", withImageExt(filename, "image/jpeg"), nil
 }
 
-// swapExtToJPG cambia la extensión del filename a .jpg (para coherencia con el
-// nuevo mime tras transcodificar).
-func swapExtToJPG(filename string) string {
+// withImageExt garantiza que el filename termine con una extensión de imagen
+// VÁLIDA acorde al mime (.jpg / .png). WhatsApp infiere el tipo del sufijo tras
+// el último punto; un nombre como "foto_21.07.11_btlwof" tiene un sufijo inválido
+// ("11_btlwof") y la Cloud API lo rechaza (#546), aunque el Content-Type sea
+// image/jpeg. Recortamos cualquier sufijo no-imagen y añadimos la extensión correcta.
+func withImageExt(filename, mime string) string {
+	ext := ".jpg"
+	if mime == "image/png" {
+		ext = ".png"
+	}
 	filename = strings.TrimSpace(filename)
 	if filename == "" {
-		return "imagen.jpg"
+		return "imagen" + ext
 	}
+	base := filename
 	if i := strings.LastIndex(filename, "."); i >= 0 {
-		return filename[:i] + ".jpg"
+		switch strings.ToLower(filename[i+1:]) {
+		case "jpg", "jpeg", "png":
+			return filename // ya tiene una extensión de imagen válida al final
+		default:
+			base = filename[:i] // sufijo inválido → lo quitamos
+		}
 	}
-	return filename + ".jpg"
+	base = strings.ReplaceAll(base, ".", "_") // sin puntos internos: solo la extensión final
+	return base + ext
 }
