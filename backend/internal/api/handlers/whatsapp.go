@@ -464,6 +464,13 @@ func WhatsAppSendMedia(cfg *config.Config) http.HandlerFunc {
 			respondError(w, http.StatusBadRequest, err.Error())
 			return
 		}
+		// WhatsApp solo acepta jpeg/png como imagen; transcodifica WebP/GIF/BMP → JPEG
+		// para evitar el error #546 (las fotos del catálogo son WebP). H-035.
+		data, mime, filename, err = whatsapp.NormalizeImageForSend(data, mime, filename)
+		if err != nil {
+			respondError(w, http.StatusBadRequest, err.Error())
+			return
+		}
 		mediaType := whatsapp.MediaTypeForSend(mime)
 
 		wc := whatsapp.NewClient(cfg.WhatsAppAccessToken, cfg.WhatsAppPhoneNumberID)
