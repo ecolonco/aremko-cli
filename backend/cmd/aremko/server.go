@@ -61,5 +61,6 @@ func runServer(cmd *cobra.Command, args []string) error {
 
 	// Crear y iniciar servidor
 	server := api.NewServer(cfg)
+	api.StartStaffNotifDrain(cfg) // H-038: drena la cola de avisos de operación al staff
 	return server.Start()
 }

@@ -1694,3 +1694,51 @@ func (c *Client) GetFamilyStatsMTD(dateStop string) (*FamilyStatsMTD, error) {
 
 	return &stats, nil
 }
+
+// ============================================================================
+// Avisos proactivos de operación al staff (H-038 — Luna interna Fase 2)
+// ----------------------------------------------------------------------------
+// Django encola avisos en NotificacionStaff cuando control_gestion crea tareas
+// (check-in → tareas RX/OPS). aremko-cli drena la cola y los envía por WhatsApp.
+
+// StaffNotif es un aviso de operación pendiente de envío.
+type StaffNotif struct {
+	ID       int    `json:"id"`
+	Telefono string `json:"telefono"`
+	Texto    string `json:"texto"`
+	DedupKey string `json:"dedup_key"`
+	Origen   string `json:"origen"`
+}
+
+// GetStaffNotificaciones trae la cola de avisos pendientes (estado pendiente).
+func (c *Client) GetStaffNotificaciones(apiKey string, limit int) ([]StaffNotif, error) {
+	if limit <= 0 {
+		limit = 50
+	}
+	u := fmt.Sprintf("%s/api/staff/notificaciones?limit=%d", c.BaseURL, limit)
+	raw, err := c.getRaw(u, apiKey, "staff notificaciones")
+	if err != nil {
+		return nil, err
+	}
+	var out struct {
+		Notificaciones []StaffNotif `json:"notificaciones"`
+	}
+	if e := json.Unmarshal(raw, &out); e != nil {
+		return nil, fmt.Errorf("error parseando staff notificaciones: %w", e)
+	}
+	return out.Notificaciones, nil
+}
+
+// MarcarStaffNotificaciones marca avisos como 'enviada' o 'fallida' (idempotencia:
+// ya marcadas no se reenvían). `errMsg` opcional para fallidas.
+func (c *Client) MarcarStaffNotificaciones(apiKey string, ids []int, estado, errMsg string) error {
+	if len(ids) == 0 {
+		return nil
+	}
+	body := map[string]interface{}{"ids": ids, "estado": estado}
+	if errMsg != "" {
+		body["error"] = errMsg
+	}
+	_, err := c.postWhatsAppRaw("/api/staff/notificaciones/marcar", apiKey, body)
+	return err
+}
