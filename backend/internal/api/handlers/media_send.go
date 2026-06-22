@@ -10,6 +10,24 @@ import (
 	"time"
 )
 
+// forceCloudinaryJPEG reescribe una URL de IMAGEN de Cloudinary para que se
+// entregue como JPEG (transformación f_jpg). Las fotos del catálogo no tienen
+// extensión, así que Cloudinary sirve el formato original (a veces WebP) que
+// WhatsApp/Meta rechazan (#546). Solo toca URLs de imagen de Cloudinary; videos
+// y otros hosts pasan sin cambios. H-035.
+func forceCloudinaryJPEG(rawURL string) string {
+	if !strings.Contains(rawURL, "res.cloudinary.com") {
+		return rawURL
+	}
+	const marker = "/image/upload/"
+	i := strings.Index(rawURL, marker)
+	if i < 0 || strings.Contains(rawURL, "f_jpg") {
+		return rawURL // no es imagen (ej. /video/upload/) o ya fuerza jpeg
+	}
+	at := i + len(marker)
+	return rawURL[:at] + "f_jpg,q_auto/" + rawURL[at:]
+}
+
 // downloadForSend baja un archivo público (foto/video del catálogo de la web) para
 // reenviarlo por un canal de la bandeja (H-025 — biblioteca de medios). Devuelve
 // bytes + MIME + filename. Corta en maxMediaBytes. Permite reusar el flujo de envío
@@ -19,6 +37,10 @@ func downloadForSend(rawURL string) ([]byte, string, string, error) {
 	if strings.TrimSpace(rawURL) == "" {
 		return nil, "", "", fmt.Errorf("media_url vacío")
 	}
+	// Las fotos del catálogo son URLs de Cloudinary SIN extensión → entrega el
+	// formato original (algunas WebP), que WhatsApp/Meta rechazan (#546). Forzamos
+	// entrega como JPEG con la transformación f_jpg. No toca videos ni otros hosts. H-035.
+	rawURL = forceCloudinaryJPEG(rawURL)
 	client := &http.Client{Timeout: 30 * time.Second}
 	resp, err := client.Get(rawURL)
 	if err != nil {
