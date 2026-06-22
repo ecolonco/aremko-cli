@@ -413,6 +413,14 @@ type WhatsAppInboundResp struct {
 	ResponderAusencia *struct {
 		Mensaje string `json:"mensaje"`
 	} `json:"responder_ausencia"`
+	// ResponderBriefing (H-037 — Luna interna): si el número es staff whitelisted y
+	// escribió un inicio de turno, Django devuelve el briefing determinístico para
+	// auto-enviarlo (sin pasar por el cajón de aprobación de Deborah).
+	ResponderBriefing *struct {
+		RespondeAuto bool   `json:"responde_auto"`
+		Texto        string `json:"texto"`
+		SugerenciaID string `json:"sugerencia_id"`
+	} `json:"responder_briefing"`
 }
 
 // PostWhatsAppInbound guarda un mensaje entrante en Django (idempotente por

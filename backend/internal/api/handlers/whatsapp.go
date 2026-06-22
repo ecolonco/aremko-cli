@@ -178,6 +178,34 @@ func handleInboundWhatsApp(cfg *config.Config, v whatsappChangeValue, msg whatsa
 		return
 	}
 
+	// Briefing interno (H-037 — Luna interna): si el número es staff whitelisted y
+	// escribió un inicio de turno, Django devuelve un briefing determinístico para
+	// auto-enviarlo SIN cajón de aprobación. Lo enviamos y registramos el saliente
+	// (eso cierra la idempotencia: el último mensaje pasa a 'out' y no se re-arma).
+	if resp != nil && resp.ResponderBriefing != nil && resp.ResponderBriefing.RespondeAuto &&
+		strings.TrimSpace(resp.ResponderBriefing.Texto) != "" {
+		if cfg.WhatsAppAccessToken == "" || cfg.WhatsAppPhoneNumberID == "" {
+			return
+		}
+		texto := resp.ResponderBriefing.Texto
+		wc := whatsapp.NewClient(cfg.WhatsAppAccessToken, cfg.WhatsAppPhoneNumberID)
+		res, e := wc.SendSessionMessage(phone, texto)
+		if e != nil {
+			log.Printf("[whatsapp] error enviando briefing interno (H-037): %v", e)
+			return
+		}
+		ts := strconv.FormatInt(time.Now().Unix(), 10)
+		if e := bc.PostWhatsAppOutbound(cfg.LunaAPIKey, bookings.WhatsAppOutboundReq{
+			WaMessageID: res.MessageID,
+			To:          phone,
+			Body:        texto,
+			Timestamp:   ts,
+		}); e != nil {
+			log.Printf("[whatsapp] error registrando saliente del briefing (H-037): %v", e)
+		}
+		return // staff auto-respondido; no seguir al flujo de ausencia/cliente
+	}
+
 	// Mensaje de ausencia (H-008): si Django indica responder (ausencia activa +
 	// fuera de la ventana anti-spam), enviamos la frase fija por la Cloud API y la
 	// registramos SIN limpiar el pendiente (no_marcar_atendido).
