@@ -119,7 +119,10 @@ export function CotizacionCajon({ propuesta, reservaCreada, onUsarTexto }: Props
         {positivos.map((s, i) => (
           <div key={i} className="flex justify-between gap-2">
             <span className="truncate">
-              {s.servicio_nombre} · {s.fecha} {s.hora} · {s.cantidad_personas}p
+              {s.es_producto || !s.fecha
+                ? // Producto (H-040): sin fecha/hora; muestra ×N solo si hay más de uno.
+                  `${s.servicio_nombre}${s.cantidad_personas > 1 ? ` ×${s.cantidad_personas}` : ''}`
+                : `${s.servicio_nombre} · ${s.fecha} ${s.hora} · ${s.cantidad_personas}p`}
             </span>
             <span className="flex-shrink-0 font-medium">{clp(s.subtotal)}</span>
           </div>

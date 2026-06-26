@@ -226,10 +226,11 @@ export interface PropuestaReserva {
   total: number;
   servicios: {
     servicio_nombre: string;
-    fecha: string;
-    hora: string;
+    fecha: string | null; // H-040: null si la línea es un producto (tabla/jugo)
+    hora: string | null;
     cantidad_personas: number;
     subtotal: number;
+    es_producto?: boolean; // H-040: línea de producto agregado a la propuesta (sin fecha/hora)
   }[];
   // H-039: link firmado de la cotización boutique (lo expone Django; no es generable
   // desde aquí). Si viene, el cajón muestra el borrador con este link para que Deborah
