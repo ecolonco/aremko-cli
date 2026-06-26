@@ -214,6 +214,8 @@ export interface ConversacionInboxResponse {
   sugerencia_agente?: SugerenciaAgente | null;
   // Propuesta de reserva pendiente de aprobación de Deborah (H-028). Null si no hay.
   propuesta_reserva?: PropuestaReserva | null;
+  // Reserva recién creada por el Aprobar del cliente (H-039). Null si no hay.
+  reserva_creada?: ReservaCreada | null;
 }
 
 // Propuesta de reserva que Luna armó y el cliente confirmó (H-028). Deborah la
@@ -229,6 +231,21 @@ export interface PropuestaReserva {
     cantidad_personas: number;
     subtotal: number;
   }[];
+  // H-039: link firmado de la cotización boutique (lo expone Django; no es generable
+  // desde aquí). Si viene, el cajón muestra el borrador con este link para que Deborah
+  // lo envíe → el cliente abre la cotización y la aprueba.
+  url_cotizacion?: string | null;
+}
+
+// Reserva ya creada tras el Aprobar del cliente en la cotización (H-039, Fase 3).
+// Django la expone en el payload de la conversación cuando la última PropuestaReserva
+// del hilo quedó en estado 'creada'. El cajón muestra "Revisar y enviar Ficha".
+export interface ReservaCreada {
+  reserva_id: number;
+  numero: string;
+  total: number;
+  resumen?: string | null;
+  url_ficha?: string | null; // link firmado de la Ficha del cliente (Django)
 }
 
 // Sugerencia del agente IA (H-007, Fase 1) para el último entrante sin responder.
@@ -250,6 +267,7 @@ export interface ConversacionWhatsAppResponse {
   messages: MensajeWhatsApp[];
   sugerencia_agente?: SugerenciaAgente | null;
   propuesta_reserva?: PropuestaReserva | null;
+  reserva_creada?: ReservaCreada | null;
 }
 
 // Config del agente IA de WhatsApp (H-007). El backend la proxea a Django.

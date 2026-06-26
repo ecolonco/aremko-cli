@@ -35,8 +35,8 @@ import {
   limpiarConversacion,
 } from './api';
 import { BibliotecaMedios } from './BibliotecaMedios';
-import type { MensajeWhatsApp, SugerenciaAgente, PropuestaReserva } from './types';
-import { BotonCrearReserva } from './BotonCrearReserva';
+import type { MensajeWhatsApp, SugerenciaAgente, PropuestaReserva, ReservaCreada } from './types';
+import { CotizacionCajon } from './CotizacionCajon';
 
 interface ConversacionWhatsAppProps {
   /** Teléfono del cliente en cualquier formato; se normaliza a E.164 internamente. */
@@ -152,6 +152,7 @@ export function ConversacionWhatsApp({
   const [mensajes, setMensajes] = useState<MensajeWhatsApp[]>([]);
   const [sugerencia, setSugerencia] = useState<SugerenciaAgente | null>(null);
   const [propuesta, setPropuesta] = useState<PropuestaReserva | null>(null);
+  const [reservaCreada, setReservaCreada] = useState<ReservaCreada | null>(null);
   const sugerenciaAplicadaRef = useRef<string | null>(null);
   // Para auto-generar el borrador al llegar un entrante nuevo (sin tocar nada).
   const ultimoInboundRef = useRef<string | null>(null);
@@ -286,6 +287,7 @@ export function ConversacionWhatsApp({
         // pide → conservamos la última).
         if (pedirSugerencia) setSugerencia(data.sugerencia_agente ?? null);
         setPropuesta(data.propuesta_reserva ?? null); // H-028: propuesta pendiente de aprobar
+        setReservaCreada(data.reserva_creada ?? null); // H-039: reserva creada por el Aprobar del cliente
         setError(null);
       } catch (e: unknown) {
         setError(e instanceof Error ? e.message : 'Error al cargar la conversación');
@@ -665,14 +667,11 @@ export function ConversacionWhatsApp({
 
       {/* Caja de respuesta */}
       <div className="flex-shrink-0 space-y-2 border-t border-slate-200 p-3">
-        {propuesta && (
-          <BotonCrearReserva
+        {(propuesta || reservaCreada) && (
+          <CotizacionCajon
             propuesta={propuesta}
-            onCreada={(resumenTexto) => {
-              setPropuesta(null);
-              if (resumenTexto) setTexto(resumenTexto); // Deborah lo envía al cliente
-              setTimeout(() => cargar(true), 800);
-            }}
+            reservaCreada={reservaCreada}
+            onUsarTexto={(texto) => setTexto(texto)} // Deborah revisa y lo envía al cliente
           />
         )}
         {!ventanaAbierta && mensajes.length > 0 && (

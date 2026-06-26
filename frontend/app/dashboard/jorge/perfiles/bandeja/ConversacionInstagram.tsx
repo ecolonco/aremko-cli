@@ -5,8 +5,8 @@ import { ArrowLeft, Camera as Instagram, MessageCircle, Loader2, RefreshCw, Chec
 import { Button } from '@/components/ui/button';
 import { fetchConversacionInbox, marcarAtendidoInbox, responderInstagram, responderMessenger, enviarAdjuntoMeta, enviarAdjuntoURL } from './api';
 import { BibliotecaMedios } from './BibliotecaMedios';
-import type { CanalMensaje, MensajeInbox, SugerenciaAgente, PropuestaReserva } from './types';
-import { BotonCrearReserva } from './BotonCrearReserva';
+import type { CanalMensaje, MensajeInbox, SugerenciaAgente, PropuestaReserva, ReservaCreada } from './types';
+import { CotizacionCajon } from './CotizacionCajon';
 
 interface Props {
   externalId: string; // IGSID (Instagram) o PSID (Messenger) del cliente
@@ -88,6 +88,7 @@ export function ConversacionInstagram({ externalId, nombre, canal = 'instagram',
   const [sendError, setSendError] = useState<string | null>(null);
   const [sugerencia, setSugerencia] = useState<SugerenciaAgente | null>(null);
   const [propuesta, setPropuesta] = useState<PropuestaReserva | null>(null);
+  const [reservaCreada, setReservaCreada] = useState<ReservaCreada | null>(null);
   const [biblioteca, setBiblioteca] = useState(false);
   const finRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -102,6 +103,7 @@ export function ConversacionInstagram({ externalId, nombre, canal = 'instagram',
         const data = await fetchConversacionInbox(canal, externalId, 200, conSugerencia);
         setMensajes(data.messages || []);
         setPropuesta(data.propuesta_reserva ?? null); // H-028: propuesta pendiente de aprobar
+        setReservaCreada(data.reserva_creada ?? null); // H-039: reserva creada por el Aprobar del cliente
         if (conSugerencia && data.sugerencia_agente) {
           setSugerencia(data.sugerencia_agente);
           const s = data.sugerencia_agente;
@@ -295,14 +297,11 @@ export function ConversacionInstagram({ externalId, nombre, canal = 'instagram',
       </div>
 
       <div className="flex-shrink-0 space-y-2 border-t border-slate-200 p-3">
-        {propuesta && (
-          <BotonCrearReserva
+        {(propuesta || reservaCreada) && (
+          <CotizacionCajon
             propuesta={propuesta}
-            onCreada={(resumenTexto) => {
-              setPropuesta(null);
-              if (resumenTexto) setInput(resumenTexto); // Deborah lo envía al cliente
-              setTimeout(() => cargarRef.current(true), 800);
-            }}
+            reservaCreada={reservaCreada}
+            onUsarTexto={(texto) => setInput(texto)} // Deborah revisa y lo envía al cliente
           />
         )}
         {sendError && (
