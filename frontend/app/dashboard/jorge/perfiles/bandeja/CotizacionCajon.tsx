@@ -1,10 +1,16 @@
 'use client';
 
-import { FileText, CalendarCheck, Send, AlertTriangle } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { FileText, CalendarCheck, Send, AlertTriangle, X } from 'lucide-react';
 import type { PropuestaReserva, ReservaCreada } from './types';
 
 const clp = (n: number) =>
   new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(n);
+
+// Reservas creadas que Deborah ya cerró en el cajón (tras enviar la Ficha). Se guarda
+// en el navegador para que el banner verde NO reaparezca al Actualizar (Django lo sigue
+// devolviendo hasta 48h). Por estación, no por servidor.
+const STORAGE_KEY = 'aremko:reservas_creadas_cerradas';
 
 interface Props {
   propuesta: PropuestaReserva | null; // pendiente de que el cliente apruebe
@@ -24,15 +30,47 @@ const borradorFicha = (url: string) =>
 // Ficha". Reemplaza al viejo botón "Crear reserva" (ahora la reserva la crea el
 // cliente al aprobar la cotización, no Deborah).
 export function CotizacionCajon({ propuesta, reservaCreada, onUsarTexto }: Props) {
+  // IDs de reservas creadas que Deborah ya cerró en este navegador (persisten).
+  const [cerradas, setCerradas] = useState<number[]>([]);
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) setCerradas(JSON.parse(raw));
+    } catch {
+      /* localStorage no disponible → el banner simplemente no se persiste cerrado */
+    }
+  }, []);
+  const cerrarReserva = (id: number) => {
+    setCerradas((prev) => {
+      const next = prev.includes(id) ? prev : [...prev, id];
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+      } catch {
+        /* sin persistencia; se cierra al menos en esta vista */
+      }
+      return next;
+    });
+  };
+
   // Estado 2 — reserva ya creada por el Aprobar del cliente → enviar la Ficha.
-  // (Prioriza sobre la propuesta, que a esta altura ya debería venir null.)
-  if (reservaCreada) {
+  // (Prioriza sobre la propuesta, que a esta altura ya debería venir null.) Si Deborah
+  // ya la cerró, cae al estado de propuesta (normalmente null → no muestra nada).
+  if (reservaCreada && !cerradas.includes(reservaCreada.reserva_id)) {
     const urlFicha = reservaCreada.url_ficha;
     return (
       <div className="rounded-md border border-emerald-300 bg-emerald-50 p-2.5 text-xs">
-        <div className="mb-1.5 flex items-center gap-1.5 font-semibold text-emerald-900">
-          <CalendarCheck className="h-4 w-4 flex-shrink-0" />
-          Reserva creada Nº {reservaCreada.numero} — revisa y envía la Ficha
+        <div className="mb-1.5 flex items-start gap-1.5 font-semibold text-emerald-900">
+          <CalendarCheck className="mt-0.5 h-4 w-4 flex-shrink-0" />
+          <span className="flex-1">Reserva creada Nº {reservaCreada.numero} — revisa y envía la Ficha</span>
+          <button
+            type="button"
+            onClick={() => cerrarReserva(reservaCreada.reserva_id)}
+            aria-label="Cerrar aviso"
+            title="Cerrar aviso"
+            className="-mr-0.5 -mt-0.5 flex-shrink-0 rounded p-0.5 text-emerald-700 hover:bg-emerald-100 hover:text-emerald-900"
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
         </div>
         <div className="flex justify-between gap-2 text-emerald-900/90">
           <span>Total</span>
