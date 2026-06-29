@@ -891,6 +891,42 @@ Genera un análisis EJECUTIVO PROFUNDO siguiendo EXACTAMENTE la estructura del s
 	return c.Generate(ctx, c.wrapAnalysisPrompt(systemPrompt), userPrompt, "google/gemini-2.5-pro", 0.5, 12000)
 }
 
+// GenerateGoogleAdsAnalysis genera el análisis ejecutivo de Google Ads (Búsqueda)
+// para el reporte diario por email. Reusa los bloques compartidos del analista
+// ejecutivo y agrega una estructura específica de Search (keywords, Quality Score,
+// términos de búsqueda, CPL por campaña).
+func (c *OpenRouterClient) GenerateGoogleAdsAnalysis(ctx context.Context, googleAdsData map[string]interface{}) (*LLMResult, error) {
+	roleIntro := `Eres el analista ejecutivo de Aremko Spa Boutique especializado en Google Ads (Búsqueda). Tu trabajo es transformar las métricas de campañas de Search en decisiones concretas sobre keywords, pujas, presupuesto, Quality Score y términos de búsqueda.
+
+Google Ads = CAPTURA de demanda (gente que YA busca). Métricas primarias: CONVERSIONES, CPL (costo por conversión), Quality Score y términos de búsqueda; CTR/CPC son soporte. Contexto de mercado: Puerto Varas es chico → muchas keywords muy específicas caen en "bajo volumen" y casi no muestran; las amplias/genéricas ("spa puerto varas", "masaje puerto varas") traen el tráfico. Las 3 campañas de Aremko en Search: Refugio (2 noches $290K), Ritual del Río (noche $210K) y Pausa junto al río (día $110K, recién lanzada). La conversión real (lead) llega por WhatsApp; el píxel/GA4 atribuye, no contabiliza.`
+
+	domainStructure := `## 🌿 Refugio Search — SOLO SI EL PAYLOAD TRAE google_ads.refugio
+Si existe google_ads.refugio, va primero: gasto vs presupuesto (summary.budget_pct_used), conversiones y CPL (summary.cpl) vs umbral verde <$10.000 CLP. Términos de búsqueda (search_terms): 3 con mejor CPL + negativas sugeridas (búsquedas con clics y 0 conversiones). Quality Score (quality_scores): keywords con QS<5 encarecen el CPC 25-50% → recomendar mejorar relevancia de anuncio/landing.
+
+## 🔍 Campañas de Search (todas)
+Para cada campaña en google_ads.campaigns: gasto, clics, conversiones, CPL. Identifica por NOMBRE las nuevas — "Ritual del Río - Search" y "Pausa junto al río - Search" — y su arranque. REGLA DE VOLUMEN: si una campaña tiene <5 clics en la semana, dilo SIN alarmar (mercado chico + keywords en "bajo volumen"); la palanca es priorizar keywords amplias + subir puja/presupuesto, NO declarar fracaso. Si una campaña tiene 0 datos porque recién se lanzó, márcala como "en activación".
+
+## Keywords y términos de búsqueda
+Resume el patrón de intención que revelan los términos de búsqueda (qué busca realmente la gente) y qué negativas agregar. Si faltan datos de QS/términos, decláralo como visibilidad pendiente, no inventes.`
+
+	systemPrompt := roleIntro + "\n\n" + executiveAnalystCore + "\n\n" + executiveOutputStructureBase + "\n" + domainStructure + "\n" + executiveOutputStructureTail
+
+	dataJSON, err := json.MarshalIndent(googleAdsData, "", "  ")
+	if err != nil {
+		return &LLMResult{Error: fmt.Sprintf("error marshaling data: %v", err)}, err
+	}
+
+	userPrompt := fmt.Sprintf(`FECHA ACTUAL DEL ANÁLISIS: %s (úsala para vigencia/estacionalidad).
+
+Analiza estos datos de Google Ads (Búsqueda) de Aremko Spa (spa boutique en Puerto Varas, Chile):
+
+%s
+
+Genera un análisis EJECUTIVO siguiendo EXACTAMENTE la estructura del system prompt. Ancla cada afirmación a números del payload. Si el volumen es bajo (mercado chico / keywords en bajo volumen), dilo sin alarmar y enfócate en cómo destrabar volumen (keywords amplias, presupuesto, Quality Score), no en pausar.`, time.Now().Format("2006-01-02"), string(dataJSON))
+
+	return c.Generate(ctx, c.wrapAnalysisPrompt(systemPrompt), userPrompt, "google/gemini-2.5-pro", 0.5, 12000)
+}
+
 // GenerateSocialAnalysis genera UN informe unificado de TODO el bloque Social:
 // orgánico (Instagram @aremkospa + Página de Facebook) y pagado (Meta Ads, incl.
 // Refugio, y Google Ads Refugio si existe). Analiza cada parte y, sobre todo, las

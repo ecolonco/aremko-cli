@@ -5,6 +5,7 @@
 package report
 
 import (
+	"encoding/json"
 	"fmt"
 	"html"
 	"sort"
@@ -311,6 +312,69 @@ func BuildCuadros(meta map[string]interface{}) string {
 		}
 	}
 
+	return b.String()
+}
+
+// BuildCuadrosGoogleAds arma las tablas HTML del reporte de Google Ads (Búsqueda)
+// desde el map de getGoogleAdsData. Normaliza a maps genéricos (los datos vienen
+// con structs de googleads) para leer con num()/str() sin acoplar a ese paquete.
+func BuildCuadrosGoogleAds(ga map[string]interface{}) string {
+	norm := ga
+	if b, err := json.Marshal(ga); err == nil {
+		tmp := map[string]interface{}{}
+		if json.Unmarshal(b, &tmp) == nil {
+			norm = tmp
+		}
+	}
+
+	var b strings.Builder
+
+	// Cuadro 1 — Campañas de Google con actividad (top por gasto).
+	if camps, ok := norm["campaigns"].([]interface{}); ok && len(camps) > 0 {
+		rows := make([]map[string]interface{}, 0, len(camps))
+		for _, c := range camps {
+			if m, ok := c.(map[string]interface{}); ok {
+				if num(m["cost_clp"]) > 0 || num(m["clicks"]) > 0 {
+					rows = append(rows, m)
+				}
+			}
+		}
+		sort.Slice(rows, func(i, j int) bool { return num(rows[i]["cost_clp"]) > num(rows[j]["cost_clp"]) })
+		if len(rows) > 10 {
+			rows = rows[:10]
+		}
+		if len(rows) > 0 {
+			b.WriteString(tableTitle("🔍 Google Ads — campañas (período)"))
+			b.WriteString(tableOpen([]string{"Campaña", "Gasto", "Clics", "Conv.", "CPC"}))
+			for _, c := range rows {
+				b.WriteString(tr([]string{
+					tdName(str(c["campaign_name"])),
+					tdR(clp(num(c["cost_clp"]))),
+					tdR(fmt.Sprintf("%.0f", num(c["clicks"]))),
+					tdR(fmt.Sprintf("%.0f", num(c["conversions"]))),
+					tdR(clp(num(c["avg_cpc"]))),
+				}))
+			}
+			b.WriteString(tableClose())
+		}
+	}
+
+	// Cuadro 2 — Refugio (Google) resumen.
+	if ref, ok := norm["refugio"].(map[string]interface{}); ok {
+		if s, ok := ref["summary"].(map[string]interface{}); ok {
+			b.WriteString(tableTitle("🌿 Refugio (Google) — resumen"))
+			b.WriteString(kvTable([][2]string{
+				{"Gasto", clp(num(s["spend"])) + " de " + clp(num(s["budget_total_clp"])) + fmt.Sprintf(" (%.0f%%)", num(s["budget_pct_used"]))},
+				{"Clics", fmt.Sprintf("%.0f", num(s["clicks"]))},
+				{"Conversiones", fmt.Sprintf("%.0f", num(s["conversions"]))},
+				{"CPL (costo/conv.)", cplOrDash(num(s["cpl"]), num(s["conversions"]))},
+			}))
+		}
+	}
+
+	if b.Len() == 0 {
+		b.WriteString("<p style=\"color:#9ca3af;font-size:13px\">Sin actividad de Google Ads en el período (campañas de bajo volumen / sin clics).</p>")
+	}
 	return b.String()
 }
 

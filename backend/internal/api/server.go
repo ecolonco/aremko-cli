@@ -106,6 +106,9 @@ func (s *Server) setupRoutes() {
 		// Reporte diario por email (cron-job.org) — análisis Meta Ads a la lista de distribución
 		r.Get("/cron/reporte-diario", handlers.ReporteDiarioMetaAds(s.config))
 		r.Post("/cron/reporte-diario", handlers.ReporteDiarioMetaAds(s.config))
+		// Reporte diario de Google Ads (Búsqueda), en paralelo al de Meta.
+		r.Get("/cron/reporte-diario-google", handlers.ReporteDiarioGoogleAds(s.config))
+		r.Post("/cron/reporte-diario-google", handlers.ReporteDiarioGoogleAds(s.config))
 
 		// Sales AI Analysis
 		r.Post("/analytics/sales/analyze", handlers.AnalyzeSales(s.config))
