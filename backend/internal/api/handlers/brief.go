@@ -607,6 +607,20 @@ func getMetaAdsData(cfg *config.Config, dateStart, dateStop string) (map[string]
 		allRecent = allRecent[:10]
 	}
 
+	// Tope defensivo del payload: al monitorear cuentas con MUCHAS campañas
+	// históricas (p.ej. la operativa con 200+ boosts viejos), la lista semanal
+	// puede inflar la request al LLM y hacerla fallar. El análisis solo mira el
+	// top por inversión, así que ordenamos por gasto y dejamos las 60 mayores.
+	campaignsTotal := len(allCampaigns)
+	sort.Slice(allCampaigns, func(i, j int) bool {
+		si, _ := allCampaigns[i]["spend"].(float64)
+		sj, _ := allCampaigns[j]["spend"].(float64)
+		return si > sj
+	})
+	if len(allCampaigns) > 60 {
+		allCampaigns = allCampaigns[:60]
+	}
+
 	avgCTR := pctSafe(totalClicks, totalImpressions)
 	avgCPC := divSafe(totalSpend, float64(totalClicks))
 	avgCPM := divSafe(totalSpend*1000, float64(totalImpressions))
@@ -632,7 +646,7 @@ func getMetaAdsData(cfg *config.Config, dateStart, dateStop string) (map[string]
 			"cpc":         avgCPC,
 			"cpm":         avgCPM,
 		},
-		"campaigns_count":   len(allCampaigns),
+		"campaigns_count":   campaignsTotal,
 		"campaigns":         allCampaigns,
 		"recent_campaigns":  allRecent,
 		"recent_range_days": 90,

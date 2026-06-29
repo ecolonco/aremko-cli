@@ -49,6 +49,7 @@ func ReporteDiarioMetaAds(cfg *config.Config) http.HandlerFunc {
 		dateStart := time.Now().AddDate(0, 0, -8).Format("2006-01-02")
 		metaData, err := getMetaAdsData(cfg, dateStart, dateStop)
 		if err != nil {
+			fmt.Println("[REPORTE] ERROR getMetaAdsData:", err)
 			respondError(w, http.StatusInternalServerError, "no se pudo traer Meta Ads: "+err.Error())
 			return
 		}
@@ -59,10 +60,12 @@ func ReporteDiarioMetaAds(cfg *config.Config) http.HandlerFunc {
 		fmt.Println("[REPORTE] Generando análisis Meta Ads para el correo diario...")
 		analysis, err := aiClient.GenerateMetaAdsAnalysis(ctx, metaData)
 		if err != nil {
+			fmt.Println("[REPORTE] ERROR GenerateMetaAdsAnalysis:", err)
 			respondError(w, http.StatusInternalServerError, "fallo el análisis IA: "+err.Error())
 			return
 		}
 		if analysis.Error != "" {
+			fmt.Println("[REPORTE] ERROR analysis.Error:", analysis.Error)
 			respondError(w, http.StatusInternalServerError, "análisis IA: "+analysis.Error)
 			return
 		}
