@@ -302,6 +302,7 @@ export function ConversacionInstagram({ externalId, nombre, canal = 'instagram',
             propuesta={propuesta}
             reservaCreada={reservaCreada}
             onUsarTexto={(texto) => setInput(texto)} // Deborah revisa y lo envía al cliente
+            onRefrescar={() => cargar(true)} // H-042: tras editar/cerrar, releer la conversación
           />
         )}
         {sendError && (

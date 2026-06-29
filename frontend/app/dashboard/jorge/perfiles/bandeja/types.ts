@@ -226,6 +226,10 @@ export interface PropuestaReserva {
   total: number;
   servicios: {
     servicio_nombre: string;
+    // H-042: ids para editar la cotización. Las líneas reales traen uno u otro;
+    // la línea sintética de "Descuento de servicios" no trae ninguno (no editable).
+    servicio_id?: number; // servicio (tina/masaje/cabaña)
+    producto_id?: number; // producto (es_producto:true); su cantidad va en cantidad_personas
     fecha: string | null; // H-040: null si la línea es un producto (tabla/jugo)
     hora: string | null;
     cantidad_personas: number;

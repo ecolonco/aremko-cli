@@ -663,6 +663,21 @@ func (c *Client) CrearReservaLuna(apiKey, propuestaID string) ([]byte, error) {
 		map[string]string{"propuesta_id": propuestaID})
 }
 
+// EditarPropuestaLuna corrige una propuesta de reserva (H-042): REEMPLAZO TOTAL de
+// servicios + productos (no es un PATCH por línea). Django re-lee los precios del
+// catálogo y recalcula total + descuento de pack con la fuente única
+// (recalcular_propuesta). Devuelve el JSON crudo `{success, total, resumen_texto, ...}`.
+func (c *Client) EditarPropuestaLuna(apiKey string, payload interface{}) ([]byte, error) {
+	return c.postWhatsAppRaw("/api/luna/reservas/editar/", apiKey, payload)
+}
+
+// DescartarPropuestaLuna cierra/descarta el borrador de cotización (H-042): la marca
+// como 'descartada' → deja de ser vigente y desaparece del cajón. JSON crudo.
+func (c *Client) DescartarPropuestaLuna(apiKey, propuestaID string) ([]byte, error) {
+	return c.postWhatsAppRaw("/api/luna/reservas/descartar/", apiKey,
+		map[string]string{"propuesta_id": propuestaID})
+}
+
 // GetResumenReservaRaw trae el resumen de una reserva creada (H-028): nº + detalle
 // + banco/transferencia + mail comprobante. Es el texto que Luna manda al cliente.
 func (c *Client) GetResumenReservaRaw(apiKey string, reservaID int) ([]byte, error) {

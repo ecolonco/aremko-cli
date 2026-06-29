@@ -626,6 +626,68 @@ export const crearReservaLuna = async (propuestaId: string): Promise<CrearReserv
   return json as CrearReservaResult;
 };
 
+/** H-042: una línea de servicio en la edición (reemplazo total; sin precios). */
+export interface EditarPropuestaServicio {
+  servicio_id: number;
+  fecha: string | null;
+  hora: string | null;
+  cantidad_personas: number;
+}
+
+/** H-042: una línea de producto en la edición (la cantidad va aquí, no en personas). */
+export interface EditarPropuestaProducto {
+  producto_id: number;
+  cantidad: number;
+}
+
+/** H-042: resultado de corregir la cotización (Django recalcula total y descuento). */
+export interface EditarPropuestaResult {
+  success: boolean;
+  propuesta_id: string;
+  resumen_texto?: string;
+  total?: number;
+  servicios_count?: number;
+  productos_count?: number;
+}
+
+/**
+ * H-042: Deborah corrige la cotización antes de enviarla. Es REEMPLAZO TOTAL: se
+ * mandan las listas COMPLETAS finales (ids + cantidades), NO precios. Django re-lee
+ * el catálogo y recalcula total + descuento. Tras esto hay que releer la conversación.
+ */
+export const editarPropuestaLuna = async (
+  propuestaId: string,
+  servicios: EditarPropuestaServicio[],
+  productos: EditarPropuestaProducto[]
+): Promise<EditarPropuestaResult> => {
+  const res = await fetch(`${apiBase()}/api/v1/luna/editar-reserva`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ propuesta_id: propuestaId, servicios, productos }),
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok || json.success === false) {
+    throw new Error(json.error || `HTTP ${res.status}`);
+  }
+  return json as EditarPropuestaResult;
+};
+
+/** H-042: Deborah cierra/descarta el borrador de cotización desde la conversación. */
+export const descartarPropuestaLuna = async (
+  propuestaId: string
+): Promise<{ success: boolean; estado?: string }> => {
+  const res = await fetch(`${apiBase()}/api/v1/luna/descartar-reserva`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ propuesta_id: propuestaId }),
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok || json.success === false) {
+    throw new Error(json.error || `HTTP ${res.status}`);
+  }
+  return json;
+};
+
 /** PRUEBAS: borra el historial + carrito de un teléfono. Destructivo (confirmar antes). */
 export const limpiarConversacion = async (
   phone: string

@@ -672,6 +672,7 @@ export function ConversacionWhatsApp({
             propuesta={propuesta}
             reservaCreada={reservaCreada}
             onUsarTexto={(texto) => setTexto(texto)} // Deborah revisa y lo envía al cliente
+            onRefrescar={() => cargar(true)} // H-042: tras editar/cerrar, releer la conversación
           />
         )}
         {!ventanaAbierta && mensajes.length > 0 && (

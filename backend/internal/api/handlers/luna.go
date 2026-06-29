@@ -94,3 +94,82 @@ func LunaCrearReserva(cfg *config.Config) http.HandlerFunc {
 		})
 	}
 }
+
+// LunaEditarPropuesta corrige una propuesta de reserva antes de enviarla (H-042).
+// Reenvía a Django POST /api/luna/reservas/editar/ con REEMPLAZO TOTAL de servicios +
+// productos. NO mandamos precios: Django re-lee el catálogo y recalcula total/descuento.
+// Tras esto el front relee la conversación y el cajón se repinta con el total corregido.
+func LunaEditarPropuesta(cfg *config.Config) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if cfg.LunaAPIKey == "" || cfg.BookingSystemURL == "" {
+			respondError(w, http.StatusServiceUnavailable, "Django no configurado")
+			return
+		}
+		var body struct {
+			PropuestaID string `json:"propuesta_id"`
+			Servicios   []struct {
+				ServicioID       int    `json:"servicio_id"`
+				Fecha            string `json:"fecha"`
+				Hora             string `json:"hora"`
+				CantidadPersonas int    `json:"cantidad_personas"`
+			} `json:"servicios"`
+			Productos []struct {
+				ProductoID int `json:"producto_id"`
+				Cantidad   int `json:"cantidad"`
+			} `json:"productos"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil || strings.TrimSpace(body.PropuestaID) == "" {
+			respondError(w, http.StatusBadRequest, "se requiere 'propuesta_id'")
+			return
+		}
+		// Django también lo valida, pero cortamos temprano: debe quedar ≥1 servicio.
+		if len(body.Servicios) == 0 {
+			respondError(w, http.StatusBadRequest, "la cotización debe quedar con al menos un servicio")
+			return
+		}
+		body.PropuestaID = strings.TrimSpace(body.PropuestaID)
+		if body.Productos == nil {
+			body.Productos = []struct {
+				ProductoID int `json:"producto_id"`
+				Cantidad   int `json:"cantidad"`
+			}{}
+		}
+
+		raw, err := bookings.NewClient(cfg.BookingSystemURL).EditarPropuestaLuna(cfg.LunaAPIKey, body)
+		if err != nil {
+			// Propaga el detalle de Django (no_editable / expirada / validation_error / etc.).
+			respondError(w, http.StatusBadGateway, err.Error())
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write(raw)
+	}
+}
+
+// LunaDescartarPropuesta cierra/descarta el borrador de cotización desde la
+// conversación (H-042). Reenvía a Django POST /api/luna/reservas/descartar/. La
+// propuesta queda 'descartada' → desaparece del cajón en la próxima lectura.
+func LunaDescartarPropuesta(cfg *config.Config) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if cfg.LunaAPIKey == "" || cfg.BookingSystemURL == "" {
+			respondError(w, http.StatusServiceUnavailable, "Django no configurado")
+			return
+		}
+		var body struct {
+			PropuestaID string `json:"propuesta_id"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil || strings.TrimSpace(body.PropuestaID) == "" {
+			respondError(w, http.StatusBadRequest, "se requiere 'propuesta_id'")
+			return
+		}
+		raw, err := bookings.NewClient(cfg.BookingSystemURL).DescartarPropuestaLuna(cfg.LunaAPIKey, strings.TrimSpace(body.PropuestaID))
+		if err != nil {
+			respondError(w, http.StatusBadGateway, err.Error())
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write(raw)
+	}
+}

@@ -201,6 +201,9 @@ func (s *Server) setupRoutes() {
 		r.Get("/inbox/media-library", handlers.InboxMediaLibrary(s.config))
 		// H-028: Deborah aprueba una propuesta → crea la reserva + trae el resumen.
 		r.Post("/luna/crear-reserva", handlers.LunaCrearReserva(s.config))
+			// H-042: Deborah corrige (editar) o cierra (descartar) el borrador de cotización.
+			r.Post("/luna/editar-reserva", handlers.LunaEditarPropuesta(s.config))
+			r.Post("/luna/descartar-reserva", handlers.LunaDescartarPropuesta(s.config))
 		r.Get("/resumen-reserva/{id}", handlers.ResumenReserva(s.config))
 		// Utilidad de pruebas: borrar historial + carrito de un teléfono.
 		r.Post("/inbox/limpiar-conversacion", handlers.InboxLimpiarConversacion(s.config))
