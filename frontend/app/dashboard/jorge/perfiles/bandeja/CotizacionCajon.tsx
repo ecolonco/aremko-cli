@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   FileText,
   CalendarCheck,
@@ -98,6 +98,21 @@ export function CotizacionCajon({ propuesta, reservaCreada, carrito, onUsarTexto
       return next;
     });
   };
+
+  // H-048 — al aparecer una propuesta nueva con link, autocargar el mensaje
+  // conversacional (saludo + link de cotización) en el campo de respuesta, para
+  // que Deborah no vea el cajón mudo y solo apriete enviar. Se hace UNA vez por
+  // propuesta (ref por propuesta_id): no re-carga en cada poll ni pisa lo que
+  // Deborah escriba después. El botón "Poner cotización en el mensaje" sigue para recargar.
+  const autoCargadoRef = useRef<string | null>(null);
+  useEffect(() => {
+    const url = propuesta?.url_cotizacion;
+    const id = propuesta?.propuesta_id;
+    if (id && url && autoCargadoRef.current !== id) {
+      autoCargadoRef.current = id;
+      onUsarTexto(borradorCotizacion(url));
+    }
+  }, [propuesta?.propuesta_id, propuesta?.url_cotizacion, onUsarTexto]);
 
   // H-042 — estado de edición / cierre de la propuesta.
   const [modo, setModo] = useState<'ver' | 'editar'>('ver');
