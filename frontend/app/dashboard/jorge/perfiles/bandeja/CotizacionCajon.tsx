@@ -13,8 +13,9 @@ import {
   Plus,
   Check,
   Loader2,
+  ShoppingCart,
 } from 'lucide-react';
-import type { PropuestaReserva, ReservaCreada } from './types';
+import type { PropuestaReserva, ReservaCreada, CarritoEnCurso } from './types';
 import { editarPropuestaLuna, descartarPropuestaLuna } from './api';
 
 const clp = (n: number) =>
@@ -28,6 +29,7 @@ const STORAGE_KEY = 'aremko:reservas_creadas_cerradas';
 interface Props {
   propuesta: PropuestaReserva | null; // pendiente de que el cliente apruebe
   reservaCreada: ReservaCreada | null; // ya aprobada por el cliente (H-039)
+  carrito: CarritoEnCurso | null; // H-046: carrito que Luna arma antes de cotizar (solo lectura)
   // Pone un borrador en el cajón para que Deborah lo revise y lo envíe.
   onUsarTexto: (texto: string) => void;
   // H-042: tras editar o descartar la cotización, releer la conversación para repintar
@@ -74,7 +76,7 @@ const construirLineas = (p: PropuestaReserva): LineaEditable[] =>
 // la cotización (link que envía Deborah) y, tras el Aprobar del cliente, el banner pasa
 // a "Revisar y enviar Ficha". Deborah puede CORREGIR (cantidades / quitar líneas) y
 // CERRAR el borrador antes de enviarlo.
-export function CotizacionCajon({ propuesta, reservaCreada, onUsarTexto, onRefrescar }: Props) {
+export function CotizacionCajon({ propuesta, reservaCreada, carrito, onUsarTexto, onRefrescar }: Props) {
   // IDs de reservas creadas que Deborah ya cerró en este navegador (persisten).
   const [cerradas, setCerradas] = useState<number[]>([]);
   useEffect(() => {
@@ -210,7 +212,52 @@ export function CotizacionCajon({ propuesta, reservaCreada, onUsarTexto, onRefre
     );
   }
 
-  if (!propuesta) return null;
+  // Estado 0 — Carrito en curso (H-046, Fase 1: SOLO LECTURA). Se muestra cuando aún
+  // NO hay propuesta (Django garantiza carrito null si ya hay propuesta vigente).
+  // Mismo render que el cajón pero en gris, sin botones: Deborah ve el carrito
+  // llenándose en vivo con el polling. Al cotizar, Django manda carrito null → este
+  // panel desaparece y aparece el cajón ámbar de la propuesta.
+  if (!propuesta) {
+    if (carrito && carrito.servicios.length > 0) {
+      const cPositivos = carrito.servicios.filter(
+        (s) => s.subtotal > 0 && !/descuento/i.test(s.servicio_nombre),
+      );
+      const cBruto = cPositivos.reduce((acc, s) => acc + s.subtotal, 0);
+      const cDescuento = cBruto > 0 ? cBruto - carrito.total : 0;
+      return (
+        <div className="rounded-md border border-slate-300 bg-slate-50 p-2.5 text-xs">
+          <div className="mb-1.5 flex items-center gap-1.5 font-semibold text-slate-700">
+            <ShoppingCart className="h-4 w-4 flex-shrink-0" />
+            Carrito en curso
+          </div>
+          <div className="space-y-0.5 text-slate-600">
+            {cPositivos.map((s, i) => (
+              <div key={i} className="flex justify-between gap-2">
+                <span className="truncate">
+                  {s.es_producto || !s.fecha
+                    ? `${s.servicio_nombre}${s.cantidad_personas > 1 ? ` ×${s.cantidad_personas}` : ''}`
+                    : `${s.servicio_nombre} · ${s.fecha} ${s.hora} · ${s.cantidad_personas}p`}
+                </span>
+                <span className="flex-shrink-0 font-medium">{clp(s.subtotal)}</span>
+              </div>
+            ))}
+            {cDescuento > 0 && (
+              <div className="flex justify-between gap-2 text-emerald-700">
+                <span>Descuento</span>
+                <span className="font-medium">−{clp(cDescuento)}</span>
+              </div>
+            )}
+            <div className="flex justify-between gap-2 border-t border-slate-200 pt-0.5 font-semibold text-slate-700">
+              <span>Total parcial</span>
+              <span>{clp(carrito.total)}</span>
+            </div>
+          </div>
+          <p className="mt-1.5 text-[11px] italic text-slate-400">Se está armando… (aún sin cotización)</p>
+        </div>
+      );
+    }
+    return null;
+  }
 
   // Estado 1b — modo EDICIÓN (H-042): cambiar cantidades / quitar líneas. El total NO
   // se calcula aquí; lo recalcula Django al guardar (precios siempre del catálogo).

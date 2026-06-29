@@ -35,7 +35,7 @@ import {
   limpiarConversacion,
 } from './api';
 import { BibliotecaMedios } from './BibliotecaMedios';
-import type { MensajeWhatsApp, SugerenciaAgente, PropuestaReserva, ReservaCreada } from './types';
+import type { MensajeWhatsApp, SugerenciaAgente, PropuestaReserva, ReservaCreada, CarritoEnCurso } from './types';
 import { CotizacionCajon } from './CotizacionCajon';
 
 interface ConversacionWhatsAppProps {
@@ -153,6 +153,7 @@ export function ConversacionWhatsApp({
   const [sugerencia, setSugerencia] = useState<SugerenciaAgente | null>(null);
   const [propuesta, setPropuesta] = useState<PropuestaReserva | null>(null);
   const [reservaCreada, setReservaCreada] = useState<ReservaCreada | null>(null);
+  const [carrito, setCarrito] = useState<CarritoEnCurso | null>(null); // H-046
   const sugerenciaAplicadaRef = useRef<string | null>(null);
   // Para auto-generar el borrador al llegar un entrante nuevo (sin tocar nada).
   const ultimoInboundRef = useRef<string | null>(null);
@@ -288,6 +289,7 @@ export function ConversacionWhatsApp({
         if (pedirSugerencia) setSugerencia(data.sugerencia_agente ?? null);
         setPropuesta(data.propuesta_reserva ?? null); // H-028: propuesta pendiente de aprobar
         setReservaCreada(data.reserva_creada ?? null); // H-039: reserva creada por el Aprobar del cliente
+        setCarrito(data.carrito_en_curso ?? null); // H-046: carrito en vivo (antes de cotizar)
         setError(null);
       } catch (e: unknown) {
         setError(e instanceof Error ? e.message : 'Error al cargar la conversación');
@@ -667,10 +669,11 @@ export function ConversacionWhatsApp({
 
       {/* Caja de respuesta */}
       <div className="flex-shrink-0 space-y-2 border-t border-slate-200 p-3">
-        {(propuesta || reservaCreada) && (
+        {(propuesta || reservaCreada || carrito) && (
           <CotizacionCajon
             propuesta={propuesta}
             reservaCreada={reservaCreada}
+            carrito={carrito} // H-046: carrito en vivo (solo lectura)
             onUsarTexto={(texto) => setTexto(texto)} // Deborah revisa y lo envía al cliente
             onRefrescar={() => cargar(true)} // H-042: tras editar/cerrar, releer la conversación
           />

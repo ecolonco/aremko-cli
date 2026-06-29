@@ -5,7 +5,7 @@ import { ArrowLeft, Camera as Instagram, MessageCircle, Loader2, RefreshCw, Chec
 import { Button } from '@/components/ui/button';
 import { fetchConversacionInbox, marcarAtendidoInbox, responderInstagram, responderMessenger, enviarAdjuntoMeta, enviarAdjuntoURL } from './api';
 import { BibliotecaMedios } from './BibliotecaMedios';
-import type { CanalMensaje, MensajeInbox, SugerenciaAgente, PropuestaReserva, ReservaCreada } from './types';
+import type { CanalMensaje, MensajeInbox, SugerenciaAgente, PropuestaReserva, ReservaCreada, CarritoEnCurso } from './types';
 import { CotizacionCajon } from './CotizacionCajon';
 
 interface Props {
@@ -89,6 +89,7 @@ export function ConversacionInstagram({ externalId, nombre, canal = 'instagram',
   const [sugerencia, setSugerencia] = useState<SugerenciaAgente | null>(null);
   const [propuesta, setPropuesta] = useState<PropuestaReserva | null>(null);
   const [reservaCreada, setReservaCreada] = useState<ReservaCreada | null>(null);
+  const [carrito, setCarrito] = useState<CarritoEnCurso | null>(null); // H-046
   const [biblioteca, setBiblioteca] = useState(false);
   const finRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -104,6 +105,7 @@ export function ConversacionInstagram({ externalId, nombre, canal = 'instagram',
         setMensajes(data.messages || []);
         setPropuesta(data.propuesta_reserva ?? null); // H-028: propuesta pendiente de aprobar
         setReservaCreada(data.reserva_creada ?? null); // H-039: reserva creada por el Aprobar del cliente
+        setCarrito(data.carrito_en_curso ?? null); // H-046: carrito en vivo (antes de cotizar)
         if (conSugerencia && data.sugerencia_agente) {
           setSugerencia(data.sugerencia_agente);
           const s = data.sugerencia_agente;
@@ -297,10 +299,11 @@ export function ConversacionInstagram({ externalId, nombre, canal = 'instagram',
       </div>
 
       <div className="flex-shrink-0 space-y-2 border-t border-slate-200 p-3">
-        {(propuesta || reservaCreada) && (
+        {(propuesta || reservaCreada || carrito) && (
           <CotizacionCajon
             propuesta={propuesta}
             reservaCreada={reservaCreada}
+            carrito={carrito} // H-046: carrito en vivo (solo lectura)
             onUsarTexto={(texto) => setInput(texto)} // Deborah revisa y lo envía al cliente
             onRefrescar={() => cargar(true)} // H-042: tras editar/cerrar, releer la conversación
           />

@@ -216,6 +216,8 @@ export interface ConversacionInboxResponse {
   propuesta_reserva?: PropuestaReserva | null;
   // Reserva recién creada por el Aprobar del cliente (H-039). Null si no hay.
   reserva_creada?: ReservaCreada | null;
+  // Carrito que Luna va armando antes de cotizar (H-046). Null si no aplica.
+  carrito_en_curso?: CarritoEnCurso | null;
 }
 
 // Propuesta de reserva que Luna armó y el cliente confirmó (H-028). Deborah la
@@ -240,6 +242,16 @@ export interface PropuestaReserva {
   // desde aquí). Si viene, el cajón muestra el borrador con este link para que Deborah
   // lo envíe → el cliente abre la cotización y la aprueba.
   url_cotizacion?: string | null;
+}
+
+// Carrito en curso que Luna va armando ANTES de generar la cotización (H-046,
+// Fase 1: solo lectura). Mismo shape de líneas que PropuestaReserva.servicios para
+// reusar el render del cajón. Django lo manda null si no hay ítems, si el carrito
+// es viejo (>24h), o si ya hay propuesta_reserva vigente (ahí manda la propuesta).
+export interface CarritoEnCurso {
+  servicios: PropuestaReserva['servicios'];
+  total: number;
+  editable: boolean; // Fase 1 = false (solo lectura); Fase 2 lo hará editable
 }
 
 // Reserva ya creada tras el Aprobar del cliente en la cotización (H-039, Fase 3).
@@ -273,6 +285,7 @@ export interface ConversacionWhatsAppResponse {
   sugerencia_agente?: SugerenciaAgente | null;
   propuesta_reserva?: PropuestaReserva | null;
   reserva_creada?: ReservaCreada | null;
+  carrito_en_curso?: CarritoEnCurso | null; // H-046: carrito en vivo (solo lectura)
 }
 
 // Config del agente IA de WhatsApp (H-007). El backend la proxea a Django.
