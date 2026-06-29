@@ -131,9 +131,40 @@ func (i *AdInsights) PurchaseValue() float64 {
 	return best
 }
 
-// GetCampaigns obtiene todas las campañas de la cuenta
+// Conversations devuelve las conversaciones de mensajería iniciadas (objetivo
+// "Maximizar conversaciones" → mensajes a WhatsApp/Messenger/IG). Meta lo reporta
+// como onsite_conversion.messaging_conversation_started_7d. Tomamos el máximo entre
+// las variantes equivalentes del mismo action_type para no contar doble.
+func (i *AdInsights) Conversations() int64 {
+	var best int64
+	for _, a := range i.Actions {
+		switch a.ActionType {
+		case "onsite_conversion.messaging_conversation_started_7d",
+			"messaging_conversation_started_7d":
+			var v int64
+			_, _ = fmt.Sscanf(a.Value, "%d", &v)
+			if v > best {
+				best = v
+			}
+		}
+	}
+	return best
+}
+
+// CostPerConversation calcula el costo por conversación de mensajería. 0 si no hay.
+func (i *AdInsights) CostPerConversation() float64 {
+	c := i.Conversations()
+	if c == 0 {
+		return 0
+	}
+	return i.Spend / float64(c)
+}
+
+// GetCampaigns obtiene todas las campañas de la cuenta. limit=500 para traerlas
+// en una sola página (las cuentas con cientos de campañas históricas no caben en
+// los 25 por defecto de Meta, y buscarlas por nombre necesita la lista completa).
 func (c *Client) GetCampaigns() ([]Campaign, error) {
-	url := fmt.Sprintf("%s/%s/campaigns?fields=id,name,status&access_token=%s",
+	url := fmt.Sprintf("%s/%s/campaigns?fields=id,name,status&limit=500&access_token=%s",
 		graphAPIBaseURL, c.adAccountID, c.accessToken)
 
 	resp, err := c.httpClient.Get(url)

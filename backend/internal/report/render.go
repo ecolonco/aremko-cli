@@ -290,6 +290,27 @@ func BuildCuadros(meta map[string]interface{}) string {
 		}
 	}
 
+	// Cuadros 4 y 5 — Ritual del Río y Pausa junto al río (campañas de mensajes).
+	// Métrica primaria: conversaciones iniciadas (WhatsApp/Messenger/IG).
+	for _, mp := range []struct{ key, title string }{
+		{"ritual", "🌙 Ritual del Río — resumen"},
+		{"pausa", "🍃 Pausa junto al río — resumen"},
+	} {
+		if blk, ok := meta[mp.key].(map[string]interface{}); ok {
+			if s, ok := blk["summary"].(map[string]interface{}); ok {
+				b.WriteString(tableTitle(mp.title))
+				b.WriteString(kvTable([][2]string{
+					{"Gasto (30 días)", clp(num(s["spend"]))},
+					{"Conversaciones", fmt.Sprintf("%.0f", num(s["conversations"]))},
+					{"Costo por conversación", cplOrDash(num(s["cost_per_conversation"]), num(s["conversations"]))},
+					{"Alcance", fmt.Sprintf("%.0f", num(s["reach"]))},
+					{"Clics", fmt.Sprintf("%.0f", num(s["clicks"]))},
+					{"CTR", fmt.Sprintf("%.2f%%", num(s["ctr"]))},
+				}))
+			}
+		}
+	}
+
 	return b.String()
 }
 

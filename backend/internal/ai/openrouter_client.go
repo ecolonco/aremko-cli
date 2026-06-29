@@ -701,13 +701,15 @@ Genera un análisis EJECUTIVO PROFUNDO siguiendo EXACTAMENTE la estructura del s
 func (c *OpenRouterClient) GenerateMetaAdsAnalysis(ctx context.Context, metaAdsData map[string]interface{}) (*LLMResult, error) {
 	roleIntro := `Eres el analista ejecutivo de Aremko Spa Boutique especializado en publicidad pagada en Meta Ads (Facebook + Instagram). Tu trabajo es transformar las métricas de campañas en decisiones concretas sobre distribución de presupuesto, escalamiento de campañas ganadoras, pausa de perdedoras y prevención de fatiga creativa.
 
-Atiende TRES tipos de campañas distintos y NO los mezcles:
+Atiende los siguientes tipos de campañas distintos y NO los mezcles:
 
 1. **Campañas históricas (objetivo Engagement/Messages):** métricas primarias = CTR, CPC, CPM, alcance. Referencias spa/turismo en Chile: CTR 1-2%, CPC $300-800 CLP, CPM $5.000-15.000 CLP.
 
 2. **Campaña Refugio (objetivo OUTCOME_LEADS, lanzada 28-may, extendida hasta el 20-jun-2026):** métrica primaria = CPL (costo por Lead) y volumen de Leads. CTR sirve como proxy de interés pero NO decide ganadores. Si el payload trae el bloque "refugio", trátala APARTE con su propia sección. Umbrales del operativo: CTR verde >2%, CPL verde <$10K CLP, frequency verde <2. OJO: el 10-jun-2026 se aplicaron optimizaciones (variante C "Curiosidad" pausada, Audience Network y Threads excluidos del adset frío, audiencia de retargeting ampliada de 30 a 180 días) — NO las vuelvas a recomendar; evalúa su EFECTO usando la ventana reciente del payload.
 
-3. **Campaña GiftCard Día del Padre (objetivo OUTCOME_SALES, 11-jun a 21-jun-2026):** métrica primaria = COMPRAS del píxel (evento Purchase), costo por compra y ROAS (purchase_value/spend). Es una campaña estacional CORTA con deadline duro (el Día del Padre es el domingo 21-jun; se apaga sola el 22). Si el payload trae el bloque "giftcard", trátala APARTE con su propia sección. NO la midas con métricas de engagement ni la mezcles con las históricas.`
+3. **Campaña GiftCard Día del Padre (objetivo OUTCOME_SALES, 11-jun a 21-jun-2026):** métrica primaria = COMPRAS del píxel (evento Purchase), costo por compra y ROAS (purchase_value/spend). Es una campaña estacional CORTA con deadline duro (el Día del Padre es el domingo 21-jun; se apaga sola el 22). Si el payload trae el bloque "giftcard", trátala APARTE con su propia sección. NO la midas con métricas de engagement ni la mezcles con las históricas.
+
+4. **Campañas de MENSAJES — Ritual del Río y Pausa junto al río (objetivo conversaciones/WhatsApp, lanzadas 27-jun-2026):** métrica primaria = CONVERSACIONES iniciadas (mensajes a WhatsApp/Messenger/IG) y costo por conversación; CTR/CPC son soporte del creativo, no el objetivo. Son NUEVAS y están en aprendizaje de Meta: pocos datos o gasto bajo los primeros días son NORMALES, no alarmar. Si el payload trae los bloques "ritual" y/o "pausa", trátalos APARTE, cada uno con su mini-sección. Contexto de producto: Ritual del Río = experiencia PREMIUM de noche (cabaña+tina+masaje+desayuno, ~$210K/2 dom-jue); Pausa junto al río = experiencia de ENTRADA, tina+masaje de día (~$110K/2 dom-jue). El costo por conversación aceptable NO se compara con el CPL de un formulario: aquí una conversación es el inicio de una venta por WhatsApp.`
 
 	domainStructure := `## 🌿 Campaña Refugio (Soft Launch) — SOLO SI EL PAYLOAD TRAE EL BLOQUE refugio
 
@@ -802,10 +804,30 @@ Una única decisión con deadline explícito (ej. "antes del viernes 19"), ancla
 
 ---
 
+## 🌙 Ritual del Río y 🍃 Pausa junto al río (MENSAJES) — SOLO SI EL PAYLOAD TRAE LOS BLOQUES ritual / pausa
+
+Para CADA bloque presente (meta_ads.ritual, meta_ads.pausa), una mini-sección propia (van después de Refugio/GiftCard y antes de las históricas). Si un bloque no existe, omitir su mini-sección.
+
+### Estado — en aprendizaje
+- Estas campañas se lanzaron el 27-jun-2026 (usa ESA fecha de lanzamiento, no period.start, que es solo la ventana de 30 días de datos). Calcula los días desde el 27-jun a la fecha del análisis: si <4 días o conversaciones bajas, decláralo SIN alarmar (Meta está aprendiendo). PROHIBIDO recomendar subir/bajar presupuesto antes del día 4.
+
+### Métrica primaria — Conversaciones
+- summary.conversations (conversaciones de mensajería iniciadas) y summary.cost_per_conversation son el resultado. Si conversations=0 y días<4, es ESPERADO; dilo sin alarmar y NO inventes costo por conversación.
+- CTR/CPC (summary.ctr/cpc) sirven para leer si el creativo engancha, pero NO son el objetivo.
+- Una conversación NO es un lead-formulario: es el inicio de una venta por WhatsApp que cierra Deborah. No compares su costo con el CPL de Refugio.
+
+### Plataformas
+- Si .platforms existe, indica si Facebook o Instagram trae conversaciones/clics más baratos.
+
+### Recomendación accionable (UNA por campaña)
+- Una sola decisión por campaña, anclada a números. Si es muy temprano (días<4), la recomendación válida es "mantener y observar, aún en aprendizaje". Recuerda el contexto de precio (Ritual premium $210K / Pausa entrada $110K) al juzgar si el costo por conversación es sano.
+
+---
+
 ## 🔍 Análisis Profundo por Campaña
 
 ### Mejores 3 Campañas por Inversión
-EXCLUIR las campañas Refugio y GiftCard si ya fueron analizadas arriba; este bloque cubre las históricas de Engagement/Messages.
+EXCLUIR las campañas Refugio, GiftCard, Ritual del Río y Pausa junto al río si ya fueron analizadas arriba; este bloque cubre las históricas de Engagement/Messages.
 
 REGLA ESTACIONAL (obligatoria antes de recomendar escalar): infiere del NOMBRE de cada campaña si es estacional (Semana Santa, Navidad, Día del Padre/Madre, San Valentín, vacaciones de invierno, fechas específicas). Si su temporada ya pasó respecto de la fecha actual del análisis, NO recomendar escalarla aunque sus métricas sean excelentes — un CTR alto no salva un mensaje vencido. En ese caso la recomendación correcta es "reutilizar el creativo/ángulo en la próxima temporada equivalente".
 

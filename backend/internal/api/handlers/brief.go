@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"sort"
+	"strings"
 	"sync"
 	"time"
 
@@ -667,10 +668,22 @@ func getMetaAdsData(cfg *config.Config, dateStart, dateStop string) (map[string]
 	}
 
 	// Bloque GiftCard Día del Padre (vista dedicada, métricas de compra).
+	// Estacional: buildGiftCardBlock devuelve nil una vez pasada la fecha (Jorge:
+	// "aparece solo si está activa").
 	if cfg.MetaGiftCardCampaignID != "" {
 		if giftcard := buildGiftCardBlock(cfg, token, accounts); giftcard != nil {
 			result["giftcard"] = giftcard
 		}
+	}
+
+	// Bloques de MENSAJES (objetivo conversaciones/WhatsApp): Ritual del Río y
+	// Pausa junto al río. Se descubren por NOMBRE (no requieren config de ID) y se
+	// muestran desde el día 1 aunque tengan poco gasto, para verlas arrancar.
+	if ritual := buildMessagingBlock(token, accounts, "ritual del río"); ritual != nil {
+		result["ritual"] = ritual
+	}
+	if pausa := buildMessagingBlock(token, accounts, "pausa junto al río"); pausa != nil {
+		result["pausa"] = pausa
 	}
 
 	// Si TODAS las cuentas fallaron y no hay datos, propagar el error original.
@@ -892,6 +905,14 @@ func buildGiftCardBlock(cfg *config.Config, token string, accounts []config.Meta
 	if len(accounts) == 0 {
 		return nil
 	}
+	// Estacional: el Día del Padre fue el 21-jun; con unos días de cola de
+	// atribución, la campaña deja de ser relevante. Jorge la quiere "solo si está
+	// activa" → pasada la cola, la sacamos del reporte (no se muestra ni en tablas
+	// ni en el análisis de la IA).
+	if endDate, err := time.Parse("2006-01-02", "2026-06-21"); err == nil &&
+		time.Now().After(endDate.AddDate(0, 0, 3)) {
+		return nil
+	}
 	accountID, accountLabel := resolveCampaignAccount(token, cfg.MetaGiftCardCampaignID, accounts)
 	client := meta.NewClient(token, accountID)
 	campaignInsight, _ := client.GetCampaignInsights(cfg.MetaGiftCardCampaignID, dateStart, dateStop)
@@ -938,6 +959,95 @@ func buildGiftCardBlock(cfg *config.Config, token string, accounts []config.Meta
 		"account_label": accountLabel,
 		"period":        map[string]string{"start": dateStart, "end": dateStop},
 		"end_date":      "2026-06-21", // Día del Padre; la campaña se apaga sola el 22-jun 00:00 PDT
+		"summary":       summary,
+		"platforms":     platformRows(platforms),
+	}
+}
+
+// findCampaignByName busca una campaña cuyo nombre CONTENGA `needle` (sin importar
+// mayúsculas) recorriendo las cuentas configuradas. Prefiere una ACTIVE; si no hay,
+// toma la primera que no esté eliminada/archivada. Devuelve ids vacíos si no
+// encuentra nada. Permite descubrir Ritual/Pausa sin hardcodear el ID de campaña.
+func findCampaignByName(token string, accounts []config.MetaAccount, needle string) (campaignID, accountID, accountLabel, campaignName string) {
+	n := strings.ToLower(needle)
+	for _, acc := range accounts {
+		client := meta.NewClient(token, acc.ID)
+		campaigns, err := client.GetCampaigns()
+		if err != nil {
+			continue
+		}
+		var fallback *meta.Campaign
+		for i := range campaigns {
+			c := &campaigns[i]
+			if !strings.Contains(strings.ToLower(c.Name), n) {
+				continue
+			}
+			switch strings.ToUpper(c.Status) {
+			case "DELETED", "ARCHIVED":
+				continue
+			case "ACTIVE":
+				return c.ID, acc.ID, acc.Label, c.Name
+			}
+			if fallback == nil {
+				fallback = c
+			}
+		}
+		if fallback != nil {
+			return fallback.ID, acc.ID, acc.Label, fallback.Name
+		}
+	}
+	return "", "", "", ""
+}
+
+// buildMessagingBlock arma el bloque de una campaña de MENSAJES (objetivo
+// conversaciones/WhatsApp) ubicándola por NOMBRE. Métrica primaria = conversaciones
+// iniciadas + costo por conversación. Lo usan Ritual del Río y Pausa junto al río
+// (lanzadas 27-jun-2026). Ventana de 30 días para captar el arranque. Devuelve nil
+// si la campaña no se encuentra en ninguna cuenta.
+func buildMessagingBlock(token string, accounts []config.MetaAccount, needle string) map[string]interface{} {
+	if len(accounts) == 0 {
+		return nil
+	}
+	campaignID, accountID, accountLabel, name := findCampaignByName(token, accounts, needle)
+	if campaignID == "" {
+		return nil
+	}
+	dateStart := time.Now().AddDate(0, 0, -30).Format("2006-01-02")
+	dateStop := time.Now().Format("2006-01-02")
+	client := meta.NewClient(token, accountID)
+	ci, _ := client.GetCampaignInsights(campaignID, dateStart, dateStop)
+	platforms, _ := client.GetCampaignInsightsByPlatform(campaignID, dateStart, dateStop)
+
+	summary := map[string]interface{}{
+		"spend":                 0.0,
+		"impressions":           int64(0),
+		"clicks":                int64(0),
+		"reach":                 int64(0),
+		"frequency":             0.0,
+		"ctr":                   0.0,
+		"cpc":                   0.0,
+		"conversations":         int64(0),
+		"cost_per_conversation": 0.0,
+	}
+	if ci != nil {
+		summary["spend"] = ci.Spend
+		summary["impressions"] = ci.Impressions
+		summary["clicks"] = ci.Clicks
+		summary["reach"] = ci.Reach
+		summary["frequency"] = ci.Frequency
+		summary["ctr"] = ci.CalculateCTR()
+		summary["cpc"] = ci.CalculateCPC()
+		summary["conversations"] = ci.Conversations()
+		summary["cost_per_conversation"] = ci.CostPerConversation()
+	}
+
+	return map[string]interface{}{
+		"campaign_id":   campaignID,
+		"campaign_name": name,
+		"account_id":    accountID,
+		"account_label": accountLabel,
+		"objective":     "mensajes (conversaciones/WhatsApp)",
+		"period":        map[string]string{"start": dateStart, "end": dateStop},
 		"summary":       summary,
 		"platforms":     platformRows(platforms),
 	}
