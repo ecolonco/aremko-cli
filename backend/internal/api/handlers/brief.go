@@ -496,6 +496,7 @@ func getMetaAdsData(cfg *config.Config, dateStart, dateStop string) (map[string]
 	worstCTR := 100.0
 
 	var firstErr error
+	accountsOK := 0 // cuentas que respondieron bien (aunque sea con 0 campañas)
 
 	for _, acc := range accounts {
 		client := meta.NewClient(token, acc.ID)
@@ -505,6 +506,8 @@ func getMetaAdsData(cfg *config.Config, dateStart, dateStop string) (map[string]
 				firstErr = err
 			}
 			insights = nil
+		} else {
+			accountsOK++
 		}
 
 		var accSpend float64
@@ -700,8 +703,11 @@ func getMetaAdsData(cfg *config.Config, dateStart, dateStop string) (map[string]
 		result["pausa"] = pausa
 	}
 
-	// Si TODAS las cuentas fallaron y no hay datos, propagar el error original.
-	if len(allCampaigns) == 0 && firstErr != nil {
+	// Solo fallar si NINGUNA cuenta respondió (todas dieron error). Si al menos
+	// una respondió bien, seguimos: una cuenta con problema de permiso (403) o una
+	// semana sin campañas activas NO debe tumbar todo el reporte. Las cuentas que
+	// fallaron simplemente no aportan datos (y su bloque dedicado queda fuera).
+	if accountsOK == 0 && firstErr != nil {
 		return nil, firstErr
 	}
 
