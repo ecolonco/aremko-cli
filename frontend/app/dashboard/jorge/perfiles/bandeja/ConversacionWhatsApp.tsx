@@ -408,6 +408,10 @@ export function ConversacionWhatsApp({
       );
     } finally {
       setEnviando(false);
+      // Devolver el foco al cajón para seguir escribiendo sin tocar el mouse.
+      // rAF: el textarea está disabled mientras 'enviando'; esperamos a que el
+      // re-render lo re-habilite antes de enfocar (un disabled no recibe foco).
+      requestAnimationFrame(() => textareaRef.current?.focus());
     }
   };
 
@@ -426,6 +430,7 @@ export function ConversacionWhatsApp({
     } finally {
       setEnviando(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
+      requestAnimationFrame(() => textareaRef.current?.focus());
     }
   };
 

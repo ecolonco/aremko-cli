@@ -173,6 +173,8 @@ export function ConversacionInstagram({ externalId, nombre, canal = 'instagram',
       setSendError(e instanceof Error ? e.message : 'No se pudo enviar el mensaje');
     } finally {
       setEnviando(false);
+      // Devolver el foco al cajón para seguir escribiendo sin tocar el mouse.
+      requestAnimationFrame(() => textareaRef.current?.focus());
     }
   };
 
@@ -191,6 +193,7 @@ export function ConversacionInstagram({ externalId, nombre, canal = 'instagram',
     } finally {
       setEnviando(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
+      requestAnimationFrame(() => textareaRef.current?.focus());
     }
   };
 
@@ -208,6 +211,7 @@ export function ConversacionInstagram({ externalId, nombre, canal = 'instagram',
       setSendError(e instanceof Error ? e.message : 'No se pudo enviar la foto de la biblioteca');
     } finally {
       setEnviando(false);
+      requestAnimationFrame(() => textareaRef.current?.focus());
     }
   };
 
