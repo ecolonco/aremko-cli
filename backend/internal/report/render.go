@@ -292,35 +292,53 @@ func BuildCuadros(meta map[string]interface{}) string {
 	}
 
 	// Cuadros 4 y 5 — Ritual del Río y Pausa junto al río (campañas de mensajes).
-	// Métrica primaria: conversaciones iniciadas (WhatsApp/Messenger/IG).
+	// Evolución SEMANAL (últimas 8 semanas): gasto+conversaciones de la campaña junto a
+	// las ventas reales del programa, para ver el efecto de la campaña sobre las ventas.
 	for _, mp := range []struct{ key, title string }{
-		{"ritual", "🌙 Ritual del Río — resumen"},
-		{"pausa", "🍃 Pausa junto al río — resumen"},
+		{"ritual", "🌙 Ritual del Río — últimas 8 semanas"},
+		{"pausa", "🍃 Pausa junto al río — últimas 8 semanas"},
 	} {
-		if blk, ok := meta[mp.key].(map[string]interface{}); ok {
-			if s, ok := blk["summary"].(map[string]interface{}); ok {
-				b.WriteString(tableTitle(mp.title))
-				rows := [][2]string{
-					{"Gasto (30 días)", clp(num(s["spend"]))},
-					{"Conversaciones", fmt.Sprintf("%.0f", num(s["conversations"]))},
-					{"Costo por conversación", cplOrDash(num(s["cost_per_conversation"]), num(s["conversations"]))},
-					{"Alcance", fmt.Sprintf("%.0f", num(s["reach"]))},
-					{"Clics", fmt.Sprintf("%.0f", num(s["clicks"]))},
-					{"CTR", fmt.Sprintf("%.2f%%", num(s["ctr"]))},
-				}
-				// Ventas REALES del programa en el mismo período (H-053), si Django las
-				// expone. Ritual = cabaña+tina+masaje; Pausa = tina+masaje. Se muestran
-				// como cifras absolutas (unidades + ingresos, TODOS los canales) al lado
-				// del gasto, para que Jorge compare. NO se calcula un "ROI ÷ gasto ads"
-				// porque la mayoría de esas ventas no vienen de ads → el ratio engañaría.
-				if rs, ok := blk["real_sales"].(map[string]interface{}); ok {
-					rows = append(rows,
-						[2]string{"Ventas reales del programa (30 días, todos los canales)", fmt.Sprintf("%.0f reservas", num(rs["count_reservas"]))},
-						[2]string{"Ingresos del programa (30 días, todos los canales)", clp(num(rs["revenue"]))},
-					)
-				}
-				b.WriteString(kvTable(rows))
+		blk, ok := meta[mp.key].(map[string]interface{})
+		if !ok {
+			continue
+		}
+		if weekly, ok := blk["weekly"].([]map[string]interface{}); ok && len(weekly) > 0 {
+			b.WriteString(tableTitle(mp.title))
+			b.WriteString(tableOpenN([]string{"Semana", "Gasto Meta", "Conversac.", "Ventas", "Ingresos"}))
+			var totSpend, totConv, totRes, totIng float64
+			for _, wk := range weekly {
+				totSpend += num(wk["spend"])
+				totConv += num(wk["conversations"])
+				totRes += num(wk["reservas"])
+				totIng += num(wk["ingresos"])
+				b.WriteString(tr([]string{
+					tdName(str(wk["label"])),
+					tdR(clp(num(wk["spend"]))),
+					tdR(fmt.Sprintf("%.0f", num(wk["conversations"]))),
+					tdR(fmt.Sprintf("%.0f", num(wk["reservas"]))),
+					tdR(clp(num(wk["ingresos"]))),
+				}))
 			}
+			b.WriteString(tr([]string{
+				tdName("Total 8 sem."),
+				tdR(clp(totSpend)),
+				tdR(fmt.Sprintf("%.0f", totConv)),
+				tdR(fmt.Sprintf("%.0f", totRes)),
+				tdR(clp(totIng)),
+			}))
+			b.WriteString(tableClose())
+			b.WriteString("<p style=\"font-size:11px;color:#9ca3af;margin:2px 0 14px\">Ventas / Ingresos = reservas del programa en TODOS los canales (no solo Meta); el gasto en ads es una fracción de lo que genera el programa. Semana = inicio (dd-mm), 7 días.</p>")
+		} else if s, ok := blk["summary"].(map[string]interface{}); ok {
+			// Fallback: resumen 30d si no llegó la serie semanal.
+			b.WriteString(tableTitle(strings.Replace(mp.title, "últimas 8 semanas", "resumen (30 días)", 1)))
+			b.WriteString(kvTable([][2]string{
+				{"Gasto (30 días)", clp(num(s["spend"]))},
+				{"Conversaciones", fmt.Sprintf("%.0f", num(s["conversations"]))},
+				{"Costo por conversación", cplOrDash(num(s["cost_per_conversation"]), num(s["conversations"]))},
+				{"Alcance", fmt.Sprintf("%.0f", num(s["reach"]))},
+				{"Clics", fmt.Sprintf("%.0f", num(s["clicks"]))},
+				{"CTR", fmt.Sprintf("%.2f%%", num(s["ctr"]))},
+			}))
 		}
 	}
 
@@ -420,6 +438,21 @@ func tableOpen(headers []string) string {
 		align := "left"
 		if i >= 2 {
 			align = "right"
+		}
+		b.WriteString("<th style=\"text-align:" + align + ";padding:6px 8px;border-bottom:2px solid #e5e7eb;color:#6b7280;font-weight:600\">" + html.EscapeString(h) + "</th>")
+	}
+	b.WriteString("</tr></thead><tbody>")
+	return b.String()
+}
+// tableOpenN abre una tabla con SOLO la primera columna a la izquierda y el resto a la
+// derecha (para tablas donde de la col 2 en adelante son numéricas, ej. la serie semanal).
+func tableOpenN(headers []string) string {
+	var b strings.Builder
+	b.WriteString("<table style=\"width:100%;border-collapse:collapse;font-size:13px;margin-bottom:8px\"><thead><tr>")
+	for i, h := range headers {
+		align := "right"
+		if i == 0 {
+			align = "left"
 		}
 		b.WriteString("<th style=\"text-align:" + align + ";padding:6px 8px;border-bottom:2px solid #e5e7eb;color:#6b7280;font-weight:600\">" + html.EscapeString(h) + "</th>")
 	}

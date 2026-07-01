@@ -225,6 +225,34 @@ func (c *Client) GetCampaignInsights(campaignID, dateStart, dateStop string) (*A
 	return &insights, nil
 }
 
+// GetCampaignInsightsWeekly obtiene los insights de una campaña partidos POR SEMANA
+// (time_increment=7) en el rango dado. Devuelve una fila por semana, cada una con su
+// date_start/date_stop propios tal como los devuelve Meta (para poder mapearlas a las
+// ventanas semanales del reporte). Usado para la evolución de Ritual/Pausa (H-053).
+func (c *Client) GetCampaignInsightsWeekly(campaignID, dateStart, dateStop string) ([]AdInsights, error) {
+	url := fmt.Sprintf("%s/%s/insights?fields=campaign_id,campaign_name,impressions,clicks,spend,reach,frequency,actions,action_values&time_range={\"since\":\"%s\",\"until\":\"%s\"}&time_increment=7&access_token=%s",
+		graphAPIBaseURL, campaignID, dateStart, dateStop, c.accessToken)
+
+	resp, err := c.httpClient.Get(url)
+	if err != nil {
+		return nil, fmt.Errorf("error al obtener insights semanales: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("error de Meta API (status %d): %s", resp.StatusCode, body)
+	}
+
+	var result struct {
+		Data []AdInsights `json:"data"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, fmt.Errorf("error al decodificar insights semanales: %w", err)
+	}
+	return result.Data, nil
+}
+
 // GetAccountInsights obtiene las métricas agregadas de toda la cuenta
 func (c *Client) GetAccountInsights(dateStart, dateStop string) ([]AdInsights, error) {
 	url := fmt.Sprintf("%s/%s/insights?fields=campaign_id,campaign_name,impressions,clicks,spend,reach,frequency,actions&time_range={\"since\":\"%s\",\"until\":\"%s\"}&level=campaign&access_token=%s",

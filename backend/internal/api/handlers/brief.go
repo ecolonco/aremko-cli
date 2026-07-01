@@ -703,13 +703,13 @@ func getMetaAdsData(cfg *config.Config, dateStart, dateStop string) (map[string]
 		result["pausa"] = pausa
 	}
 
-	// Ventas REALES de los programas (H-053): lo que efectivamente se vendió en la
-	// ventana, desde el reporte de ventas de Django. Ritual = cabaña+tina+masaje
+	// Evolución SEMANAL de los programas (H-053): últimas 8 semanas, gasto+conversaciones
+	// de la campaña junto a las ventas REALES del programa, para ver el efecto de la
+	// campaña sobre las ventas semana a semana. Ritual = cabaña+tina+masaje
 	// (cabanas_tinas_masajes), Pausa = tina+masaje solo (tinas_masajes); buckets
-	// mutuamente excluyentes (sin doble conteo). Mismo período (30d) que el gasto de
-	// los bloques → comparable. Degradación suave: si bookings está apagado o el
-	// endpoint todavía no existe (404), se omite la línea sin romper el reporte.
-	attachProgramRealSales(cfg, result)
+	// mutuamente excluyentes (sin doble conteo). Degradación suave: si bookings está
+	// apagado o el endpoint no responde, cada semana muestra 0 sin romper el reporte.
+	attachProgramWeekly(cfg, token, result)
 
 	// Solo fallar si NINGUNA cuenta respondió (todas dieron error). Si al menos
 	// una respondió bien, seguimos: una cuenta con problema de permiso (403) o una
@@ -1081,48 +1081,111 @@ func buildMessagingBlock(token string, accounts []config.MetaAccount, needle str
 	}
 }
 
-// attachProgramRealSales enriquece los bloques ritual/pausa con las ventas REALES
-// del programa en la misma ventana de 30 días que su gasto (H-053), tomadas del
-// reporte de ventas de Django (family-combinations-range). Ritual = cabaña+tina+masaje
-// (cabanas_tinas_masajes), Pausa = tina+masaje solo (tinas_masajes); buckets
-// mutuamente excluyentes → sin doble conteo. Best-effort: si bookings está apagado o
-// el endpoint todavía no existe (404), no hace nada (el reporte sale igual, sin la línea).
-func attachProgramRealSales(cfg *config.Config, result map[string]interface{}) {
-	if !cfg.EnableBookings || cfg.BookingSystemURL == "" {
-		return
+// weekWindow es una ventana semanal [Start, Stop] (YYYY-MM-DD, 7 días inclusive) con
+// una etiqueta corta dd-mm para el reporte.
+type weekWindow struct {
+	Start, Stop, Label string
+}
+
+// computeWeekWindows devuelve las últimas n semanas (7 días c/u), de la más antigua a
+// la más reciente; la última termina AYER. Son contiguas desde `base`, para que calcen
+// con los buckets de Meta time_increment=7 (que arrancan en la fecha `since`).
+func computeWeekWindows(n int) []weekWindow {
+	now := time.Now()
+	base := now.AddDate(0, 0, -7*n) // inicio de la 1ª semana (n semanas atrás)
+	out := make([]weekWindow, 0, n)
+	for i := 0; i < n; i++ {
+		s := base.AddDate(0, 0, 7*i)
+		e := s.AddDate(0, 0, 6)
+		out = append(out, weekWindow{
+			Start: s.Format("2006-01-02"),
+			Stop:  e.Format("2006-01-02"),
+			Label: s.Format("02-01"),
+		})
 	}
+	return out
+}
+
+// attachProgramWeekly enriquece los bloques ritual/pausa con una serie SEMANAL (últimas
+// 8 semanas) que combina gasto+conversaciones de la campaña con las ventas reales del
+// programa, semana a semana (H-053), para ver el efecto de la campaña sobre las ventas.
+// Buckets mutuamente excluyentes (Ritual=cabanas_tinas_masajes, Pausa=tinas_masajes).
+// Best-effort en cada fuente: si Meta o Django no responden, esa celda queda en 0.
+func attachProgramWeekly(cfg *config.Config, token string, result map[string]interface{}) {
 	_, hasRitual := result["ritual"]
 	_, hasPausa := result["pausa"]
 	if !hasRitual && !hasPausa {
-		return // nada que enriquecer; evita un llamado innecesario a Django
-	}
-	dateStart := time.Now().AddDate(0, 0, -30).Format("2006-01-02")
-	dateStop := time.Now().Format("2006-01-02")
-	bc := bookings.NewClient(cfg.BookingSystemURL)
-	ps, err := bc.GetFamilyCombinationsRange(dateStart, dateStop)
-	if err != nil || ps == nil {
-		if err != nil {
-			fmt.Printf("[REPORTE] ventas reales de programas no disponibles (H-053, se omite): %v\n", err)
-		}
 		return
 	}
-	// Ritual = cabaña+tina+masaje; Pausa = tina+masaje solo.
-	attachRealSalesToBlock(result, "ritual", ps.Combinations["cabanas_tinas_masajes"], ps.DateStart, ps.DateStop)
-	attachRealSalesToBlock(result, "pausa", ps.Combinations["tinas_masajes"], ps.DateStart, ps.DateStop)
+	weeks := computeWeekWindows(8)
+
+	// Ventas por semana (una llamada por semana, concurrentes). Cada respuesta trae
+	// TODOS los buckets → sirve para Ritual y Pausa a la vez.
+	sales := make([]map[string]bookings.CombinationStats, len(weeks))
+	if cfg.EnableBookings && cfg.BookingSystemURL != "" {
+		bc := bookings.NewClient(cfg.BookingSystemURL)
+		var wg sync.WaitGroup
+		for i, w := range weeks {
+			wg.Add(1)
+			go func(i int, start, stop string) {
+				defer wg.Done()
+				if r, err := bc.GetFamilyCombinationsRange(start, stop); err == nil && r != nil {
+					sales[i] = r.Combinations
+				}
+			}(i, w.Start, w.Stop)
+		}
+		wg.Wait()
+	}
+
+	attachOneProgramWeekly(token, result, "ritual", "cabanas_tinas_masajes", weeks, sales)
+	attachOneProgramWeekly(token, result, "pausa", "tinas_masajes", weeks, sales)
 }
 
-// attachRealSalesToBlock agrega la sub-sección "real_sales" (unidades + ingresos del
-// período) a un bloque de programa si ese bloque existe en el resultado.
-func attachRealSalesToBlock(result map[string]interface{}, key string, cs bookings.CombinationStats, start, stop string) {
+// attachOneProgramWeekly arma la serie semanal de UN programa: mapea el gasto semanal de
+// Meta (time_increment=7, por date_start) con las ventas del combo correspondiente y la
+// cuelga en block["weekly"] como []map (para que el render la lea con num()/str()).
+func attachOneProgramWeekly(token string, result map[string]interface{}, key, combo string, weeks []weekWindow, sales []map[string]bookings.CombinationStats) {
 	block, ok := result[key].(map[string]interface{})
 	if !ok {
 		return
 	}
-	block["real_sales"] = map[string]interface{}{
-		"count_reservas": cs.CountReservas,
-		"revenue":        cs.Revenue,
-		"period":         map[string]string{"start": start, "end": stop},
+	campaignID, _ := block["campaign_id"].(string)
+	accountID, _ := block["account_id"].(string)
+
+	// Gasto/conversaciones por semana desde Meta (una sola llamada con time_increment=7).
+	metaByStart := map[string]meta.AdInsights{}
+	if campaignID != "" && accountID != "" && len(weeks) > 0 {
+		client := meta.NewClient(token, accountID)
+		if rows, err := client.GetCampaignInsightsWeekly(campaignID, weeks[0].Start, weeks[len(weeks)-1].Stop); err == nil {
+			for _, r := range rows {
+				metaByStart[r.DateStart] = r
+			}
+		} else {
+			fmt.Printf("[REPORTE] insights semanales %s no disponibles (H-053, se omiten): %v\n", key, err)
+		}
 	}
+
+	weekly := make([]map[string]interface{}, 0, len(weeks))
+	for i, w := range weeks {
+		row := map[string]interface{}{
+			"label":         w.Label,
+			"spend":         0.0,
+			"conversations": int64(0),
+			"reservas":      0,
+			"ingresos":      0.0,
+		}
+		if mi, ok := metaByStart[w.Start]; ok {
+			row["spend"] = mi.Spend
+			row["conversations"] = mi.Conversations()
+		}
+		if i < len(sales) && sales[i] != nil {
+			cs := sales[i][combo]
+			row["reservas"] = cs.CountReservas
+			row["ingresos"] = cs.Revenue
+		}
+		weekly = append(weekly, row)
+	}
+	block["weekly"] = weekly
 }
 
 // newAIClientWithOperatingContext returns an OpenRouter client preloaded with
