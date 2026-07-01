@@ -291,11 +291,14 @@ func BuildCuadros(meta map[string]interface{}) string {
 		}
 	}
 
-	// Cuadros 4 y 5 — Ritual del Río y Pausa junto al río (campañas de mensajes).
-	// Evolución SEMANAL (últimas 8 semanas): gasto+conversaciones de la campaña junto a
-	// las ventas reales del programa, para ver el efecto de la campaña sobre las ventas.
+	// Cuadros 4/5/6 — Ritual, Refugio y Pausa. Evolución SEMANAL (últimas 8 semanas):
+	// gasto + actividad (conversaciones o leads) de la campaña junto a las ventas reales
+	// del programa, para ver el efecto de la campaña sobre las ventas. Los 3 son
+	// mutuamente excluyentes (Ritual=1 noche, Refugio=2 noches, Pausa=tina+masaje) → sus
+	// ventas no se solapan.
 	for _, mp := range []struct{ key, title string }{
-		{"ritual", "🌙 Ritual del Río — últimas 8 semanas"},
+		{"ritual", "🌙 Ritual del Río (1 noche) — últimas 8 semanas"},
+		{"refugio", "🌿 Refugio (2 noches) — últimas 8 semanas"},
 		{"pausa", "🍃 Pausa junto al río — últimas 8 semanas"},
 	} {
 		blk, ok := meta[mp.key].(map[string]interface{})
@@ -303,18 +306,22 @@ func BuildCuadros(meta map[string]interface{}) string {
 			continue
 		}
 		if weekly, ok := blk["weekly"].([]map[string]interface{}); ok && len(weekly) > 0 {
+			activityHdr := str(blk["activity_label"])
+			if activityHdr == "" {
+				activityHdr = "Conversac."
+			}
 			b.WriteString(tableTitle(mp.title))
-			b.WriteString(tableOpenN([]string{"Semana", "Gasto Meta", "Conversac.", "Ventas", "Ingresos"}))
-			var totSpend, totConv, totRes, totIng float64
+			b.WriteString(tableOpenN([]string{"Semana", "Gasto Meta", activityHdr, "Ventas", "Ingresos"}))
+			var totSpend, totAct, totRes, totIng float64
 			for _, wk := range weekly {
 				totSpend += num(wk["spend"])
-				totConv += num(wk["conversations"])
+				totAct += num(wk["activity"])
 				totRes += num(wk["reservas"])
 				totIng += num(wk["ingresos"])
 				b.WriteString(tr([]string{
 					tdName(str(wk["label"])),
 					tdR(clp(num(wk["spend"]))),
-					tdR(fmt.Sprintf("%.0f", num(wk["conversations"]))),
+					tdR(fmt.Sprintf("%.0f", num(wk["activity"]))),
 					tdR(fmt.Sprintf("%.0f", num(wk["reservas"]))),
 					tdR(clp(num(wk["ingresos"]))),
 				}))
@@ -322,14 +329,15 @@ func BuildCuadros(meta map[string]interface{}) string {
 			b.WriteString(tr([]string{
 				tdName("Total 8 sem."),
 				tdR(clp(totSpend)),
-				tdR(fmt.Sprintf("%.0f", totConv)),
+				tdR(fmt.Sprintf("%.0f", totAct)),
 				tdR(fmt.Sprintf("%.0f", totRes)),
 				tdR(clp(totIng)),
 			}))
 			b.WriteString(tableClose())
 			b.WriteString("<p style=\"font-size:11px;color:#9ca3af;margin:2px 0 14px\">Ventas / Ingresos = reservas del programa en TODOS los canales (no solo Meta); el gasto en ads es una fracción de lo que genera el programa. Semana = inicio (dd-mm), 7 días.</p>")
-		} else if s, ok := blk["summary"].(map[string]interface{}); ok {
-			// Fallback: resumen 30d si no llegó la serie semanal.
+		} else if s, ok := blk["summary"].(map[string]interface{}); ok && mp.key != "refugio" {
+			// Fallback: resumen 30d si no llegó la serie semanal. Refugio no cae acá
+			// (ya tiene su cuadro detallado arriba; no lo duplicamos).
 			b.WriteString(tableTitle(strings.Replace(mp.title, "últimas 8 semanas", "resumen (30 días)", 1)))
 			b.WriteString(kvTable([][2]string{
 				{"Gasto (30 días)", clp(num(s["spend"]))},

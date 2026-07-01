@@ -1137,14 +1137,20 @@ func attachProgramWeekly(cfg *config.Config, token string, result map[string]int
 		wg.Wait()
 	}
 
-	attachOneProgramWeekly(token, result, "ritual", "cabanas_tinas_masajes", weeks, sales)
-	attachOneProgramWeekly(token, result, "pausa", "tinas_masajes", weeks, sales)
+	// 3 programas SIN intersección (H-053b): Ritual = cabaña+tina+masaje 1 noche,
+	// Refugio = 2 noches, Pausa = tina+masaje. Cada reserva cae en uno solo. Ritual/Pausa
+	// miden conversaciones (WhatsApp); Refugio es campaña de leads (formulario).
+	attachOneProgramWeekly(token, result, "ritual", "cabanas_tinas_masajes_1n", "conversations", weeks, sales)
+	attachOneProgramWeekly(token, result, "refugio", "cabanas_tinas_masajes_2n", "leads", weeks, sales)
+	attachOneProgramWeekly(token, result, "pausa", "tinas_masajes", "conversations", weeks, sales)
 }
 
 // attachOneProgramWeekly arma la serie semanal de UN programa: mapea el gasto semanal de
 // Meta (time_increment=7, por date_start) con las ventas del combo correspondiente y la
-// cuelga en block["weekly"] como []map (para que el render la lea con num()/str()).
-func attachOneProgramWeekly(token string, result map[string]interface{}, key, combo string, weeks []weekWindow, sales []map[string]bookings.CombinationStats) {
+// cuelga en block["weekly"] como []map (para que el render la lea con num()/str()). La
+// métrica de actividad es "conversations" (Ritual/Pausa, campañas de mensajes) o "leads"
+// (Refugio, campaña de formulario); se guarda en row["activity"] + block["activity_label"].
+func attachOneProgramWeekly(token string, result map[string]interface{}, key, combo, metric string, weeks []weekWindow, sales []map[string]bookings.CombinationStats) {
 	block, ok := result[key].(map[string]interface{})
 	if !ok {
 		return
@@ -1152,7 +1158,13 @@ func attachOneProgramWeekly(token string, result map[string]interface{}, key, co
 	campaignID, _ := block["campaign_id"].(string)
 	accountID, _ := block["account_id"].(string)
 
-	// Gasto/conversaciones por semana desde Meta (una sola llamada con time_increment=7).
+	activityLabel := "Conversac."
+	if metric == "leads" {
+		activityLabel = "Leads"
+	}
+	block["activity_label"] = activityLabel
+
+	// Gasto/actividad por semana desde Meta (una sola llamada con time_increment=7).
 	metaByStart := map[string]meta.AdInsights{}
 	if campaignID != "" && accountID != "" && len(weeks) > 0 {
 		client := meta.NewClient(token, accountID)
@@ -1168,15 +1180,19 @@ func attachOneProgramWeekly(token string, result map[string]interface{}, key, co
 	weekly := make([]map[string]interface{}, 0, len(weeks))
 	for i, w := range weeks {
 		row := map[string]interface{}{
-			"label":         w.Label,
-			"spend":         0.0,
-			"conversations": int64(0),
-			"reservas":      0,
-			"ingresos":      0.0,
+			"label":    w.Label,
+			"spend":    0.0,
+			"activity": int64(0),
+			"reservas": 0,
+			"ingresos": 0.0,
 		}
 		if mi, ok := metaByStart[w.Start]; ok {
 			row["spend"] = mi.Spend
-			row["conversations"] = mi.Conversations()
+			if metric == "leads" {
+				row["activity"] = mi.Leads()
+			} else {
+				row["activity"] = mi.Conversations()
+			}
 		}
 		if i < len(sales) && sales[i] != nil {
 			cs := sales[i][combo]
