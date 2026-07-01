@@ -410,6 +410,57 @@ func BuildCuadrosGoogleAds(ga map[string]interface{}) string {
 		}
 	}
 
+	// Cuadros 3/4/5 — Ritual, Refugio y Pausa: evolución SEMANAL (8 semanas) del gasto+clics
+	// de Google junto a las ventas reales del programa (todos los canales). H-053. Los datos
+	// vienen JSON-normalizados (weekly = []interface{}), no como los maps nativos de Meta.
+	for _, mp := range []struct{ key, title string }{
+		{"ritual", "🌙 Ritual del Río (1 noche) — últimas 8 semanas"},
+		{"refugio", "🌿 Refugio (2 noches) — últimas 8 semanas"},
+		{"pausa", "🍃 Pausa junto al río — últimas 8 semanas"},
+	} {
+		blk, ok := norm[mp.key].(map[string]interface{})
+		if !ok {
+			continue
+		}
+		weekly, ok := blk["weekly"].([]interface{})
+		if !ok || len(weekly) == 0 {
+			continue
+		}
+		activityHdr := str(blk["activity_label"])
+		if activityHdr == "" {
+			activityHdr = "Clics"
+		}
+		b.WriteString(tableTitle(mp.title))
+		b.WriteString(tableOpenN([]string{"Semana", "Gasto Google", activityHdr, "Ventas", "Ingresos"}))
+		var totSpend, totAct, totRes, totIng float64
+		for _, wkRaw := range weekly {
+			wk, ok := wkRaw.(map[string]interface{})
+			if !ok {
+				continue
+			}
+			totSpend += num(wk["spend"])
+			totAct += num(wk["activity"])
+			totRes += num(wk["reservas"])
+			totIng += num(wk["ingresos"])
+			b.WriteString(tr([]string{
+				tdName(str(wk["label"])),
+				tdR(clp(num(wk["spend"]))),
+				tdR(fmt.Sprintf("%.0f", num(wk["activity"]))),
+				tdR(fmt.Sprintf("%.0f", num(wk["reservas"]))),
+				tdR(clp(num(wk["ingresos"]))),
+			}))
+		}
+		b.WriteString(tr([]string{
+			tdName("Total 8 sem."),
+			tdR(clp(totSpend)),
+			tdR(fmt.Sprintf("%.0f", totAct)),
+			tdR(fmt.Sprintf("%.0f", totRes)),
+			tdR(clp(totIng)),
+		}))
+		b.WriteString(tableClose())
+		b.WriteString("<p style=\"font-size:11px;color:#9ca3af;margin:2px 0 14px\">Ventas / Ingresos = reservas del programa en TODOS los canales (no solo Google); el gasto en ads es una fracción de lo que genera el programa. Semana = inicio (dd-mm), 7 días.</p>")
+	}
+
 	if b.Len() == 0 {
 		b.WriteString("<p style=\"color:#9ca3af;font-size:13px\">Sin actividad de Google Ads en el período (campañas de bajo volumen / sin clics).</p>")
 	}

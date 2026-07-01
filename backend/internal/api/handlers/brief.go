@@ -738,7 +738,7 @@ func getGoogleAdsData(cfg *config.Config, dateStart, dateStop string) (map[strin
 	if err != nil {
 		return nil, err
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
 
 	campaigns, err := client.GetCampaignSummary(ctx, dateStart, dateStop)
@@ -790,6 +790,13 @@ func getGoogleAdsData(cfg *config.Config, dateStart, dateStop string) (map[strin
 			"thresholds":     googleAdsRefugioThresholds(),
 		}
 	}
+
+	// Tablas semanales por programa (H-053): gasto/clics semanal de Google + ventas reales
+	// del programa (todos los canales). Best-effort; nunca rompe el bloque si Google falla.
+	weeks := computeWeekWindows(8)
+	sales := fetchWeeklyProgramSales(cfg, weeks)
+	attachProgramWeeklyGoogle(ctx, client, result, weeks, sales)
+
 	return result, nil
 }
 
@@ -1111,31 +1118,39 @@ func computeWeekWindows(n int) []weekWindow {
 // programa, semana a semana (H-053), para ver el efecto de la campaña sobre las ventas.
 // Buckets mutuamente excluyentes (Ritual=cabanas_tinas_masajes, Pausa=tinas_masajes).
 // Best-effort en cada fuente: si Meta o Django no responden, esa celda queda en 0.
+// fetchWeeklyProgramSales trae las ventas reales por semana (una llamada concurrente por
+// ventana a family-combinations-range). Cada respuesta trae TODOS los buckets → sirve para
+// los 3 programas a la vez. Best-effort: semana sin respuesta queda nil (el render pinta 0).
+// Compartido por los reportes de Meta y de Google (las ventas son de TODOS los canales).
+func fetchWeeklyProgramSales(cfg *config.Config, weeks []weekWindow) []map[string]bookings.CombinationStats {
+	sales := make([]map[string]bookings.CombinationStats, len(weeks))
+	if !cfg.EnableBookings || cfg.BookingSystemURL == "" {
+		return sales
+	}
+	bc := bookings.NewClient(cfg.BookingSystemURL)
+	var wg sync.WaitGroup
+	for i, w := range weeks {
+		wg.Add(1)
+		go func(i int, start, stop string) {
+			defer wg.Done()
+			if r, err := bc.GetFamilyCombinationsRange(start, stop); err == nil && r != nil {
+				sales[i] = r.Combinations
+			}
+		}(i, w.Start, w.Stop)
+	}
+	wg.Wait()
+	return sales
+}
+
 func attachProgramWeekly(cfg *config.Config, token string, result map[string]interface{}) {
 	_, hasRitual := result["ritual"]
 	_, hasPausa := result["pausa"]
-	if !hasRitual && !hasPausa {
+	_, hasRefugio := result["refugio"]
+	if !hasRitual && !hasPausa && !hasRefugio {
 		return
 	}
 	weeks := computeWeekWindows(8)
-
-	// Ventas por semana (una llamada por semana, concurrentes). Cada respuesta trae
-	// TODOS los buckets → sirve para Ritual y Pausa a la vez.
-	sales := make([]map[string]bookings.CombinationStats, len(weeks))
-	if cfg.EnableBookings && cfg.BookingSystemURL != "" {
-		bc := bookings.NewClient(cfg.BookingSystemURL)
-		var wg sync.WaitGroup
-		for i, w := range weeks {
-			wg.Add(1)
-			go func(i int, start, stop string) {
-				defer wg.Done()
-				if r, err := bc.GetFamilyCombinationsRange(start, stop); err == nil && r != nil {
-					sales[i] = r.Combinations
-				}
-			}(i, w.Start, w.Stop)
-		}
-		wg.Wait()
-	}
+	sales := fetchWeeklyProgramSales(cfg, weeks)
 
 	// 3 programas SIN intersección (H-053b): Ritual = cabaña+tina+masaje 1 noche,
 	// Refugio = 2 noches, Pausa = tina+masaje. Cada reserva cae en uno solo. Ritual/Pausa
@@ -1202,6 +1217,98 @@ func attachOneProgramWeekly(token string, result map[string]interface{}, key, co
 		weekly = append(weekly, row)
 	}
 	block["weekly"] = weekly
+}
+
+// weekIndexForDate devuelve el índice de la ventana semanal que contiene date (YYYY-MM-DD),
+// o -1 si no cae en ninguna. Comparación lexicográfica (válida para YYYY-MM-DD).
+func weekIndexForDate(weeks []weekWindow, date string) int {
+	for i, w := range weeks {
+		if date >= w.Start && date <= w.Stop {
+			return i
+		}
+	}
+	return -1
+}
+
+// attachProgramWeeklyGoogle arma las series semanales de Ritual/Refugio/Pausa para el
+// reporte de GOOGLE: gasto+clics semanal de la campaña de Google (descubierta por nombre,
+// gasto diario agregado a las mismas ventanas) + ventas reales del programa (todos los
+// canales). Best-effort: si Google no responde, las celdas de gasto quedan en 0 (las
+// ventas igual se muestran). Refugio se enriquece SOBRE su bloque existente; Ritual/Pausa
+// crean bloque nuevo. Métrica de actividad = Clics (las conversiones de Google no están
+// bien trackeadas todavía).
+func attachProgramWeeklyGoogle(ctx context.Context, client *googleads.Client, result map[string]interface{}, weeks []weekWindow, sales []map[string]bookings.CombinationStats) {
+	if len(weeks) == 0 {
+		return
+	}
+	spanStart, spanStop := weeks[0].Start, weeks[len(weeks)-1].Stop
+	camps, _ := client.GetCampaignSummary(ctx, spanStart, spanStop)
+
+	// Busca la campaña por nombre; prefiere la que tuvo gasto en el período (evita elegir
+	// una zombie pausada homónima), y si ninguna gastó, cae a la primera coincidencia.
+	findCamp := func(needle string) *googleads.CampaignInsights {
+		var first *googleads.CampaignInsights
+		for i := range camps {
+			if strings.Contains(strings.ToLower(camps[i].CampaignName), needle) {
+				if camps[i].CostCLP > 0 {
+					return &camps[i]
+				}
+				if first == nil {
+					first = &camps[i]
+				}
+			}
+		}
+		return first
+	}
+
+	build := func(key, needle, combo string) {
+		spend := make([]float64, len(weeks))
+		clicks := make([]int64, len(weeks))
+		name := ""
+		if c := findCamp(needle); c != nil {
+			name = c.CampaignName
+			if daily, err := client.GetCampaignDaily(ctx, c.CampaignID, spanStart, spanStop); err == nil {
+				for _, d := range daily {
+					if idx := weekIndexForDate(weeks, d.Date); idx >= 0 {
+						spend[idx] += d.CostCLP
+						clicks[idx] += d.Clicks
+					}
+				}
+			}
+		}
+		weekly := make([]map[string]interface{}, len(weeks))
+		for i, w := range weeks {
+			row := map[string]interface{}{
+				"label":    w.Label,
+				"spend":    spend[i],
+				"activity": clicks[i],
+				"reservas": 0,
+				"ingresos": 0.0,
+			}
+			if i < len(sales) && sales[i] != nil {
+				cs := sales[i][combo]
+				row["reservas"] = cs.CountReservas
+				row["ingresos"] = cs.Revenue
+			}
+			weekly[i] = row
+		}
+		block, ok := result[key].(map[string]interface{})
+		if !ok {
+			block = map[string]interface{}{}
+			result[key] = block
+		}
+		block["weekly"] = weekly
+		block["activity_label"] = "Clics"
+		if name != "" {
+			if _, exists := block["campaign_name"]; !exists {
+				block["campaign_name"] = name
+			}
+		}
+	}
+
+	build("ritual", "ritual", "cabanas_tinas_masajes_1n")
+	build("refugio", "refugio", "cabanas_tinas_masajes_2n")
+	build("pausa", "pausa", "tinas_masajes")
 }
 
 // newAIClientWithOperatingContext returns an OpenRouter client preloaded with

@@ -82,6 +82,50 @@ func (c *Client) GetCampaignInsights(ctx context.Context, campaignID, dateStart,
 	return &ci, nil
 }
 
+// DailyMetric es una fila por DÍA (segments.date) de una campaña.
+type DailyMetric struct {
+	Date        string  // YYYY-MM-DD
+	CostCLP     float64
+	Clicks      int64
+	Conversions float64
+}
+
+// GetCampaignDaily trae métricas por DÍA de una campaña (segments.date), para
+// construir series semanales alineadas a ventanas arbitrarias (se agregan en Go).
+// Usado por las tablas semanales de Ritual/Refugio/Pausa del reporte de Google (H-053).
+func (c *Client) GetCampaignDaily(ctx context.Context, campaignID, dateStart, dateStop string) ([]DailyMetric, error) {
+	gaql := fmt.Sprintf(`
+		SELECT
+			campaign.id,
+			segments.date,
+			metrics.cost_micros,
+			metrics.clicks,
+			metrics.conversions
+		FROM campaign
+		WHERE campaign.id = %s
+		  AND segments.date BETWEEN '%s' AND '%s'
+	`, campaignID, dateStart, dateStop)
+
+	rows, err := c.searchStream(ctx, gaql)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]DailyMetric, 0, len(rows))
+	for _, raw := range rows {
+		var r row
+		if err := json.Unmarshal(raw, &r); err != nil {
+			continue
+		}
+		out = append(out, DailyMetric{
+			Date:        r.Segments.Date,
+			CostCLP:     microsToCLP(parseInt64FromString(r.Metrics.CostMicros.String())),
+			Clicks:      parseInt64FromString(r.Metrics.Clicks.String()),
+			Conversions: parseFloatFromString(r.Metrics.Conversions.String()),
+		})
+	}
+	return out, nil
+}
+
 func (c *Client) rowToCampaign(r *row, dateStart, dateStop string) CampaignInsights {
 	imp := r.Metrics.Impressions.String()
 	clicks := r.Metrics.Clicks.String()
