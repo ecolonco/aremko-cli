@@ -300,14 +300,26 @@ func BuildCuadros(meta map[string]interface{}) string {
 		if blk, ok := meta[mp.key].(map[string]interface{}); ok {
 			if s, ok := blk["summary"].(map[string]interface{}); ok {
 				b.WriteString(tableTitle(mp.title))
-				b.WriteString(kvTable([][2]string{
+				rows := [][2]string{
 					{"Gasto (30 días)", clp(num(s["spend"]))},
 					{"Conversaciones", fmt.Sprintf("%.0f", num(s["conversations"]))},
 					{"Costo por conversación", cplOrDash(num(s["cost_per_conversation"]), num(s["conversations"]))},
 					{"Alcance", fmt.Sprintf("%.0f", num(s["reach"]))},
 					{"Clics", fmt.Sprintf("%.0f", num(s["clicks"]))},
 					{"CTR", fmt.Sprintf("%.2f%%", num(s["ctr"]))},
-				}))
+				}
+				// Ventas REALES del programa en el mismo período (H-053), si Django las
+				// expone. Ritual = cabaña+tina+masaje; Pausa = tina+masaje. Se muestran
+				// como cifras absolutas (unidades + ingresos, TODOS los canales) al lado
+				// del gasto, para que Jorge compare. NO se calcula un "ROI ÷ gasto ads"
+				// porque la mayoría de esas ventas no vienen de ads → el ratio engañaría.
+				if rs, ok := blk["real_sales"].(map[string]interface{}); ok {
+					rows = append(rows,
+						[2]string{"Ventas reales del programa (30 días, todos los canales)", fmt.Sprintf("%.0f reservas", num(rs["count_reservas"]))},
+						[2]string{"Ingresos del programa (30 días, todos los canales)", clp(num(rs["revenue"]))},
+					)
+				}
+				b.WriteString(kvTable(rows))
 			}
 		}
 	}

@@ -703,6 +703,14 @@ func getMetaAdsData(cfg *config.Config, dateStart, dateStop string) (map[string]
 		result["pausa"] = pausa
 	}
 
+	// Ventas REALES de los programas (H-053): lo que efectivamente se vendió en la
+	// ventana, desde el reporte de ventas de Django. Ritual = cabaña+tina+masaje
+	// (cabanas_tinas_masajes), Pausa = tina+masaje solo (tinas_masajes); buckets
+	// mutuamente excluyentes (sin doble conteo). Mismo período (30d) que el gasto de
+	// los bloques → comparable. Degradación suave: si bookings está apagado o el
+	// endpoint todavía no existe (404), se omite la línea sin romper el reporte.
+	attachProgramRealSales(cfg, result)
+
 	// Solo fallar si NINGUNA cuenta respondió (todas dieron error). Si al menos
 	// una respondió bien, seguimos: una cuenta con problema de permiso (403) o una
 	// semana sin campañas activas NO debe tumbar todo el reporte. Las cuentas que
@@ -1070,6 +1078,50 @@ func buildMessagingBlock(token string, accounts []config.MetaAccount, needle str
 		"period":        map[string]string{"start": dateStart, "end": dateStop},
 		"summary":       summary,
 		"platforms":     platformRows(platforms),
+	}
+}
+
+// attachProgramRealSales enriquece los bloques ritual/pausa con las ventas REALES
+// del programa en la misma ventana de 30 días que su gasto (H-053), tomadas del
+// reporte de ventas de Django (family-combinations-range). Ritual = cabaña+tina+masaje
+// (cabanas_tinas_masajes), Pausa = tina+masaje solo (tinas_masajes); buckets
+// mutuamente excluyentes → sin doble conteo. Best-effort: si bookings está apagado o
+// el endpoint todavía no existe (404), no hace nada (el reporte sale igual, sin la línea).
+func attachProgramRealSales(cfg *config.Config, result map[string]interface{}) {
+	if !cfg.EnableBookings || cfg.BookingSystemURL == "" {
+		return
+	}
+	_, hasRitual := result["ritual"]
+	_, hasPausa := result["pausa"]
+	if !hasRitual && !hasPausa {
+		return // nada que enriquecer; evita un llamado innecesario a Django
+	}
+	dateStart := time.Now().AddDate(0, 0, -30).Format("2006-01-02")
+	dateStop := time.Now().Format("2006-01-02")
+	bc := bookings.NewClient(cfg.BookingSystemURL)
+	ps, err := bc.GetFamilyCombinationsRange(dateStart, dateStop)
+	if err != nil || ps == nil {
+		if err != nil {
+			fmt.Printf("[REPORTE] ventas reales de programas no disponibles (H-053, se omite): %v\n", err)
+		}
+		return
+	}
+	// Ritual = cabaña+tina+masaje; Pausa = tina+masaje solo.
+	attachRealSalesToBlock(result, "ritual", ps.Combinations["cabanas_tinas_masajes"], ps.DateStart, ps.DateStop)
+	attachRealSalesToBlock(result, "pausa", ps.Combinations["tinas_masajes"], ps.DateStart, ps.DateStop)
+}
+
+// attachRealSalesToBlock agrega la sub-sección "real_sales" (unidades + ingresos del
+// período) a un bloque de programa si ese bloque existe en el resultado.
+func attachRealSalesToBlock(result map[string]interface{}, key string, cs bookings.CombinationStats, start, stop string) {
+	block, ok := result[key].(map[string]interface{})
+	if !ok {
+		return
+	}
+	block["real_sales"] = map[string]interface{}{
+		"count_reservas": cs.CountReservas,
+		"revenue":        cs.Revenue,
+		"period":         map[string]string{"start": start, "end": stop},
 	}
 }
 

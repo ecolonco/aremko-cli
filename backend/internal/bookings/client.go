@@ -1512,6 +1512,47 @@ func (c *Client) GetFamilyCombinations(months int) (*FamilyCombinationsResult, e
 	return &result, nil
 }
 
+// FamilyCombinationsRangeResult is the response from
+// /bookings/family-combinations-range/ — the family-combination matrix aggregated
+// over a single arbitrary date range (not a monthly breakdown). Used by the daily
+// ad reports to attribute real program sales to the ad-spend window: Ritual del Río
+// = cabanas_tinas_masajes, Pausa junto al río = tinas_masajes. Buckets are mutually
+// exclusive (each reservation counts in exactly one). See H-053.
+type FamilyCombinationsRangeResult struct {
+	DateStart    string                      `json:"date_start"`
+	DateStop     string                      `json:"date_stop"`
+	Combinations map[string]CombinationStats `json:"combinations"`
+	Total        CombinationStats            `json:"total"`
+}
+
+// GetFamilyCombinationsRange fetches program sales (count + revenue) grouped by
+// family combination for an arbitrary date range, aggregated over the whole period.
+// dateStart/dateStop are YYYY-MM-DD (inclusive). Returns an error if the endpoint
+// is missing (404) so callers can degrade gracefully (omit the "ventas reales" line).
+func (c *Client) GetFamilyCombinationsRange(dateStart, dateStop string) (*FamilyCombinationsRangeResult, error) {
+	endpoint := fmt.Sprintf("%s/ventas/api/aremko-cli/bookings/family-combinations-range/?date_start=%s&date_stop=%s", c.BaseURL, dateStart, dateStop)
+
+	resp, err := c.HTTPClient.Get(endpoint)
+	if err != nil {
+		return nil, fmt.Errorf("error fetching family-combinations-range: %w", err)
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("error reading family-combinations-range body: %w", err)
+	}
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("family-combinations-range returned %d: %s", resp.StatusCode, string(body))
+	}
+
+	var result FamilyCombinationsRangeResult
+	if err := json.Unmarshal(body, &result); err != nil {
+		return nil, fmt.Errorf("error parsing family-combinations-range: %w", err)
+	}
+	return &result, nil
+}
+
 // VentasDetalleRow describes a single reservation row from /bookings/detalle/.
 // One reservation may appear in multiple rows if it has different services.
 type VentasDetalleRow struct {
