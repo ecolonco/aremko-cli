@@ -222,8 +222,8 @@ type row struct {
 		Status     string `json:"status"`
 	} `json:"searchTermView"`
 	Segments struct {
-		KeywordInfoMatchType string `json:"keywordMatchType"`
-		Date                 string `json:"date"`
+		SearchTermMatchType string `json:"searchTermMatchType"`
+		Date                string `json:"date"`
 	} `json:"segments"`
 	AdGroupCriterion struct {
 		Keyword struct {

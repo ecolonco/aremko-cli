@@ -186,7 +186,7 @@ func (c *Client) GetSearchTerms(ctx context.Context, campaignID, dateStart, date
 		SELECT
 			search_term_view.search_term,
 			search_term_view.status,
-			segments.keyword.match_type,
+			segments.search_term_match_type,
 			metrics.impressions,
 			metrics.clicks,
 			metrics.cost_micros,
@@ -220,7 +220,7 @@ func (c *Client) GetSearchTerms(ctx context.Context, campaignID, dateStart, date
 		out = append(out, SearchTerm{
 			Term:        r.SearchTermView.SearchTerm,
 			Status:      r.SearchTermView.Status,
-			MatchType:   r.Segments.KeywordInfoMatchType,
+			MatchType:   r.Segments.SearchTermMatchType,
 			Impressions: parseInt64FromString(r.Metrics.Impressions.String()),
 			Clicks:      clicks,
 			CostCLP:     costCLP,
