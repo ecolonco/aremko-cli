@@ -67,12 +67,95 @@ export default function MensajesWhatsAppPage() {
     return () => mq.removeEventListener('change', update);
   }, []);
 
+  // --- Alerta sonora de mensajes nuevos ---
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  // Contador de "sin responder" por conversación en el poll anterior, para
+  // detectar cuándo llega algo nuevo comparando entre recargas.
+  const conteosPrevRef = useRef<Map<string, number> | null>(null);
+
+  // Crea/reactiva el AudioContext. Los navegadores exigen un gesto del usuario
+  // para habilitar audio, por eso lo "desbloqueamos" en el primer clic/tecla.
+  const obtenerAudio = useCallback((): AudioContext | null => {
+    const AC: typeof AudioContext | undefined =
+      window.AudioContext ||
+      (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    if (!AC) return null;
+    if (!audioCtxRef.current) audioCtxRef.current = new AC();
+    if (audioCtxRef.current.state === 'suspended') void audioCtxRef.current.resume();
+    return audioCtxRef.current;
+  }, []);
+
+  // Alerta sonora de mensaje nuevo: patrón "ding-dong" agudo repetido 3 veces,
+  // más fuerte y largo que el ding de la agenda de cocina para que se escuche.
+  const reproducirAlerta = useCallback(() => {
+    try {
+      const ctx = obtenerAudio();
+      if (!ctx) return;
+      const patron = [988, 1319]; // B5 + E6, agudos que cortan el ruido de fondo
+      const pulso = 0.14;
+      const gap = 0.07;
+      let t = ctx.currentTime;
+      for (let rep = 0; rep < 3; rep++) {
+        for (const freq of patron) {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(freq, t);
+          gain.gain.setValueAtTime(0.0001, t);
+          gain.gain.exponentialRampToValueAtTime(0.6, t + 0.02);
+          gain.gain.exponentialRampToValueAtTime(0.0001, t + pulso);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(t);
+          osc.stop(t + pulso);
+          t += pulso + gap;
+        }
+        t += 0.12; // respiro entre repeticiones
+      }
+    } catch {
+      /* audio no disponible */
+    }
+  }, [obtenerAudio]);
+
+  // Desbloqueo del audio al primer gesto del usuario (política de autoplay).
+  useEffect(() => {
+    const desbloquear = () => obtenerAudio();
+    window.addEventListener('pointerdown', desbloquear);
+    window.addEventListener('keydown', desbloquear);
+    return () => {
+      window.removeEventListener('pointerdown', desbloquear);
+      window.removeEventListener('keydown', desbloquear);
+    };
+  }, [obtenerAudio]);
+
   const cargar = useCallback(
     async (silencioso = false) => {
       if (!silencioso) setCargando(true);
       try {
         const data = await fetchConversacionesInbox(soloPendientes, 100);
-        setConversaciones(data.conversations || []);
+        const lista = data.conversations || [];
+
+        // Contador de "sin responder" por conversación en este poll.
+        const conteos = new Map<string, number>();
+        for (const c of lista) {
+          conteos.set(`${canalDe(c)}:${extDe(c)}`, c.sin_responder || 0);
+        }
+        // Solo sonamos en recargas silenciosas (el polling en vivo): si alguna
+        // conversación tiene más pendientes que antes, o aparece una nueva con
+        // pendientes, llegó un mensaje. La carga inicial, el botón "Refrescar" y
+        // el cambio de filtro son NO silenciosos → solo fijan la línea base sin
+        // sonar, para no alertar por mensajes que ya estaban ahí.
+        const previos = conteosPrevRef.current;
+        if (silencioso && previos) {
+          let hayNuevo = false;
+          conteos.forEach((n, key) => {
+            if (n > (previos.get(key) || 0)) hayNuevo = true;
+          });
+          if (hayNuevo) reproducirAlerta();
+        }
+        conteosPrevRef.current = conteos;
+
+        setConversaciones(lista);
         setError(null);
       } catch (e: unknown) {
         setError(e instanceof Error ? e.message : 'Error al cargar conversaciones');
@@ -80,7 +163,7 @@ export default function MensajesWhatsAppPage() {
         setCargando(false);
       }
     },
-    [soloPendientes]
+    [soloPendientes, reproducirAlerta]
   );
 
   useEffect(() => {
