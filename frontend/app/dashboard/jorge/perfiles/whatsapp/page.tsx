@@ -86,11 +86,25 @@ export default function MensajesWhatsAppPage() {
   }, []);
 
   // Alerta sonora de mensaje nuevo: patrón "ding-dong" agudo repetido 3 veces,
-  // más fuerte y largo que el ding de la agenda de cocina para que se escuche.
+  // al máximo volumen digital (pico 1.0) + compresor con makeup gain que sube el
+  // volumen percibido sin distorsionar, para que se escuche en el mostrador.
   const reproducirAlerta = useCallback(() => {
     try {
       const ctx = obtenerAudio();
       if (!ctx) return;
+      // Compresor + makeup gain ("radio loud"): sube el volumen percibido sin
+      // clippear. Toda la señal de la alerta sale por acá.
+      const comp = ctx.createDynamicsCompressor();
+      comp.threshold.value = -20;
+      comp.knee.value = 20;
+      comp.ratio.value = 12;
+      comp.attack.value = 0.003;
+      comp.release.value = 0.25;
+      const makeup = ctx.createGain();
+      makeup.gain.value = 1.6;
+      comp.connect(makeup);
+      makeup.connect(ctx.destination);
+
       const patron = [988, 1319]; // B5 + E6, agudos que cortan el ruido de fondo
       const pulso = 0.14;
       const gap = 0.07;
@@ -102,10 +116,10 @@ export default function MensajesWhatsAppPage() {
           osc.type = 'triangle';
           osc.frequency.setValueAtTime(freq, t);
           gain.gain.setValueAtTime(0.0001, t);
-          gain.gain.exponentialRampToValueAtTime(0.6, t + 0.02);
+          gain.gain.exponentialRampToValueAtTime(1.0, t + 0.02);
           gain.gain.exponentialRampToValueAtTime(0.0001, t + pulso);
           osc.connect(gain);
-          gain.connect(ctx.destination);
+          gain.connect(comp);
           osc.start(t);
           osc.stop(t + pulso);
           t += pulso + gap;
