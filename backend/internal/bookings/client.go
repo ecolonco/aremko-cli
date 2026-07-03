@@ -28,6 +28,14 @@ func NewClient(baseURL string) *Client {
 	}
 }
 
+// llmClient es un cliente HTTP con timeout largo, para las pocas llamadas a
+// Django que además disparan una generación de IA en el mismo request-response
+// (ej. GetWhatsAppConversationRaw con sugerencia=1 — H-007). Separado a propósito
+// del HTTPClient de 10s del Client: esas otras ~40 llamadas son lecturas simples
+// de BD y deben seguir fallando rápido si algo anda mal; subir el timeout global
+// escondería ese tipo de problemas detrás de una espera larga.
+var llmClient = &http.Client{Timeout: 90 * time.Second}
+
 // BookingStats represents aggregated booking statistics
 type BookingStats struct {
 	Total     int     `json:"total"`
@@ -875,7 +883,14 @@ func (c *Client) GetWhatsAppConversationRaw(apiKey, phone string, limit int, con
 		return nil, err
 	}
 	req.Header.Set("X-API-Key", apiKey)
-	resp, err := c.HTTPClient.Do(req)
+	// Con sugerencia=1, Django genera el borrador de IA en el mismo request (puede
+	// tardar bastante más que una lectura simple) — usar el cliente de timeout largo
+	// para esa variante; el resto sigue con el HTTPClient normal (10s, falla rápido).
+	httpClient := c.HTTPClient
+	if conSugerencia {
+		httpClient = llmClient
+	}
+	resp, err := httpClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("error en conversation: %w", err)
 	}
