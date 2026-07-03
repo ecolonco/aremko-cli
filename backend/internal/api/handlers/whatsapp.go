@@ -537,6 +537,37 @@ func WhatsAppSendMedia(cfg *config.Config) http.HandlerFunc {
 	}
 }
 
+// WhatsAppPausaAlternativas proxea GET /api/luna/pausa/alternativas/ de Django
+// (H-058): todas las combinaciones válidas de tina+masaje (Pausa junto al río)
+// para una fecha, con texto_sugerido listo para el borrador. Alimenta el botón
+// "Alternativas Pausa" de la bandeja (ConversacionWhatsApp.tsx) para navegar
+// opciones sin escribirlas a mano — evita el bug de Luna subcontando alternativas.
+func WhatsAppPausaAlternativas(cfg *config.Config) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if cfg.LunaAPIKey == "" || cfg.BookingSystemURL == "" {
+			respondError(w, http.StatusServiceUnavailable, "Luna API no configurada")
+			return
+		}
+		fecha := strings.TrimSpace(r.URL.Query().Get("fecha"))
+		if fecha == "" {
+			respondError(w, http.StatusBadRequest, "falta 'fecha' (YYYY-MM-DD)")
+			return
+		}
+		personas, err := strconv.Atoi(r.URL.Query().Get("personas"))
+		if err != nil || personas <= 0 {
+			personas = 2
+		}
+
+		bc := bookings.NewClient(cfg.BookingSystemURL)
+		result, err := bc.GetPausaAlternativas(fecha, personas, cfg.LunaAPIKey)
+		if err != nil {
+			respondError(w, http.StatusBadGateway, "no se pudo traer alternativas: "+err.Error())
+			return
+		}
+		respondJSON(w, http.StatusOK, result)
+	}
+}
+
 // WhatsAppCreateTemplates crea (un disparo) todas las plantillas embebidas de
 // Vuelta a Casa en la WABA indicada (?waba_id=). Quedan en revisión de Meta.
 // Protegido con X-API-Key = LUNA_API_KEY (server-to-server). Idempotente del

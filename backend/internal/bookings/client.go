@@ -1237,6 +1237,55 @@ func (c *Client) GetRefugioLeadsSummary(desde, hasta, apiKey string) (*RefugioLe
 	return &out, nil
 }
 
+// PausaAlternativa es una combinación válida de tina+masaje (Pausa junto al
+// río) para una fecha, con el texto ya formateado listo para el borrador.
+type PausaAlternativa struct {
+	Etiqueta           string  `json:"etiqueta"`
+	Tina               string  `json:"tina"`
+	HoraTina           string  `json:"hora_tina"`
+	HoraMasaje         string  `json:"hora_masaje"`
+	PrecioTotal        float64 `json:"precio_total"`
+	PrecioConDescuento float64 `json:"precio_con_descuento"`
+	HayDescuento       bool    `json:"hay_descuento"`
+	TextoSugerido      string  `json:"texto_sugerido"`
+}
+
+// PausaAlternativasResult es la respuesta de /api/luna/pausa/alternativas/.
+type PausaAlternativasResult struct {
+	Fecha        string             `json:"fecha"`
+	Personas     int                `json:"personas"`
+	Alternativas []PausaAlternativa `json:"alternativas"`
+}
+
+// GetPausaAlternativas consulta /api/luna/pausa/alternativas/ (H-058): todas
+// las combinaciones válidas de tina+masaje para una fecha, ordenadas
+// cronológicamente, cada una con texto_sugerido listo para pegar en el
+// borrador. Requiere header X-API-Key (LunaAPIKey).
+func (c *Client) GetPausaAlternativas(fecha string, personas int, apiKey string) (*PausaAlternativasResult, error) {
+	url := fmt.Sprintf("%s/api/luna/pausa/alternativas/?fecha=%s&personas=%d", c.BaseURL, fecha, personas)
+	req, err := http.NewRequest(http.MethodGet, url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("error creando request pausa-alternativas: %w", err)
+	}
+	req.Header.Set("X-API-Key", apiKey)
+
+	resp, err := c.HTTPClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("error fetching pausa-alternativas: %w", err)
+	}
+	defer resp.Body.Close()
+	body, _ := io.ReadAll(resp.Body)
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("pausa-alternativas status %d: %s", resp.StatusCode, body)
+	}
+
+	var out PausaAlternativasResult
+	if err := json.Unmarshal(body, &out); err != nil {
+		return nil, fmt.Errorf("error decoding pausa-alternativas: %w", err)
+	}
+	return &out, nil
+}
+
 // RefugioLeadItem es un lead del formulario (o un contacto WhatsApp) devuelto por
 // /api/refugio-leads/. Solo mapeamos los campos que usa el cruce de reservas.
 type RefugioLeadItem struct {
