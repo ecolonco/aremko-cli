@@ -16,6 +16,7 @@ import type {
   AgenteConfig,
   SugerenciaAprendizaje,
   EnvioPlantilla,
+  PausaAlternativasResponse,
 } from './types';
 
 const apiBase = () =>
@@ -399,6 +400,21 @@ export const enviarAdjuntoWhatsApp = async (
     throw new Error(json.error || `HTTP ${res.status}`);
   }
   return json as ResponderWhatsAppResult;
+};
+
+/** Trae las combinaciones válidas de tina+masaje (Pausa junto al río) para una
+ * fecha, con texto_sugerido listo para el borrador (H-058). */
+export const fetchPausaAlternativas = async (
+  fecha: string,
+  personas: number
+): Promise<PausaAlternativasResponse> => {
+  const q = new URLSearchParams({ fecha, personas: String(personas) });
+  const res = await fetch(`${apiBase()}${WA}/pausa-alternativas?${q.toString()}`);
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(json.error || `HTTP ${res.status}`);
+  }
+  return json as PausaAlternativasResponse;
 };
 
 /** Lista las conversaciones para poblar la bandeja de entrada (proxy a Django). */

@@ -254,6 +254,25 @@ export interface CarritoEnCurso {
   editable: boolean; // Fase 1 = false (solo lectura); Fase 2 lo hará editable
 }
 
+// Una combinación válida de tina+masaje (Pausa junto al río) para una fecha,
+// con el texto ya formateado listo para pegar en el borrador (H-058).
+export interface PausaAlternativa {
+  etiqueta: string;
+  tina: string;
+  hora_tina: string;
+  hora_masaje: string;
+  precio_total: number;
+  precio_con_descuento: number;
+  hay_descuento: boolean;
+  texto_sugerido: string;
+}
+
+export interface PausaAlternativasResponse {
+  fecha: string;
+  personas: number;
+  alternativas: PausaAlternativa[];
+}
+
 // Reserva ya creada tras el Aprobar del cliente en la cotización (H-039, Fase 3).
 // Django la expone en el payload de la conversación cuando la última PropuestaReserva
 // del hilo quedó en estado 'creada'. El cajón muestra "Revisar y enviar Ficha".

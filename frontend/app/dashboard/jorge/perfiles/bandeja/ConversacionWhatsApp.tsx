@@ -22,6 +22,7 @@ import {
   ChevronUp,
   Images,
   Trash2,
+  Waves,
 } from 'lucide-react';
 import {
   fetchConversacionWhatsApp,
@@ -33,9 +34,17 @@ import {
   reportarFeedbackAgente,
   telefonoE164,
   limpiarConversacion,
+  fetchPausaAlternativas,
 } from './api';
 import { BibliotecaMedios } from './BibliotecaMedios';
-import type { MensajeWhatsApp, SugerenciaAgente, PropuestaReserva, ReservaCreada, CarritoEnCurso } from './types';
+import type {
+  MensajeWhatsApp,
+  SugerenciaAgente,
+  PropuestaReserva,
+  ReservaCreada,
+  CarritoEnCurso,
+  PausaAlternativa,
+} from './types';
 import { CotizacionCajon } from './CotizacionCajon';
 
 interface ConversacionWhatsAppProps {
@@ -174,6 +183,16 @@ export function ConversacionWhatsApp({
   const finRef = useRef<HTMLDivElement | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
+  // Alternativas de Pausa junto al río (H-058): navegar combinaciones tina+masaje
+  // de una fecha sin escribirlas a mano — evita el bug de Luna subcontando opciones.
+  const [pausaModalAbierto, setPausaModalAbierto] = useState(false);
+  const [pausaFecha, setPausaFecha] = useState('');
+  const [pausaPersonas, setPausaPersonas] = useState(2);
+  const [pausaAlternativas, setPausaAlternativas] = useState<PausaAlternativa[] | null>(null);
+  const [pausaIndice, setPausaIndice] = useState(0);
+  const [pausaCargando, setPausaCargando] = useState(false);
+  const [pausaError, setPausaError] = useState<string | null>(null);
+
   const copiarTelefono = useCallback(() => {
     if (!phone) return;
     navigator.clipboard?.writeText(phone).then(
@@ -206,6 +225,12 @@ export function ConversacionWhatsApp({
     setLimite(200);
     limiteRef.current = 200;
     masAntiguosRef.current = false;
+    // Las alternativas de Pausa son de una fecha puntual, no deben sobrevivir
+    // el cambio de cliente.
+    setPausaModalAbierto(false);
+    setPausaAlternativas(null);
+    setPausaIndice(0);
+    setPausaError(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phone]);
 
@@ -452,6 +477,53 @@ export function ConversacionWhatsApp({
     }
   };
 
+  // Botón de alternativas Pausa (H-058): si ya hay alternativas cargadas para
+  // esta fecha, el clic avanza a la siguiente (da la vuelta al llegar al final);
+  // si no hay ninguna cargada todavía, abre el modal para pedir fecha+personas
+  // (no hay forma confiable de inferirlas del hilo).
+  const clickAlternativasPausa = () => {
+    if (disabled) return;
+    if (pausaAlternativas && pausaAlternativas.length > 0) {
+      const siguiente = (pausaIndice + 1) % pausaAlternativas.length;
+      setPausaIndice(siguiente);
+      setTexto(pausaAlternativas[siguiente].texto_sugerido);
+      return;
+    }
+    setPausaModalAbierto(true);
+  };
+
+  // Reabre el modal para elegir otra fecha/personas, descartando las alternativas actuales.
+  const cambiarFechaPausa = () => {
+    setPausaAlternativas(null);
+    setPausaIndice(0);
+    setPausaError(null);
+    setPausaModalAbierto(true);
+  };
+
+  const confirmarPausaFecha = async () => {
+    if (!pausaFecha) {
+      setPausaError('Elegí una fecha');
+      return;
+    }
+    setPausaCargando(true);
+    setPausaError(null);
+    try {
+      const data = await fetchPausaAlternativas(pausaFecha, pausaPersonas);
+      if (!data.alternativas || data.alternativas.length === 0) {
+        setPausaError('Sin combinaciones tina+masaje disponibles para esa fecha/personas');
+        return;
+      }
+      setPausaAlternativas(data.alternativas);
+      setPausaIndice(0);
+      setTexto(data.alternativas[0].texto_sugerido);
+      setPausaModalAbierto(false);
+    } catch (e: unknown) {
+      setPausaError(e instanceof Error ? e.message : 'No se pudo traer las alternativas');
+    } finally {
+      setPausaCargando(false);
+    }
+  };
+
   const ventanaAbierta = dentroVentana24h(mensajes);
 
   return (
@@ -462,6 +534,81 @@ export function ConversacionWhatsApp({
           onClose={() => setBiblioteca(false)}
           onSelect={(url) => enviarDesdeBiblioteca(url)}
         />
+      )}
+      {pausaModalAbierto && (
+        <>
+          <div
+            className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-[1px]"
+            onClick={() => !pausaCargando && setPausaModalAbierto(false)}
+          />
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="pausa-alt-titulo"
+            className="fixed left-1/2 top-1/2 z-[60] w-[min(92vw,22rem)] -translate-x-1/2 -translate-y-1/2 rounded-xl bg-white p-5 shadow-2xl"
+          >
+            <div className="flex items-start justify-between gap-2">
+              <div>
+                <h2 id="pausa-alt-titulo" className="text-base font-semibold text-slate-900">
+                  Alternativas Pausa junto al río
+                </h2>
+                <p className="mt-0.5 text-sm text-slate-500">
+                  Combinaciones tina+masaje disponibles para una fecha.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => !pausaCargando && setPausaModalAbierto(false)}
+                className="text-slate-400 hover:text-slate-600"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="mt-4 space-y-3">
+              <label className="block text-sm">
+                <span className="text-slate-600">Fecha</span>
+                <input
+                  type="date"
+                  value={pausaFecha}
+                  onChange={(e) => setPausaFecha(e.target.value)}
+                  className="mt-1 w-full rounded-lg border border-slate-300 p-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                />
+              </label>
+              <label className="block text-sm">
+                <span className="text-slate-600">Personas</span>
+                <input
+                  type="number"
+                  min={1}
+                  max={2}
+                  value={pausaPersonas}
+                  onChange={(e) => setPausaPersonas(Math.min(2, Math.max(1, Number(e.target.value) || 2)))}
+                  className="mt-1 w-full rounded-lg border border-slate-300 p-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                />
+              </label>
+              {pausaError && <p className="text-sm text-red-600">{pausaError}</p>}
+            </div>
+            <div className="mt-4 flex justify-end gap-2">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => setPausaModalAbierto(false)}
+                disabled={pausaCargando}
+              >
+                Cancelar
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                onClick={confirmarPausaFecha}
+                disabled={pausaCargando || !pausaFecha}
+                className="bg-emerald-600 hover:bg-emerald-700"
+              >
+                {pausaCargando ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Buscar'}
+              </Button>
+            </div>
+          </div>
+        </>
       )}
       {/* Encabezado del hilo */}
       <div className="flex flex-shrink-0 items-center justify-between gap-2 border-b border-emerald-100 bg-emerald-50/60 px-3 py-2">
@@ -708,6 +855,21 @@ export function ConversacionWhatsApp({
             <span>Borrador sugerido por IA — revísalo antes de enviar.</span>
           </div>
         )}
+        {pausaAlternativas && pausaAlternativas.length > 0 && (
+          <div className="mb-1 flex items-center gap-1.5 text-xs text-slate-500">
+            <Waves className="h-3 w-3 text-emerald-600" />
+            <span>
+              Pausa {pausaFecha} · {pausaPersonas}p · opción {pausaIndice + 1}/{pausaAlternativas.length}
+            </span>
+            <button
+              type="button"
+              onClick={cambiarFechaPausa}
+              className="text-emerald-700 underline decoration-dotted hover:text-emerald-800"
+            >
+              cambiar fecha
+            </button>
+          </div>
+        )}
         <div className="flex items-end gap-2">
           <input
             ref={fileInputRef}
@@ -733,6 +895,19 @@ export function ConversacionWhatsApp({
             className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg border border-slate-300 text-slate-500 hover:bg-slate-100 disabled:opacity-50"
           >
             <Images className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            onClick={clickAlternativasPausa}
+            disabled={disabled || enviando || !phone}
+            title={
+              pausaAlternativas && pausaAlternativas.length > 0
+                ? `Siguiente alternativa de Pausa (${pausaIndice + 1}/${pausaAlternativas.length})`
+                : 'Alternativas de Pausa junto al río (tina+masaje) para una fecha'
+            }
+            className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg border border-slate-300 text-slate-500 hover:bg-slate-100 disabled:opacity-50"
+          >
+            <Waves className="h-4 w-4" />
           </button>
           <textarea
             ref={textareaRef}
