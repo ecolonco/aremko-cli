@@ -1257,7 +1257,7 @@ type PausaAlternativasResult struct {
 	Alternativas []PausaAlternativa `json:"alternativas"`
 }
 
-// GetPausaAlternativas consulta /api/luna/pausa/alternativas/ (H-058): todas
+// GetPausaAlternativas consulta /api/luna/pausa/alternativas/ (H-059): todas
 // las combinaciones válidas de tina+masaje para una fecha, ordenadas
 // cronológicamente, cada una con texto_sugerido listo para pegar en el
 // borrador. Requiere header X-API-Key (LunaAPIKey).

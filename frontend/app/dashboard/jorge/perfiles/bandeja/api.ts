@@ -403,7 +403,7 @@ export const enviarAdjuntoWhatsApp = async (
 };
 
 /** Trae las combinaciones válidas de tina+masaje (Pausa junto al río) para una
- * fecha, con texto_sugerido listo para el borrador (H-058). */
+ * fecha, con texto_sugerido listo para el borrador (H-059). */
 export const fetchPausaAlternativas = async (
   fecha: string,
   personas: number

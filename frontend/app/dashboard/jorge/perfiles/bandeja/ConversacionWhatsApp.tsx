@@ -183,7 +183,7 @@ export function ConversacionWhatsApp({
   const finRef = useRef<HTMLDivElement | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
-  // Alternativas de Pausa junto al río (H-058): navegar combinaciones tina+masaje
+  // Alternativas de Pausa junto al río (H-059): navegar combinaciones tina+masaje
   // de una fecha sin escribirlas a mano — evita el bug de Luna subcontando opciones.
   const [pausaModalAbierto, setPausaModalAbierto] = useState(false);
   const [pausaFecha, setPausaFecha] = useState('');
@@ -477,7 +477,7 @@ export function ConversacionWhatsApp({
     }
   };
 
-  // Botón de alternativas Pausa (H-058): si ya hay alternativas cargadas para
+  // Botón de alternativas Pausa (H-059): si ya hay alternativas cargadas para
   // esta fecha, el clic avanza a la siguiente (da la vuelta al llegar al final);
   // si no hay ninguna cargada todavía, abre el modal para pedir fecha+personas
   // (no hay forma confiable de inferirlas del hilo).

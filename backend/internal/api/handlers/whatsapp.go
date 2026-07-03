@@ -538,7 +538,7 @@ func WhatsAppSendMedia(cfg *config.Config) http.HandlerFunc {
 }
 
 // WhatsAppPausaAlternativas proxea GET /api/luna/pausa/alternativas/ de Django
-// (H-058): todas las combinaciones válidas de tina+masaje (Pausa junto al río)
+// (H-059): todas las combinaciones válidas de tina+masaje (Pausa junto al río)
 // para una fecha, con texto_sugerido listo para el borrador. Alimenta el botón
 // "Alternativas Pausa" de la bandeja (ConversacionWhatsApp.tsx) para navegar
 // opciones sin escribirlas a mano — evita el bug de Luna subcontando alternativas.

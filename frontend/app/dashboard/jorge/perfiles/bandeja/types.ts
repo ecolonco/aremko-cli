@@ -255,7 +255,7 @@ export interface CarritoEnCurso {
 }
 
 // Una combinación válida de tina+masaje (Pausa junto al río) para una fecha,
-// con el texto ya formateado listo para pegar en el borrador (H-058).
+// con el texto ya formateado listo para pegar en el borrador (H-059).
 export interface PausaAlternativa {
   etiqueta: string;
   tina: string;
