@@ -84,3 +84,64 @@ y CPC $15-21 son muy sanos.
    al ángulo invierno-vacaciones y, dado CPC $15-21 con CTR ~4,8%, probar +50% de
    presupuesto en Ritual y Pausa por un ciclo (hoy se gasta ~$47k/14d contra $5M
    de ventas de programas).
+
+### 2026-07-03 — Ciclo 2
+
+**Ventana:** 2026-06-19 → 2026-07-02 (14d). Fuentes: `campaigns-with-insights`
+(backend Go en Render) + `family-combinations-range` (Django, ventas reales).
+
+**Snapshot Meta Ads (14d):**
+
+| Campaña | Estado | Gasto CLP | Alcance | Impres. | Clicks | CTR | CPC | Cuenta |
+|---|---|---|---|---|---|---|---|---|
+| Ritual del Río - junio 2026 | ACTIVE | $27.827 | 23.992 | 37.486 | 1.799 | 4,80% | $15 | operativa `214650…` |
+| Pausa junto al río – junio 2026 | ACTIVE | $26.937 | 18.950 | 28.384 | 1.264 | 4,45% | $21 | operativa `214650…` |
+| Refugio Aremko - Lanzamiento Junio 2026 | **PAUSED** | $0 | — | — | — | — | — | vieja `455070…` |
+| Noche de Aguas Calientes | **no existe campaña** | — | — | — | — | — | — | — |
+
+Gasto total 14d: ~$54.764 CLP (~$3.912/día entre ambas activas). Sube ~16% vs
+Ciclo 1 (~$47k), sobre todo por correr la ventana un día más hacia julio.
+
+**Ventas reales del período (bridge Django, 14d):**
+
+| Programa (combinación) | Ciclo 2 (14d) | Ciclo 1 (14d) |
+|---|---|---|
+| Ritual (`cabanas_tinas_masajes_1n`) | 6 res / $1.407.000 | 7 res / $1.667.000 |
+| Pausa (`tinas_masajes`) | 9 res / $1.260.000 | 9 res / $1.290.000 |
+| Noche Aguas Calientes (`cabanas_tinas_1n`) | 6 res / $970.000 | 8 res / $1.260.000 |
+| Refugio (`cabanas_tinas_masajes_2n`) | 3 res / $830.000 | 3 res / $830.000 |
+| **Total sitio (todas las combinaciones)** | 88 res / $8.602.099 | 96 res / $9.567.099 |
+
+Lectura: ventana casi idéntica a Ciclo 1 (desplazada 1 día), por eso las líneas
+se mueven poco. Los 4 programas vuelven a vender (~$4,47M solo en estas 4 líneas)
+con gasto publicitario ínfimo. Eficiencia directional: los 2 programas con pauta
+(Ritual + Pausa) vendieron $2.667.000 con $54.764 de gasto (~49× gasto→ingreso,
+sin atribución fina). CTR 4,45–4,80% y CPC $15–21 siguen muy sanos.
+
+**Comparación con Ciclo 1 (¿se implementó lo propuesto?):** NO. Las 3
+recomendaciones del 02-jul siguen pendientes — Refugio sigue PAUSED en la cuenta
+vieja, Noche de Aguas Calientes sigue sin campaña, y ambas activas siguen
+nombradas "junio 2026" pese a que hoy ya es 3 de julio (plena temporada de
+vacaciones de invierno). Señal nueva: **Pausa muestra fatiga incipiente** — su
+CTR bajó (4,63% → 4,45%) y su CPC ($21) es ~40% más caro que el de Ritual ($15).
+
+**Recomendaciones nuevas (Nivel 2 — nada ejecutado, esperan respuesta de Jorge):**
+
+1. **Camino rápido para desbloquear Refugio + Noche a la vez: duplicar la
+   campaña ganadora.** En vez de crear dos campañas desde cero (recs #1 y #2 del
+   Ciclo 1, aún pendientes), duplicar en la cuenta operativa `214650…` la campaña
+   de Ritual (estructura ya probada: CTR ~4,8%, CPC $15) dos veces — una apuntada
+   a la landing de Refugio y otra a la de Noche de Aguas Calientes — con
+   presupuesto de prueba ~$1.700/día c/u. Reutiliza segmentación y formato que ya
+   funcionan; reduce el esfuerzo de "armar de cero" que hasta ahora frenó ambas.
+2. **Antes de subir presupuesto en Pausa, rotar su creativo (fatiga incipiente).**
+   Pausa es la única línea con CTR a la baja y su CPC ($21) es 40% mayor que el de
+   Ritual. Propuesta: cargar 1–2 creatividades nuevas de Pausa este ciclo (mismo
+   ángulo tina+masaje, foto/hook fresco) y recién escalar presupuesto cuando el
+   CTR se recupere. Escalar sobre creativo cansado sube el CPC.
+3. **Reasignar el mix de presupuesto hacia Ritual en vez de subir parejo.** Con
+   CPC $15 vs $21 y ticket mayor ($234k prom. Ritual vs $140k Pausa), el peso
+   debería inclinarse a Ritual. Propuesta: en lugar del "+50% a ambas" del Ciclo
+   1, mover el gasto a ~60/40 Ritual/Pausa y, de paso, renombrar ambas a
+   "julio – vacaciones de invierno" con hook estacional (ya es julio; el nombre
+   "junio" quedó vencido).
