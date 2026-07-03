@@ -85,43 +85,55 @@ export default function MensajesWhatsAppPage() {
     return audioCtxRef.current;
   }, []);
 
-  // Alerta sonora de mensaje nuevo: patrón "ding-dong" agudo repetido 3 veces,
-  // al máximo volumen digital (pico 1.0) + compresor con makeup gain que sube el
-  // volumen percibido sin distorsionar, para que se escuche en el mostrador.
+  // Alerta sonora TURBO de mensaje nuevo: triple "ding-dong" con 3 voces por
+  // nota (sierra + cuadrada + sub-octava) a través de un limitador + makeup gain
+  // alto, para que corte la música de fondo de la recepción sin distorsionar.
   const reproducirAlerta = useCallback(() => {
     try {
       const ctx = obtenerAudio();
       if (!ctx) return;
-      // Compresor + makeup gain ("radio loud"): sube el volumen percibido sin
-      // clippear. Toda la señal de la alerta sale por acá.
-      const comp = ctx.createDynamicsCompressor();
-      comp.threshold.value = -20;
-      comp.knee.value = 20;
-      comp.ratio.value = 12;
-      comp.attack.value = 0.003;
-      comp.release.value = 0.25;
+      // Limitador agresivo + makeup alto: máximo volumen percibido sin clip sucio.
+      // Toda la señal de la alerta sale por acá.
+      const lim = ctx.createDynamicsCompressor();
+      lim.threshold.value = -24;
+      lim.knee.value = 0;
+      lim.ratio.value = 20;
+      lim.attack.value = 0.002;
+      lim.release.value = 0.15;
       const makeup = ctx.createGain();
-      makeup.gain.value = 1.6;
-      comp.connect(makeup);
+      makeup.gain.value = 2.6;
+      lim.connect(makeup);
       makeup.connect(ctx.destination);
 
-      const patron = [988, 1319]; // B5 + E6, agudos que cortan el ruido de fondo
-      const pulso = 0.14;
-      const gap = 0.07;
+      // Cada nota = 3 voces apiladas para más cuerpo y presencia sobre la música.
+      const nota = (freq: number, t: number, dur: number) => {
+        const voces: Array<{ type: OscillatorType; f: number; g: number }> = [
+          { type: 'sawtooth', f: freq, g: 0.9 },
+          { type: 'square', f: freq, g: 0.5 },
+          { type: 'sine', f: freq / 2, g: 0.7 }, // sub-octava para cuerpo
+        ];
+        for (const v of voces) {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = v.type;
+          osc.frequency.setValueAtTime(v.f, t);
+          gain.gain.setValueAtTime(0.0001, t);
+          gain.gain.exponentialRampToValueAtTime(v.g, t + 0.01);
+          gain.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+          osc.connect(gain);
+          gain.connect(lim);
+          osc.start(t);
+          osc.stop(t + dur);
+        }
+      };
+
+      const patron = [988, 1319]; // B5 + E6, agudos que cortan el fondo musical
+      const pulso = 0.16;
+      const gap = 0.06;
       let t = ctx.currentTime;
       for (let rep = 0; rep < 3; rep++) {
         for (const freq of patron) {
-          const osc = ctx.createOscillator();
-          const gain = ctx.createGain();
-          osc.type = 'triangle';
-          osc.frequency.setValueAtTime(freq, t);
-          gain.gain.setValueAtTime(0.0001, t);
-          gain.gain.exponentialRampToValueAtTime(1.0, t + 0.02);
-          gain.gain.exponentialRampToValueAtTime(0.0001, t + pulso);
-          osc.connect(gain);
-          gain.connect(comp);
-          osc.start(t);
-          osc.stop(t + pulso);
+          nota(freq, t, pulso);
           t += pulso + gap;
         }
         t += 0.12; // respiro entre repeticiones
