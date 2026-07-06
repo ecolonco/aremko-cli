@@ -5,6 +5,9 @@ import {
   StatsOverview,
   WeeklyBrief,
   RefugioCampaign,
+  SEORankings,
+  SEOBacklinksSummary,
+  SEOCompetitors,
 } from '@/lib/types/api';
 
 // Use Render backend in production, localhost in development
@@ -105,6 +108,31 @@ class APIClient {
       `/api/v1/meta-ads/campaigns/${encodeURIComponent(campaignId)}/budget`,
       { method: 'POST', body: JSON.stringify({ daily_budget: dailyBudget }) }
     );
+  }
+
+  // SEO endpoints (DataForSEO). Costos reales por llamada del lado del
+  // backend — cacheado 12-24h server-side, no hace falta cuidar la
+  // frecuencia de fetch desde acá.
+  async getSEORankings(keywords?: string[], target?: string) {
+    const params = new URLSearchParams();
+    if (keywords?.length) params.append('keywords', keywords.join(','));
+    if (target) params.append('target', target);
+    const query = params.toString();
+    return this.fetch<SEORankings>(`/api/v1/seo/rankings${query ? `?${query}` : ''}`);
+  }
+
+  async getSEOBacklinks(target?: string) {
+    const params = new URLSearchParams();
+    if (target) params.append('target', target);
+    const query = params.toString();
+    return this.fetch<SEOBacklinksSummary>(`/api/v1/seo/backlinks${query ? `?${query}` : ''}`);
+  }
+
+  async getSEOCompetitors(target?: string) {
+    const params = new URLSearchParams();
+    if (target) params.append('target', target);
+    const query = params.toString();
+    return this.fetch<SEOCompetitors>(`/api/v1/seo/competitors${query ? `?${query}` : ''}`);
   }
 
   // Brief endpoints

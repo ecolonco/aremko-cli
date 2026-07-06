@@ -79,6 +79,12 @@ func (s *Server) setupRoutes() {
 		r.Get("/google-ads/search-terms", handlers.GetGoogleAdsSearchTerms(s.config))
 		r.Get("/google-ads/quality-scores", handlers.GetGoogleAdsQualityScores(s.config))
 
+		// SEO endpoints (DataForSEO: rankings, backlinks, competidores).
+		// Costos reales por llamada — el cliente cachea 12-24h server-side.
+		r.Get("/seo/rankings", handlers.GetSEORankings(s.config))
+		r.Get("/seo/backlinks", handlers.GetSEOBacklinks(s.config))
+		r.Get("/seo/competitors", handlers.GetSEOCompetitors(s.config))
+
 		// Google Analytics 4 endpoints
 		r.Get("/ga4/stats", handlers.GetGA4Stats(s.config))
 		r.Get("/ga4/top-pages", handlers.GetGA4TopPages(s.config))
@@ -245,6 +251,7 @@ func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 			"ga4":        s.config.EnableGA4,
 			"ai":         s.config.EnableAI,
 			"whatsapp":   s.config.EnableWhatsApp,
+			"dataforseo": s.config.EnableDataForSEO,
 		},
 	}
 

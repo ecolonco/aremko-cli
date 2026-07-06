@@ -38,6 +38,12 @@ type Config struct {
 	GoogleAdsRefugioCampaignID string // ID de la campaña Refugio Search
 	GoogleAdsBudgetCLP         float64
 
+	// DataForSEO (rankings SEO, backlinks, competidores — pago por uso).
+	// Ver docs/LOOP_SEO.md en el repo Django para costos y la lista fija de
+	// keywords que usa el loop de mejora continua de SEO.
+	DataForSEOAPILogin    string
+	DataForSEOAPIPassword string
+
 	// WhatsApp Cloud API (piloto inbound Refugio)
 	WhatsAppAccessToken   string
 	WhatsAppPhoneNumberID string
@@ -99,13 +105,14 @@ type Config struct {
 	Environment string
 
 	// Features
-	EnableMetaAds   bool
-	EnableGoogleAds bool
-	EnableLinkedIn  bool
-	EnableBookings  bool
-	EnableGA4       bool
-	EnableAI        bool
-	EnableWhatsApp  bool
+	EnableMetaAds    bool
+	EnableGoogleAds  bool
+	EnableLinkedIn   bool
+	EnableBookings   bool
+	EnableGA4        bool
+	EnableAI         bool
+	EnableWhatsApp   bool
+	EnableDataForSEO bool
 }
 
 var AppConfig *Config
@@ -133,6 +140,8 @@ func LoadConfig() (*Config, error) {
 		GoogleAdsLoginCustomerID:   getEnvOrDefault("GOOGLE_ADS_LOGIN_CUSTOMER_ID", ""),
 		GoogleAdsRefugioCampaignID: getEnvOrDefault("GOOGLE_ADS_REFUGIO_CAMPAIGN_ID", ""),
 		GoogleAdsBudgetCLP:         parseFloatEnv("GOOGLE_ADS_BUDGET_CLP", 100000),
+		DataForSEOAPILogin:         getEnvOrDefault("DATAFORSEO_API_LOGIN", ""),
+		DataForSEOAPIPassword:      getEnvOrDefault("DATAFORSEO_API_PASSWORD", ""),
 		WhatsAppAccessToken:        getEnvOrDefault("WHATSAPP_ACCESS_TOKEN", ""),
 		WhatsAppPhoneNumberID:      getEnvOrDefault("WHATSAPP_PHONE_NUMBER_ID", ""),
 		WhatsAppWABAID:             getEnvOrDefault("WHATSAPP_WABA_ID", ""),
@@ -170,6 +179,7 @@ func LoadConfig() (*Config, error) {
 		EnableGA4:                  getEnvOrDefault("ENABLE_GA4", "true") == "true",
 		EnableAI:                   getEnvOrDefault("ENABLE_AI", "true") == "true",
 		EnableWhatsApp:             getEnvOrDefault("ENABLE_WHATSAPP", "false") == "true",
+		EnableDataForSEO:           dataForSEOAutoEnabled(),
 	}
 
 	// Validar configuración mínima
@@ -225,6 +235,15 @@ func googleAdsAutoEnabled() bool {
 		}
 	}
 	return true
+}
+
+// dataForSEOAutoEnabled activa DataForSEO cuando ambas credenciales mínimas
+// están presentes. ENABLE_DATAFORSEO explícito siempre gana (true/false).
+func dataForSEOAutoEnabled() bool {
+	if v := os.Getenv("ENABLE_DATAFORSEO"); v != "" {
+		return v == "true"
+	}
+	return os.Getenv("DATAFORSEO_API_LOGIN") != "" && os.Getenv("DATAFORSEO_API_PASSWORD") != ""
 }
 
 func parseFloatEnv(key string, defaultValue float64) float64 {

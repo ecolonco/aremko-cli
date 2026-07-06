@@ -19,6 +19,7 @@ import {
   AcademicCapIcon,
   ClipboardDocumentCheckIcon,
   ArrowTrendingUpIcon,
+  MagnifyingGlassIcon,
 } from '@heroicons/react/24/outline';
 import { UserRole } from '@/lib/types/user';
 import { allowedItems } from '@/lib/permissions';
@@ -38,6 +39,7 @@ interface SidebarProps {
 const ICONS: Record<string, typeof DocumentTextIcon> = {
   informes: DocumentTextIcon,
   'meta-ads': MegaphoneIcon,
+  seo: MagnifyingGlassIcon,
   perfiles: UsersIcon,
   bandeja: ChatBubbleLeftRightIcon,
   mensajes: ChatBubbleLeftRightIcon,

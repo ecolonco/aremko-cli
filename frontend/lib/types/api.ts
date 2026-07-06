@@ -299,6 +299,48 @@ export interface GoogleAdsRefugio {
   thresholds: GoogleAdsThresholds;
 }
 
+// SEO (DataForSEO: rankings reales, backlinks, competidores)
+
+export interface SEORankingResult {
+  keyword: string;
+  target_domain: string;
+  found: boolean;
+  position?: number;
+  url?: string;
+  competitors_above: string[];
+}
+
+export interface SEORankings {
+  target: string;
+  location: string;
+  language: string;
+  rankings: SEORankingResult[];
+  found_count: number;
+  total_count: number;
+}
+
+export interface SEOBacklinksSummary {
+  target: string;
+  rank: number;
+  backlinks: number;
+  referring_domains: number;
+  referring_main_domains: number;
+  broken_backlinks: number;
+}
+
+export interface SEOCompetitorDomain {
+  domain: string;
+  avg_position: number;
+  intersections: number;
+  organic_etv: number;
+  organic_count: number;
+}
+
+export interface SEOCompetitors {
+  target: string;
+  competitors: SEOCompetitorDomain[];
+}
+
 // Brief types
 
 export interface WeeklyBrief {

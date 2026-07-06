@@ -21,6 +21,7 @@ export interface MenuItemDef {
 export const MENU_ITEMS: MenuItemDef[] = [
   { key: 'informes', name: 'Informes', href: '/dashboard/jorge/brief' },
   { key: 'meta-ads', name: 'Campañas Meta', href: '/dashboard/jorge/meta-ads' },
+  { key: 'seo', name: 'SEO', href: '/dashboard/jorge/seo' },
   { key: 'perfiles', name: 'Perfiles', href: '/dashboard/jorge/perfiles' },
   { key: 'bandeja', name: 'Bandeja WhatsApp', href: '/dashboard/jorge/perfiles/bandeja' },
   { key: 'mensajes', name: 'Mensajes', href: '/dashboard/jorge/perfiles/whatsapp' },
