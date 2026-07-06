@@ -233,14 +233,15 @@ type CompetitorDomain struct {
 	OrganicCount  int64   `json:"organic_count"` // cantidad de SERPs donde aparece (keywords en común)
 }
 
-type competitorsRequest struct {
-	Tasks []competitorsTask `json:"tasks"`
-}
-
+// competitorsTask: OJO — a pesar de que la respuesta viene envuelta en
+// {"tasks": [...]}, el REQUEST de este endpoint va como ARRAY PLANO (igual
+// que SERP y Backlinks), NO envuelto en {"tasks": [...]}. Enviarlo envuelto
+// da 40503 "POST Data Is Invalid" — confirmado en producción 2026-07-06.
 type competitorsTask struct {
 	Target       string `json:"target"`
 	LocationName string `json:"location_name"`
 	LanguageName string `json:"language_name"`
+	Limit        int    `json:"limit"`
 }
 
 type competitorsResponse struct {
@@ -270,7 +271,8 @@ func (c *Client) GetCompetitors(ctx context.Context, target, locationName, langu
 		return cached.([]CompetitorDomain), nil
 	}
 
-	payload := competitorsRequest{Tasks: []competitorsTask{{Target: target, LocationName: locationName, LanguageName: languageName}}}
+	// Array plano de 1 elemento — NO envolver en {"tasks": [...]}, ver nota arriba.
+	payload := []competitorsTask{{Target: target, LocationName: locationName, LanguageName: languageName, Limit: 20}}
 	raw, err := c.post(ctx, "/v3/dataforseo_labs/google/competitors_domain/live", payload)
 	if err != nil {
 		return nil, err
@@ -286,6 +288,11 @@ func (c *Client) GetCompetitors(ctx context.Context, target, locationName, langu
 	items := parsed.Tasks[0].Result[0].Items
 	out := make([]CompetitorDomain, 0, len(items))
 	for _, it := range items {
+		// El propio target siempre aparece (100% solapamiento consigo mismo) —
+		// no es un "competidor", filtrarlo.
+		if strings.EqualFold(it.Domain, target) {
+			continue
+		}
 		out = append(out, CompetitorDomain{
 			Domain:        it.Domain,
 			AvgPosition:   it.AvgPosition,
