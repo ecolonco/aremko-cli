@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -35,13 +36,18 @@ type rankCheckTask struct {
 	Depth        int    `json:"depth"`
 }
 
-// serpLiveResponse mapea /v3/serp/google/organic/live/advanced. El endpoint
-// acepta un ARRAY de tasks en un solo POST y devuelve un array de resultados
-// en el mismo orden — así 8 keywords cuestan 1 sola llamada HTTP.
+// serpLiveResponse mapea /v3/serp/google/organic/live/advanced.
+//
+// IMPORTANTE (descubierto en producción 2026-07-06): este endpoint, a pesar
+// de aceptar sintácticamente un array de tasks, RECHAZA más de 1 task por
+// request — devuelve status_code 40000 "You can set only one task at a time"
+// para la 2da en adelante. Por eso este cliente hace UNA llamada HTTP por
+// keyword (en paralelo, ver GetRankChecks) en vez de un solo batch.
 type serpLiveResponse struct {
 	Tasks []struct {
-		StatusCode int `json:"status_code"`
-		Result     []struct {
+		StatusCode    int    `json:"status_code"`
+		StatusMessage string `json:"status_message"`
+		Result        []struct {
 			Items []struct {
 				Type         string `json:"type"`
 				RankAbsolute int    `json:"rank_absolute"`
@@ -52,66 +58,102 @@ type serpLiveResponse struct {
 	} `json:"tasks"`
 }
 
-// GetRankChecks busca varias keywords en UN SOLO request a DataForSEO y
-// devuelve, para cada una, la posición de targetDomain y qué dominios
-// aparecen antes. Cachea 12h por combinación exacta (dominio+ubicación+idioma+keywords).
+// GetRankChecks busca varias keywords (una request HTTP por keyword, en
+// paralelo — ver nota en serpLiveResponse) y devuelve, para cada una, la
+// posición de targetDomain y qué dominios aparecen antes. Cachea 12h POR
+// KEYWORD individual (no por la lista completa), así cambiar una keyword de
+// la lista no invalida el cache de las demás.
 func (c *Client) GetRankChecks(ctx context.Context, keywords []string, targetDomain, locationName, languageCode string) ([]RankCheckResult, error) {
 	if len(keywords) == 0 {
 		return nil, fmt.Errorf("dataforseo: se requiere al menos 1 keyword")
 	}
-	cacheKey := "rank:" + targetDomain + ":" + locationName + ":" + languageCode + ":" + strings.Join(keywords, "|")
-	if cached, ok := c.cache.get(cacheKey); ok {
-		return cached.([]RankCheckResult), nil
-	}
 
-	tasks := make([]rankCheckTask, len(keywords))
+	results := make([]RankCheckResult, len(keywords))
+	errs := make([]error, len(keywords))
+	var wg sync.WaitGroup
 	for i, kw := range keywords {
-		tasks[i] = rankCheckTask{
-			Keyword:      kw,
-			LocationName: locationName,
-			LanguageCode: languageCode,
-			Device:       "desktop",
-			Depth:        20,
+		wg.Add(1)
+		go func(idx int, keyword string) {
+			defer wg.Done()
+			res, err := c.getSingleRankCheck(ctx, keyword, targetDomain, locationName, languageCode)
+			if err != nil {
+				errs[idx] = err
+				res = RankCheckResult{Keyword: keyword, TargetDomain: targetDomain, CompetitorsAbove: []string{}}
+			}
+			results[idx] = res
+		}(i, kw)
+	}
+	wg.Wait()
+
+	// Si TODAS fallaron es un problema real (credenciales, rate limit) — no
+	// devolver una lista silenciosamente vacía, avisar con el primer error.
+	failed := 0
+	var firstErr error
+	for _, e := range errs {
+		if e != nil {
+			failed++
+			if firstErr == nil {
+				firstErr = e
+			}
 		}
 	}
+	if failed == len(keywords) {
+		return nil, fmt.Errorf("dataforseo: las %d keywords fallaron (ej: %w)", len(keywords), firstErr)
+	}
 
-	raw, err := c.post(ctx, "/v3/serp/google/organic/live/advanced", tasks)
+	return results, nil
+}
+
+// getSingleRankCheck hace UNA llamada (1 keyword = 1 task, requisito de la
+// API) y cachea el resultado 12h bajo una key propia de esa keyword.
+func (c *Client) getSingleRankCheck(ctx context.Context, keyword, targetDomain, locationName, languageCode string) (RankCheckResult, error) {
+	cacheKey := "rank:" + targetDomain + ":" + locationName + ":" + languageCode + ":" + keyword
+	if cached, ok := c.cache.get(cacheKey); ok {
+		return cached.(RankCheckResult), nil
+	}
+
+	task := rankCheckTask{
+		Keyword:      keyword,
+		LocationName: locationName,
+		LanguageCode: languageCode,
+		Device:       "desktop",
+		Depth:        20,
+	}
+	raw, err := c.post(ctx, "/v3/serp/google/organic/live/advanced", []rankCheckTask{task})
 	if err != nil {
-		return nil, err
+		return RankCheckResult{}, err
 	}
 	var parsed serpLiveResponse
 	if err := json.Unmarshal(raw, &parsed); err != nil {
-		return nil, fmt.Errorf("dataforseo: decode rank check failed: %w", err)
+		return RankCheckResult{}, fmt.Errorf("dataforseo: decode rank check failed para %q: %w", keyword, err)
+	}
+	if len(parsed.Tasks) == 0 {
+		return RankCheckResult{}, fmt.Errorf("dataforseo: sin respuesta para keyword %q", keyword)
+	}
+	t := parsed.Tasks[0]
+	if t.StatusCode != 20000 {
+		return RankCheckResult{}, fmt.Errorf("dataforseo: status %d (%s) para keyword %q", t.StatusCode, t.StatusMessage, keyword)
 	}
 
-	results := make([]RankCheckResult, 0, len(keywords))
-	for i, task := range parsed.Tasks {
-		kw := ""
-		if i < len(keywords) {
-			kw = keywords[i]
-		}
-		res := RankCheckResult{Keyword: kw, TargetDomain: targetDomain, CompetitorsAbove: []string{}}
-		if task.StatusCode == 20000 && len(task.Result) > 0 {
-			for _, item := range task.Result[0].Items {
-				if item.Type != "organic" {
-					continue
-				}
-				if strings.Contains(strings.ToLower(item.Domain), strings.ToLower(targetDomain)) {
-					res.Found = true
-					res.Position = item.RankAbsolute
-					res.URL = item.URL
-					break
-				}
-				if len(res.CompetitorsAbove) < 10 {
-					res.CompetitorsAbove = append(res.CompetitorsAbove, item.Domain)
-				}
+	res := RankCheckResult{Keyword: keyword, TargetDomain: targetDomain, CompetitorsAbove: []string{}}
+	if len(t.Result) > 0 {
+		for _, item := range t.Result[0].Items {
+			if item.Type != "organic" {
+				continue
+			}
+			if strings.Contains(strings.ToLower(item.Domain), strings.ToLower(targetDomain)) {
+				res.Found = true
+				res.Position = item.RankAbsolute
+				res.URL = item.URL
+				break
+			}
+			if len(res.CompetitorsAbove) < 10 {
+				res.CompetitorsAbove = append(res.CompetitorsAbove, item.Domain)
 			}
 		}
-		results = append(results, res)
 	}
-
-	c.cache.set(cacheKey, results, rankCheckCacheTTL)
-	return results, nil
+	c.cache.set(cacheKey, res, rankCheckCacheTTL)
+	return res, nil
 }
 
 // ─── Backlinks summary ──────────────────────────────────────────────────────
