@@ -25,8 +25,16 @@ var seoDefaultKeywords = []string{
 }
 
 const (
-	seoDefaultTarget       = "aremko.cl"
-	seoDefaultLocationName = "Chile"
+	seoDefaultTarget = "aremko.cl"
+	// seoDefaultLocationName: ubicación específica de Puerto Varas (DataForSEO
+	// location_name "Puerto Varas,Los Lagos,Chile", confirmado 2026-07-06 vía
+	// /v3/serp/google/locations/CL). ANTES era "Chile" a nivel país — eso
+	// simulaba una búsqueda desde/sobre todo el país, no desde Puerto Varas, y
+	// traía competidores/posiciones genéricas que no reflejaban lo que ve
+	// alguien buscando en la zona real de Aremko. No volver a "Chile" sin
+	// discutirlo: rompe la comparabilidad con los ciclos ya guardados en la
+	// bitácora (docs/LOOP_SEO.md).
+	seoDefaultLocationName = "Puerto Varas,Los Lagos,Chile"
 	seoDefaultLanguageCode = "es"
 	seoDefaultLanguageName = "Spanish"
 )

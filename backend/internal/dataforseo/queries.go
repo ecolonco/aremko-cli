@@ -20,12 +20,21 @@ const rankCheckCacheTTL = 12 * time.Hour
 // en qué posición aparece (si aparece) el dominio objetivo, más qué dominios
 // aparecen ANTES — información que Search Console nunca muestra.
 type RankCheckResult struct {
-	Keyword          string   `json:"keyword"`
-	TargetDomain     string   `json:"target_domain"`
-	Found            bool     `json:"found"`
-	Position         int      `json:"position,omitempty"` // rank_absolute; 0 si no aparece
+	Keyword      string `json:"keyword"`
+	TargetDomain string `json:"target_domain"`
+	Found        bool   `json:"found"`
+	// Position: ranking ORGÁNICO (cuenta solo items type=="organic", 1-indexed);
+	// 0 si no aparece. ANTES usaba rank_absolute directo, que cuenta TODOS los
+	// bloques del SERP (knowledge graph, imágenes, videos, "la gente también
+	// busca", local pack, etc.) — eso hacía que dominios que sí son #1 orgánico
+	// aparecieran como posición 2 o 3 solo porque Google puso un panel de marca
+	// o un carrusel de imágenes antes. Descubierto 2026-07-06 probando la
+	// keyword "aremko": rank_absolute=2 pero era el panel de Knowledge Graph
+	// ocupando el puesto 1, aremko.cl SÍ era el #1 orgánico real.
+	Position         int      `json:"position,omitempty"`
+	RankAbsolute     int      `json:"rank_absolute,omitempty"` // posición absoluta en el SERP completo, incluye bloques no-orgánicos antes — se guarda como referencia, no usar para comparar ciclo a ciclo
 	URL              string   `json:"url,omitempty"`
-	CompetitorsAbove []string `json:"competitors_above"` // dominios antes del target (o top si no aparece), máx 10
+	CompetitorsAbove []string `json:"competitors_above"` // dominios ORGÁNICOS antes del target (o top si no aparece), máx 10
 }
 
 type rankCheckTask struct {
@@ -137,13 +146,16 @@ func (c *Client) getSingleRankCheck(ctx context.Context, keyword, targetDomain, 
 
 	res := RankCheckResult{Keyword: keyword, TargetDomain: targetDomain, CompetitorsAbove: []string{}}
 	if len(t.Result) > 0 {
+		organicRank := 0
 		for _, item := range t.Result[0].Items {
 			if item.Type != "organic" {
 				continue
 			}
+			organicRank++
 			if strings.Contains(strings.ToLower(item.Domain), strings.ToLower(targetDomain)) {
 				res.Found = true
-				res.Position = item.RankAbsolute
+				res.Position = organicRank
+				res.RankAbsolute = item.RankAbsolute
 				res.URL = item.URL
 				break
 			}
