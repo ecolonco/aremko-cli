@@ -306,6 +306,7 @@ export interface SEORankingResult {
   target_domain: string;
   found: boolean;
   position?: number;
+  rank_absolute?: number;
   url?: string;
   competitors_above: string[];
 }
