@@ -21,6 +21,7 @@ var seoDefaultKeywords = []string{
 	"termas en puerto varas",
 	"cabaña con tina caliente puerto varas",
 	"escapada romántica puerto varas",
+	"spa cerca de puerto varas",
 	"aremko",
 }
 
