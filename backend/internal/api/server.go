@@ -223,6 +223,11 @@ func (s *Server) setupRoutes() {
 		r.Get("/metrics/campanas/reservas", handlers.MetricsReservas(s.config))
 		r.Get("/metrics/{tipo}", handlers.MetricsProxy(s.config))
 
+		// Publicaciones planificadas de la semana (asistente community manager)
+		// — proxy a Django con AUTOMATION_API_KEY server-side.
+		r.Get("/publicaciones/semana", handlers.PublicacionesSemana(s.config))
+		r.Post("/publicaciones/{id}/actualizar", handlers.PublicacionActualizar(s.config))
+
 		// Bandeja de salida "Conexión-Masajes" — proxy a Django (emails de
 		// seguimiento post-masaje que se revisan/editan/envían uno por uno).
 		// El backend Go agrega la X-API-Key; el navegador no la conoce (igual

@@ -301,6 +301,36 @@ export interface GoogleAdsRefugio {
 
 // SEO (DataForSEO: rankings reales, backlinks, competidores)
 
+// Publicaciones planificadas de la semana (asistente community manager)
+
+export type PublicacionEstado = 'pendiente' | 'en_produccion' | 'lista' | 'publicada' | 'no_aplica';
+
+export interface PublicacionPlanificada {
+  id: number;
+  semana_inicio: string;
+  dia: string;
+  canal: string;
+  tipo: string;
+  pieza_key: string;
+  titulo: string;
+  copy_json: Record<string, unknown>;
+  responsable: string;
+  tiempo_estimado: string;
+  estado: PublicacionEstado;
+  material_urls: string[];
+  notas_revision: string;
+  published_url: string;
+  metricas: Record<string, unknown>;
+  notas: string;
+  updated_at: string;
+}
+
+export interface PublicacionesSemanaResponse {
+  semana_inicio: string;
+  total: number;
+  publicaciones: PublicacionPlanificada[];
+}
+
 export interface SEORankingResult {
   keyword: string;
   target_domain: string;

@@ -642,6 +642,24 @@ func (c *Client) GetMetricsReservasRaw(apiKey string, weeks int, semana string) 
 	return c.getRaw(u, apiKey, "metrics reservas")
 }
 
+// GetPublicacionesSemanaRaw proxea la cola de publicaciones planificadas de la
+// semana (asistente community manager). semana opcional (YYYY-MM-DD, cualquier
+// día — Django lo normaliza al lunes). JSON crudo para el front.
+func (c *Client) GetPublicacionesSemanaRaw(apiKey, semana string) ([]byte, error) {
+	u := c.BaseURL + "/marketing/api/aremko-cli/publicaciones-semana/"
+	if semana != "" {
+		u += "?semana=" + url.QueryEscape(semana)
+	}
+	return c.getRaw(u, apiKey, "publicaciones semana")
+}
+
+// PostPublicacionActualizarRaw actualiza estado/published_url/notas de una
+// publicación planificada. payload: {"estado": "...", "published_url": "...", "notas": "..."}.
+func (c *Client) PostPublicacionActualizarRaw(apiKey string, pubID int, payload interface{}) ([]byte, error) {
+	path := fmt.Sprintf("/marketing/api/aremko-cli/publicaciones/%d/actualizar/", pubID)
+	return c.postWhatsAppRaw(path, apiKey, payload)
+}
+
 // GetInboxConversationsRaw lista conversaciones de TODOS los canales (WhatsApp +
 // Instagram) para la bandeja unificada. JSON crudo de Django.
 func (c *Client) GetInboxConversationsRaw(apiKey string, soloPendientes bool, limit int, canal string) ([]byte, error) {

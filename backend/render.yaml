@@ -22,4 +22,9 @@ services:
         sync: false
       - key: META_AD_ACCOUNT_ID
         sync: false
+      # Key para los proxies hacia Django que usan AUTOMATION_API_KEY
+      # (publicaciones planificadas del asistente community manager).
+      # Mismo valor que la env var AUTOMATION_API_KEY del Django en Render.
+      - key: AUTOMATION_API_KEY
+        sync: false
     healthCheckPath: /health

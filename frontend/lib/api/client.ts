@@ -8,6 +8,8 @@ import {
   SEORankings,
   SEOBacklinksSummary,
   SEOCompetitors,
+  PublicacionesSemanaResponse,
+  PublicacionPlanificada,
 } from '@/lib/types/api';
 
 // Use Render backend in production, localhost in development
@@ -133,6 +135,26 @@ class APIClient {
     if (target) params.append('target', target);
     const query = params.toString();
     return this.fetch<SEOCompetitors>(`/api/v1/seo/competitors${query ? `?${query}` : ''}`);
+  }
+
+  // Publicaciones planificadas de la semana (asistente community manager)
+  async getPublicacionesSemana(semana?: string) {
+    const params = new URLSearchParams();
+    if (semana) params.append('semana', semana);
+    const query = params.toString();
+    return this.fetch<PublicacionesSemanaResponse>(
+      `/api/v1/publicaciones/semana${query ? `?${query}` : ''}`
+    );
+  }
+
+  async actualizarPublicacion(
+    id: number,
+    payload: { estado?: string; published_url?: string; notas?: string }
+  ) {
+    return this.fetch<{ success: boolean; publicacion: PublicacionPlanificada }>(
+      `/api/v1/publicaciones/${id}/actualizar`,
+      { method: 'POST', body: JSON.stringify(payload) }
+    );
   }
 
   // Brief endpoints

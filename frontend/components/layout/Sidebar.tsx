@@ -20,6 +20,7 @@ import {
   ClipboardDocumentCheckIcon,
   ArrowTrendingUpIcon,
   MagnifyingGlassIcon,
+  CalendarDaysIcon,
 } from '@heroicons/react/24/outline';
 import { UserRole } from '@/lib/types/user';
 import { allowedItems } from '@/lib/permissions';
@@ -38,6 +39,7 @@ interface SidebarProps {
 // lib/permissions.ts (fuente única, compartida con el middleware).
 const ICONS: Record<string, typeof DocumentTextIcon> = {
   informes: DocumentTextIcon,
+  publicaciones: CalendarDaysIcon,
   'meta-ads': MegaphoneIcon,
   seo: MagnifyingGlassIcon,
   perfiles: UsersIcon,
