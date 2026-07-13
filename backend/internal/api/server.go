@@ -226,7 +226,9 @@ func (s *Server) setupRoutes() {
 		// Publicaciones planificadas de la semana (asistente community manager)
 		// — proxy a Django con AUTOMATION_API_KEY server-side.
 		r.Get("/publicaciones/semana", handlers.PublicacionesSemana(s.config))
+		r.Get("/publicaciones/{id}", handlers.PublicacionDetalle(s.config))
 		r.Post("/publicaciones/{id}/actualizar", handlers.PublicacionActualizar(s.config))
+		r.Post("/publicaciones/{id}/material", handlers.PublicacionMaterial(s.config))
 
 		// Bandeja de salida "Conexión-Masajes" — proxy a Django (emails de
 		// seguimiento post-masaje que se revisan/editan/envían uno por uno).

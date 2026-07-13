@@ -304,6 +304,14 @@ export interface GoogleAdsRefugio {
 // Publicaciones planificadas de la semana (asistente community manager)
 
 export type PublicacionEstado = 'pendiente' | 'en_produccion' | 'lista' | 'publicada' | 'no_aplica';
+export type RevisionVeredicto = 'sin_revisar' | 'revisando' | 'con_observaciones' | 'aprobado';
+
+export interface RevisionCorreccion {
+  aspecto: string;
+  severidad: 'critico' | 'importante' | 'menor';
+  encontrado: string;
+  correccion: string;
+}
 
 export interface PublicacionPlanificada {
   id: number;
@@ -318,6 +326,10 @@ export interface PublicacionPlanificada {
   tiempo_estimado: string;
   estado: PublicacionEstado;
   material_urls: string[];
+  revision_veredicto: RevisionVeredicto;
+  revision_resumen: string;
+  revision_json: RevisionCorreccion[];
+  revision_at: string | null;
   notas_revision: string;
   published_url: string;
   metricas: Record<string, unknown>;

@@ -660,6 +660,32 @@ func (c *Client) PostPublicacionActualizarRaw(apiKey string, pubID int, payload 
 	return c.postWhatsAppRaw(path, apiKey, payload)
 }
 
+// GetPublicacionDetalleRaw trae una publicación (para polling del estado de revisión).
+func (c *Client) GetPublicacionDetalleRaw(apiKey string, pubID int) ([]byte, error) {
+	u := fmt.Sprintf("%s/marketing/api/aremko-cli/publicaciones/%d/", c.BaseURL, pubID)
+	return c.getRaw(u, apiKey, "publicacion detalle")
+}
+
+// PostPublicacionMaterialRaw reenvía (passthrough) el multipart entrante con las
+// fotos hacia Django, agregando la X-API-Key. Devuelve status + body de Django
+// tal cual, para que el 400 de formato no soportado llegue al frontend.
+func (c *Client) PostPublicacionMaterialRaw(apiKey string, pubID int, contentType string, body io.Reader) (int, []byte, error) {
+	path := fmt.Sprintf("/marketing/api/aremko-cli/publicaciones/%d/material/", pubID)
+	req, err := http.NewRequest(http.MethodPost, c.BaseURL+path, body)
+	if err != nil {
+		return 0, nil, fmt.Errorf("error creando request material: %w", err)
+	}
+	req.Header.Set("Content-Type", contentType)
+	req.Header.Set("X-API-Key", apiKey)
+	resp, err := c.HTTPClient.Do(req)
+	if err != nil {
+		return 0, nil, fmt.Errorf("error en material: %w", err)
+	}
+	defer resp.Body.Close()
+	b, _ := io.ReadAll(resp.Body)
+	return resp.StatusCode, b, nil
+}
+
 // GetInboxConversationsRaw lista conversaciones de TODOS los canales (WhatsApp +
 // Instagram) para la bandeja unificada. JSON crudo de Django.
 func (c *Client) GetInboxConversationsRaw(apiKey string, soloPendientes bool, limit int, canal string) ([]byte, error) {

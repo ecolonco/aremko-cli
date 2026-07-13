@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/aremko/aremko-cli/internal/bookings"
 	"github.com/aremko/aremko-cli/internal/config"
@@ -68,5 +69,63 @@ func PublicacionActualizar(cfg *config.Config) http.HandlerFunc {
 			"success": true,
 			"data":    json.RawMessage(raw),
 		})
+	}
+}
+
+// PublicacionDetalle trae una publicación (polling del estado de revisión).
+func PublicacionDetalle(cfg *config.Config) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if cfg.AutomationAPIKey == "" || cfg.BookingSystemURL == "" {
+			respondError(w, http.StatusServiceUnavailable, "Django no configurado (AUTOMATION_API_KEY/BOOKING_SYSTEM_URL)")
+			return
+		}
+		id, err := strconv.Atoi(chi.URLParam(r, "id"))
+		if err != nil || id <= 0 {
+			respondError(w, http.StatusBadRequest, "id inválido")
+			return
+		}
+		raw, err := bookings.NewClient(cfg.BookingSystemURL).
+			GetPublicacionDetalleRaw(cfg.AutomationAPIKey, id)
+		if err != nil {
+			respondError(w, http.StatusBadGateway, err.Error())
+			return
+		}
+		respondJSON(w, http.StatusOK, map[string]interface{}{"success": true, "data": json.RawMessage(raw)})
+	}
+}
+
+// PublicacionMaterial reenvía el multipart con las fotos a Django (passthrough),
+// preservando el status de Django (para que el 400 de formato llegue al front).
+func PublicacionMaterial(cfg *config.Config) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if cfg.AutomationAPIKey == "" || cfg.BookingSystemURL == "" {
+			respondError(w, http.StatusServiceUnavailable, "Django no configurado (AUTOMATION_API_KEY/BOOKING_SYSTEM_URL)")
+			return
+		}
+		id, err := strconv.Atoi(chi.URLParam(r, "id"))
+		if err != nil || id <= 0 {
+			respondError(w, http.StatusBadRequest, "id inválido")
+			return
+		}
+		// Timeout más generoso: subir hasta 16 MB por foto a Cloudinary (vía
+		// Django) puede pasar los 10s por defecto del cliente.
+		client := bookings.NewClient(cfg.BookingSystemURL)
+		client.HTTPClient.Timeout = 60 * time.Second
+
+		status, body, err := client.PostPublicacionMaterialRaw(
+			cfg.AutomationAPIKey, id, r.Header.Get("Content-Type"), r.Body,
+		)
+		if err != nil {
+			respondError(w, http.StatusBadGateway, err.Error())
+			return
+		}
+		// Reenviar el status y body de Django tal cual (200 ok, 400 formato, etc.)
+		w.Header().Set("Content-Type", "application/json")
+		if status == http.StatusOK {
+			respondJSON(w, http.StatusOK, map[string]interface{}{"success": true, "data": json.RawMessage(body)})
+			return
+		}
+		w.WriteHeader(status)
+		_, _ = w.Write(body)
 	}
 }

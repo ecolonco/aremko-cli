@@ -157,6 +157,31 @@ class APIClient {
     );
   }
 
+  async getPublicacion(id: number) {
+    return this.fetch<{ success: boolean; publicacion: PublicacionPlanificada }>(
+      `/api/v1/publicaciones/${id}`
+    );
+  }
+
+  // Subida de material (fotos). No usa this.fetch porque es multipart, no JSON.
+  async subirMaterial(id: number, files: File[]) {
+    const form = new FormData();
+    files.forEach((f) => form.append('files', f));
+    try {
+      const response = await fetch(`${this.baseURL}/api/v1/publicaciones/${id}/material`, {
+        method: 'POST',
+        body: form,
+      });
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({ error: `HTTP ${response.status}` }));
+        return { success: false, data: null as unknown as { success: boolean; publicacion: PublicacionPlanificada }, error: err.error || `HTTP ${response.status}` };
+      }
+      return (await response.json()) as { success: boolean; data: { success: boolean; publicacion: PublicacionPlanificada }; error?: string };
+    } catch (error) {
+      return { success: false, data: null as unknown as { success: boolean; publicacion: PublicacionPlanificada }, error: error instanceof Error ? error.message : 'Network error' };
+    }
+  }
+
   // Brief endpoints
   async getWeeklyBrief() {
     return this.fetch<WeeklyBrief>('/api/v1/brief/weekly');
