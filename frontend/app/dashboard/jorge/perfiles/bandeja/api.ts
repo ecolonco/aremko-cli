@@ -16,7 +16,8 @@ import type {
   AgenteConfig,
   SugerenciaAprendizaje,
   EnvioPlantilla,
-  PausaAlternativasResponse,
+  TipoExperiencia,
+  ExperienciaAlternativasResponse,
 } from './types';
 
 const apiBase = () =>
@@ -402,19 +403,22 @@ export const enviarAdjuntoWhatsApp = async (
   return json as ResponderWhatsAppResult;
 };
 
-/** Trae las combinaciones válidas de tina+masaje (Pausa junto al río) para una
- * fecha, con texto_sugerido listo para el borrador (H-059). */
-export const fetchPausaAlternativas = async (
+/** Trae las combinaciones válidas para el tipo de experiencia pedido
+ * ("pausa" | "tina_sola" | "masaje_solo" | "noche_aguas_calientes" | "ritual"
+ * | "refugio") en una fecha, con texto_sugerido listo para el borrador
+ * (H-061, generaliza el H-059 Pausa-only). */
+export const fetchExperienciaAlternativas = async (
+  tipo: TipoExperiencia,
   fecha: string,
   personas: number
-): Promise<PausaAlternativasResponse> => {
-  const q = new URLSearchParams({ fecha, personas: String(personas) });
-  const res = await fetch(`${apiBase()}${WA}/pausa-alternativas?${q.toString()}`);
+): Promise<ExperienciaAlternativasResponse> => {
+  const q = new URLSearchParams({ tipo, fecha, personas: String(personas) });
+  const res = await fetch(`${apiBase()}${WA}/experiencia-alternativas?${q.toString()}`);
   const json = await res.json().catch(() => ({}));
   if (!res.ok) {
     throw new Error(json.error || `HTTP ${res.status}`);
   }
-  return json as PausaAlternativasResponse;
+  return json as ExperienciaAlternativasResponse;
 };
 
 /** Lista las conversaciones para poblar la bandeja de entrada (proxy a Django). */

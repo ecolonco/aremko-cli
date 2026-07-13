@@ -34,7 +34,7 @@ import {
   reportarFeedbackAgente,
   telefonoE164,
   limpiarConversacion,
-  fetchPausaAlternativas,
+  fetchExperienciaAlternativas,
 } from './api';
 import { BibliotecaMedios } from './BibliotecaMedios';
 import type {
@@ -43,8 +43,10 @@ import type {
   PropuestaReserva,
   ReservaCreada,
   CarritoEnCurso,
-  PausaAlternativa,
+  TipoExperiencia,
+  ExperienciaAlternativa,
 } from './types';
+import { EXPERIENCIA_TIPOS } from './types';
 import { CotizacionCajon } from './CotizacionCajon';
 
 interface ConversacionWhatsAppProps {
@@ -183,15 +185,17 @@ export function ConversacionWhatsApp({
   const finRef = useRef<HTMLDivElement | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
-  // Alternativas de Pausa junto al río (H-059): navegar combinaciones tina+masaje
-  // de una fecha sin escribirlas a mano — evita el bug de Luna subcontando opciones.
-  const [pausaModalAbierto, setPausaModalAbierto] = useState(false);
-  const [pausaFecha, setPausaFecha] = useState('');
-  const [pausaPersonas, setPausaPersonas] = useState(2);
-  const [pausaAlternativas, setPausaAlternativas] = useState<PausaAlternativa[] | null>(null);
-  const [pausaIndice, setPausaIndice] = useState(0);
-  const [pausaCargando, setPausaCargando] = useState(false);
-  const [pausaError, setPausaError] = useState<string | null>(null);
+  // Alternativas de experiencia (H-061, generaliza el H-059 Pausa-only):
+  // navegar combinaciones de horario de cualquiera de los 6 tipos sin
+  // escribirlas a mano — evita el bug de Luna subcontando opciones.
+  const [experienciaModalAbierto, setExperienciaModalAbierto] = useState(false);
+  const [experienciaTipo, setExperienciaTipo] = useState<TipoExperiencia>('pausa');
+  const [experienciaFecha, setExperienciaFecha] = useState('');
+  const [experienciaPersonas, setExperienciaPersonas] = useState(2);
+  const [experienciaAlternativas, setExperienciaAlternativas] = useState<ExperienciaAlternativa[] | null>(null);
+  const [experienciaIndice, setExperienciaIndice] = useState(0);
+  const [experienciaCargando, setExperienciaCargando] = useState(false);
+  const [experienciaError, setExperienciaError] = useState<string | null>(null);
 
   const copiarTelefono = useCallback(() => {
     if (!phone) return;
@@ -225,12 +229,12 @@ export function ConversacionWhatsApp({
     setLimite(200);
     limiteRef.current = 200;
     masAntiguosRef.current = false;
-    // Las alternativas de Pausa son de una fecha puntual, no deben sobrevivir
-    // el cambio de cliente.
-    setPausaModalAbierto(false);
-    setPausaAlternativas(null);
-    setPausaIndice(0);
-    setPausaError(null);
+    // Las alternativas de experiencia son de una fecha puntual, no deben
+    // sobrevivir el cambio de cliente.
+    setExperienciaModalAbierto(false);
+    setExperienciaAlternativas(null);
+    setExperienciaIndice(0);
+    setExperienciaError(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phone]);
 
@@ -477,50 +481,50 @@ export function ConversacionWhatsApp({
     }
   };
 
-  // Botón de alternativas Pausa (H-059): si ya hay alternativas cargadas para
-  // esta fecha, el clic avanza a la siguiente (da la vuelta al llegar al final);
-  // si no hay ninguna cargada todavía, abre el modal para pedir fecha+personas
-  // (no hay forma confiable de inferirlas del hilo).
-  const clickAlternativasPausa = () => {
+  // Botón de alternativas de experiencia (H-061, generaliza H-059): si ya hay
+  // alternativas cargadas, el clic avanza a la siguiente (da la vuelta al
+  // llegar al final); si no hay ninguna cargada todavía, abre el modal para
+  // elegir tipo+fecha+personas (no hay forma confiable de inferirlos del hilo).
+  const clickAlternativasExperiencia = () => {
     if (disabled) return;
-    if (pausaAlternativas && pausaAlternativas.length > 0) {
-      const siguiente = (pausaIndice + 1) % pausaAlternativas.length;
-      setPausaIndice(siguiente);
-      setTexto(pausaAlternativas[siguiente].texto_sugerido);
+    if (experienciaAlternativas && experienciaAlternativas.length > 0) {
+      const siguiente = (experienciaIndice + 1) % experienciaAlternativas.length;
+      setExperienciaIndice(siguiente);
+      setTexto(experienciaAlternativas[siguiente].texto_sugerido);
       return;
     }
-    setPausaModalAbierto(true);
+    setExperienciaModalAbierto(true);
   };
 
-  // Reabre el modal para elegir otra fecha/personas, descartando las alternativas actuales.
-  const cambiarFechaPausa = () => {
-    setPausaAlternativas(null);
-    setPausaIndice(0);
-    setPausaError(null);
-    setPausaModalAbierto(true);
+  // Reabre el modal para elegir otro tipo/fecha/personas, descartando las alternativas actuales.
+  const cambiarBusquedaExperiencia = () => {
+    setExperienciaAlternativas(null);
+    setExperienciaIndice(0);
+    setExperienciaError(null);
+    setExperienciaModalAbierto(true);
   };
 
-  const confirmarPausaFecha = async () => {
-    if (!pausaFecha) {
-      setPausaError('Elegí una fecha');
+  const confirmarExperienciaBusqueda = async () => {
+    if (!experienciaFecha) {
+      setExperienciaError('Elegí una fecha');
       return;
     }
-    setPausaCargando(true);
-    setPausaError(null);
+    setExperienciaCargando(true);
+    setExperienciaError(null);
     try {
-      const data = await fetchPausaAlternativas(pausaFecha, pausaPersonas);
+      const data = await fetchExperienciaAlternativas(experienciaTipo, experienciaFecha, experienciaPersonas);
       if (!data.alternativas || data.alternativas.length === 0) {
-        setPausaError('Sin combinaciones tina+masaje disponibles para esa fecha/personas');
+        setExperienciaError('Sin combinaciones disponibles para esa fecha/personas');
         return;
       }
-      setPausaAlternativas(data.alternativas);
-      setPausaIndice(0);
+      setExperienciaAlternativas(data.alternativas);
+      setExperienciaIndice(0);
       setTexto(data.alternativas[0].texto_sugerido);
-      setPausaModalAbierto(false);
+      setExperienciaModalAbierto(false);
     } catch (e: unknown) {
-      setPausaError(e instanceof Error ? e.message : 'No se pudo traer las alternativas');
+      setExperienciaError(e instanceof Error ? e.message : 'No se pudo traer las alternativas');
     } finally {
-      setPausaCargando(false);
+      setExperienciaCargando(false);
     }
   };
 
@@ -535,30 +539,30 @@ export function ConversacionWhatsApp({
           onSelect={(url) => enviarDesdeBiblioteca(url)}
         />
       )}
-      {pausaModalAbierto && (
+      {experienciaModalAbierto && (
         <>
           <div
             className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-[1px]"
-            onClick={() => !pausaCargando && setPausaModalAbierto(false)}
+            onClick={() => !experienciaCargando && setExperienciaModalAbierto(false)}
           />
           <div
             role="dialog"
             aria-modal="true"
-            aria-labelledby="pausa-alt-titulo"
+            aria-labelledby="experiencia-alt-titulo"
             className="fixed left-1/2 top-1/2 z-[60] w-[min(92vw,22rem)] -translate-x-1/2 -translate-y-1/2 rounded-xl bg-white p-5 shadow-2xl"
           >
             <div className="flex items-start justify-between gap-2">
               <div>
-                <h2 id="pausa-alt-titulo" className="text-base font-semibold text-slate-900">
-                  Alternativas Pausa junto al río
+                <h2 id="experiencia-alt-titulo" className="text-base font-semibold text-slate-900">
+                  Alternativas de horario
                 </h2>
                 <p className="mt-0.5 text-sm text-slate-500">
-                  Combinaciones tina+masaje disponibles para una fecha.
+                  Elegí qué buscar y para cuándo.
                 </p>
               </div>
               <button
                 type="button"
-                onClick={() => !pausaCargando && setPausaModalAbierto(false)}
+                onClick={() => !experienciaCargando && setExperienciaModalAbierto(false)}
                 className="text-slate-400 hover:text-slate-600"
               >
                 <X className="h-4 w-4" />
@@ -566,11 +570,26 @@ export function ConversacionWhatsApp({
             </div>
             <div className="mt-4 space-y-3">
               <label className="block text-sm">
+                <span className="text-slate-600">Experiencia</span>
+                <select
+                  value={experienciaTipo}
+                  onChange={(e) => setExperienciaTipo(e.target.value as TipoExperiencia)}
+                  className="mt-1 w-full rounded-lg border border-slate-300 p-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                >
+                  {EXPERIENCIA_TIPOS.map((opt) => (
+                    <option key={opt.tipo} value={opt.tipo} disabled={!opt.disponible}>
+                      {opt.label}
+                      {!opt.disponible ? ' (próximamente)' : ''}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="block text-sm">
                 <span className="text-slate-600">Fecha</span>
                 <input
                   type="date"
-                  value={pausaFecha}
-                  onChange={(e) => setPausaFecha(e.target.value)}
+                  value={experienciaFecha}
+                  onChange={(e) => setExperienciaFecha(e.target.value)}
                   className="mt-1 w-full rounded-lg border border-slate-300 p-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
                 />
               </label>
@@ -579,32 +598,32 @@ export function ConversacionWhatsApp({
                 <input
                   type="number"
                   min={1}
-                  max={2}
-                  value={pausaPersonas}
-                  onChange={(e) => setPausaPersonas(Math.min(2, Math.max(1, Number(e.target.value) || 2)))}
+                  max={6}
+                  value={experienciaPersonas}
+                  onChange={(e) => setExperienciaPersonas(Math.min(6, Math.max(1, Number(e.target.value) || 2)))}
                   className="mt-1 w-full rounded-lg border border-slate-300 p-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
                 />
               </label>
-              {pausaError && <p className="text-sm text-red-600">{pausaError}</p>}
+              {experienciaError && <p className="text-sm text-red-600">{experienciaError}</p>}
             </div>
             <div className="mt-4 flex justify-end gap-2">
               <Button
                 type="button"
                 variant="ghost"
                 size="sm"
-                onClick={() => setPausaModalAbierto(false)}
-                disabled={pausaCargando}
+                onClick={() => setExperienciaModalAbierto(false)}
+                disabled={experienciaCargando}
               >
                 Cancelar
               </Button>
               <Button
                 type="button"
                 size="sm"
-                onClick={confirmarPausaFecha}
-                disabled={pausaCargando || !pausaFecha}
+                onClick={confirmarExperienciaBusqueda}
+                disabled={experienciaCargando || !experienciaFecha}
                 className="bg-emerald-600 hover:bg-emerald-700"
               >
-                {pausaCargando ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Buscar'}
+                {experienciaCargando ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Buscar'}
               </Button>
             </div>
           </div>
@@ -855,18 +874,20 @@ export function ConversacionWhatsApp({
             <span>Borrador sugerido por IA — revísalo antes de enviar.</span>
           </div>
         )}
-        {pausaAlternativas && pausaAlternativas.length > 0 && (
+        {experienciaAlternativas && experienciaAlternativas.length > 0 && (
           <div className="mb-1 flex items-center gap-1.5 text-xs text-slate-500">
             <Waves className="h-3 w-3 text-emerald-600" />
             <span>
-              Pausa {pausaFecha} · {pausaPersonas}p · opción {pausaIndice + 1}/{pausaAlternativas.length}
+              {EXPERIENCIA_TIPOS.find((o) => o.tipo === experienciaTipo)?.label ?? experienciaTipo}{' '}
+              {experienciaFecha} · {experienciaPersonas}p · opción {experienciaIndice + 1}/
+              {experienciaAlternativas.length}
             </span>
             <button
               type="button"
-              onClick={cambiarFechaPausa}
+              onClick={cambiarBusquedaExperiencia}
               className="text-emerald-700 underline decoration-dotted hover:text-emerald-800"
             >
-              cambiar fecha
+              cambiar búsqueda
             </button>
           </div>
         )}
@@ -898,12 +919,12 @@ export function ConversacionWhatsApp({
           </button>
           <button
             type="button"
-            onClick={clickAlternativasPausa}
+            onClick={clickAlternativasExperiencia}
             disabled={disabled || enviando || !phone}
             title={
-              pausaAlternativas && pausaAlternativas.length > 0
-                ? `Siguiente alternativa de Pausa (${pausaIndice + 1}/${pausaAlternativas.length})`
-                : 'Alternativas de Pausa junto al río (tina+masaje) para una fecha'
+              experienciaAlternativas && experienciaAlternativas.length > 0
+                ? `Siguiente alternativa (${experienciaIndice + 1}/${experienciaAlternativas.length})`
+                : 'Alternativas de horario: Pausa, Ritual, Refugio, Noche de Aguas Calientes, tina o masaje solo'
             }
             className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg border border-slate-300 text-slate-500 hover:bg-slate-100 disabled:opacity-50"
           >

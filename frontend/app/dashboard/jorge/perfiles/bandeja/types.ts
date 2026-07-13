@@ -254,23 +254,56 @@ export interface CarritoEnCurso {
   editable: boolean; // Fase 1 = false (solo lectura); Fase 2 lo hará editable
 }
 
-// Una combinación válida de tina+masaje (Pausa junto al río) para una fecha,
-// con el texto ya formateado listo para pegar en el borrador (H-059).
-export interface PausaAlternativa {
-  etiqueta: string;
-  tina: string;
-  hora_tina: string;
-  hora_masaje: string;
+// Tipos de experiencia soportados por el buscador de alternativas (H-061,
+// generaliza el H-059 Pausa-only). Fase 1 de Django: solo los primeros 4
+// devuelven datos — ritual/refugio están deshabilitados en el selector hasta
+// que Django los construya (Fase 2).
+export type TipoExperiencia =
+  | 'pausa'
+  | 'tina_sola'
+  | 'masaje_solo'
+  | 'noche_aguas_calientes'
+  | 'ritual'
+  | 'refugio';
+
+export interface ExperienciaTipoOpcion {
+  tipo: TipoExperiencia;
+  label: string;
+  disponible: boolean; // false = Fase 2, deshabilitado en el selector
+}
+
+export const EXPERIENCIA_TIPOS: ExperienciaTipoOpcion[] = [
+  { tipo: 'pausa', label: 'Pausa junto al río', disponible: true },
+  { tipo: 'noche_aguas_calientes', label: 'Noche de Aguas Calientes', disponible: true },
+  { tipo: 'tina_sola', label: 'Solo tina', disponible: true },
+  { tipo: 'masaje_solo', label: 'Solo masaje', disponible: true },
+  { tipo: 'ritual', label: 'Ritual del Río', disponible: false },
+  { tipo: 'refugio', label: 'Refugio', disponible: false },
+];
+
+// Un paso del itinerario de una alternativa (ej. {servicio:"Tina Llaima", hora:"11:30"}).
+export interface ExperienciaItinerarioItem {
+  servicio: string;
+  hora: string;
+}
+
+// Una combinación válida (horario+precio) del tipo de experiencia pedido,
+// con el texto ya formateado listo para pegar en el borrador (H-061).
+export interface ExperienciaAlternativa {
+  titulo: string;
   precio_total: number;
   precio_con_descuento: number;
   hay_descuento: boolean;
   texto_sugerido: string;
+  itinerario: ExperienciaItinerarioItem[];
 }
 
-export interface PausaAlternativasResponse {
+export interface ExperienciaAlternativasResponse {
+  tipo: TipoExperiencia;
   fecha: string;
   personas: number;
-  alternativas: PausaAlternativa[];
+  nombre_experiencia: string;
+  alternativas: ExperienciaAlternativa[];
 }
 
 // Reserva ya creada tras el Aprobar del cliente en la cotización (H-039, Fase 3).

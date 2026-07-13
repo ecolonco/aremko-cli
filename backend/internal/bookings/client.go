@@ -1296,51 +1296,63 @@ func (c *Client) GetRefugioLeadsSummary(desde, hasta, apiKey string) (*RefugioLe
 	return &out, nil
 }
 
-// PausaAlternativa es una combinación válida de tina+masaje (Pausa junto al
-// río) para una fecha, con el texto ya formateado listo para el borrador.
-type PausaAlternativa struct {
-	Etiqueta           string  `json:"etiqueta"`
-	Tina               string  `json:"tina"`
-	HoraTina           string  `json:"hora_tina"`
-	HoraMasaje         string  `json:"hora_masaje"`
-	PrecioTotal        float64 `json:"precio_total"`
-	PrecioConDescuento float64 `json:"precio_con_descuento"`
-	HayDescuento       bool    `json:"hay_descuento"`
-	TextoSugerido      string  `json:"texto_sugerido"`
+// ExperienciaItinerarioItem es un paso del itinerario de una alternativa
+// (ej. {"servicio":"Tina Llaima","hora":"11:30"}).
+type ExperienciaItinerarioItem struct {
+	Servicio string `json:"servicio"`
+	Hora     string `json:"hora"`
 }
 
-// PausaAlternativasResult es la respuesta de /api/luna/pausa/alternativas/.
-type PausaAlternativasResult struct {
-	Fecha        string             `json:"fecha"`
-	Personas     int                `json:"personas"`
-	Alternativas []PausaAlternativa `json:"alternativas"`
+// ExperienciaAlternativa es una combinación válida (horario + precio) para
+// el tipo de experiencia consultado, con el texto ya formateado listo para
+// el borrador. Generaliza PausaAlternativa (H-059) a los 6 tipos de H-061.
+type ExperienciaAlternativa struct {
+	Titulo             string                      `json:"titulo"`
+	PrecioTotal        float64                     `json:"precio_total"`
+	PrecioConDescuento float64                     `json:"precio_con_descuento"`
+	HayDescuento       bool                        `json:"hay_descuento"`
+	TextoSugerido      string                      `json:"texto_sugerido"`
+	Itinerario         []ExperienciaItinerarioItem `json:"itinerario"`
 }
 
-// GetPausaAlternativas consulta /api/luna/pausa/alternativas/ (H-059): todas
-// las combinaciones válidas de tina+masaje para una fecha, ordenadas
-// cronológicamente, cada una con texto_sugerido listo para pegar en el
-// borrador. Requiere header X-API-Key (LunaAPIKey).
-func (c *Client) GetPausaAlternativas(fecha string, personas int, apiKey string) (*PausaAlternativasResult, error) {
-	url := fmt.Sprintf("%s/api/luna/pausa/alternativas/?fecha=%s&personas=%d", c.BaseURL, fecha, personas)
+// ExperienciaAlternativasResult es la respuesta de
+// /api/luna/experiencias/alternativas/ (H-061).
+type ExperienciaAlternativasResult struct {
+	Tipo              string                   `json:"tipo"`
+	Fecha             string                   `json:"fecha"`
+	Personas          int                      `json:"personas"`
+	NombreExperiencia string                   `json:"nombre_experiencia"`
+	Alternativas      []ExperienciaAlternativa `json:"alternativas"`
+}
+
+// GetExperienciaAlternativas consulta /api/luna/experiencias/alternativas/
+// (H-061, generaliza el endpoint Pausa-only de H-059): todas las combinaciones
+// válidas para el tipo de experiencia pedido ("pausa" | "ritual" | "refugio" |
+// "noche_aguas_calientes" | "tina_sola" | "masaje_solo") en una fecha, cada
+// una con texto_sugerido listo para pegar en el borrador. Requiere header
+// X-API-Key (LunaAPIKey). Fase 1 de Django: ritual/refugio devuelven 400
+// ("Fase 2") — el frontend los deshabilita en el selector hasta que existan.
+func (c *Client) GetExperienciaAlternativas(tipo, fecha string, personas int, apiKey string) (*ExperienciaAlternativasResult, error) {
+	url := fmt.Sprintf("%s/api/luna/experiencias/alternativas/?tipo=%s&fecha=%s&personas=%d", c.BaseURL, tipo, fecha, personas)
 	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
-		return nil, fmt.Errorf("error creando request pausa-alternativas: %w", err)
+		return nil, fmt.Errorf("error creando request experiencias-alternativas: %w", err)
 	}
 	req.Header.Set("X-API-Key", apiKey)
 
 	resp, err := c.HTTPClient.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("error fetching pausa-alternativas: %w", err)
+		return nil, fmt.Errorf("error fetching experiencias-alternativas: %w", err)
 	}
 	defer resp.Body.Close()
 	body, _ := io.ReadAll(resp.Body)
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("pausa-alternativas status %d: %s", resp.StatusCode, body)
+		return nil, fmt.Errorf("experiencias-alternativas status %d: %s", resp.StatusCode, body)
 	}
 
-	var out PausaAlternativasResult
+	var out ExperienciaAlternativasResult
 	if err := json.Unmarshal(body, &out); err != nil {
-		return nil, fmt.Errorf("error decoding pausa-alternativas: %w", err)
+		return nil, fmt.Errorf("error decoding experiencias-alternativas: %w", err)
 	}
 	return &out, nil
 }

@@ -537,15 +537,23 @@ func WhatsAppSendMedia(cfg *config.Config) http.HandlerFunc {
 	}
 }
 
-// WhatsAppPausaAlternativas proxea GET /api/luna/pausa/alternativas/ de Django
-// (H-059): todas las combinaciones válidas de tina+masaje (Pausa junto al río)
-// para una fecha, con texto_sugerido listo para el borrador. Alimenta el botón
-// "Alternativas Pausa" de la bandeja (ConversacionWhatsApp.tsx) para navegar
-// opciones sin escribirlas a mano — evita el bug de Luna subcontando alternativas.
-func WhatsAppPausaAlternativas(cfg *config.Config) http.HandlerFunc {
+// WhatsAppExperienciaAlternativas proxea GET /api/luna/experiencias/alternativas/
+// de Django (H-061, generaliza el H-059 Pausa-only): todas las combinaciones
+// válidas del tipo de experiencia pedido ("pausa" | "ritual" | "refugio" |
+// "noche_aguas_calientes" | "tina_sola" | "masaje_solo") para una fecha, con
+// texto_sugerido listo para el borrador. Alimenta el botón "Alternativas" de
+// la bandeja (ConversacionWhatsApp.tsx) para navegar opciones sin escribirlas
+// a mano. Fase 1 de Django: ritual/refugio devuelven 400 (Fase 2 pendiente) —
+// el frontend los deshabilita en el selector hasta que Django los construya.
+func WhatsAppExperienciaAlternativas(cfg *config.Config) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if cfg.LunaAPIKey == "" || cfg.BookingSystemURL == "" {
 			respondError(w, http.StatusServiceUnavailable, "Luna API no configurada")
+			return
+		}
+		tipo := strings.TrimSpace(r.URL.Query().Get("tipo"))
+		if tipo == "" {
+			respondError(w, http.StatusBadRequest, "falta 'tipo'")
 			return
 		}
 		fecha := strings.TrimSpace(r.URL.Query().Get("fecha"))
@@ -559,7 +567,7 @@ func WhatsAppPausaAlternativas(cfg *config.Config) http.HandlerFunc {
 		}
 
 		bc := bookings.NewClient(cfg.BookingSystemURL)
-		result, err := bc.GetPausaAlternativas(fecha, personas, cfg.LunaAPIKey)
+		result, err := bc.GetExperienciaAlternativas(tipo, fecha, personas, cfg.LunaAPIKey)
 		if err != nil {
 			respondError(w, http.StatusBadGateway, "no se pudo traer alternativas: "+err.Error())
 			return
