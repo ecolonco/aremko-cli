@@ -531,6 +531,14 @@ export default function PublicacionesPage() {
                               {/* Tiempo estimado oculto a propósito: Angélica es dueña,
                                   no una ejecutora con cronómetro. El dato sigue en la BD. */}
                               {pub.responsable ? ` · ${pub.responsable}` : ''}
+                              {pub.hora_sugerida ? (
+                                <span
+                                  className="ml-1 text-emerald-700 font-medium"
+                                  title="Mejor hora para publicar (más alcance) — sugerencia, no obligación"
+                                >
+                                  · 🕐 {pub.hora_sugerida}
+                                </span>
+                              ) : null}
                             </p>
                           </div>
                           <span className={`inline-flex px-2.5 py-1 text-xs font-semibold rounded-full shrink-0 ${ESTADO_STYLES[pub.estado]}`}>

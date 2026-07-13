@@ -317,6 +317,7 @@ export interface PublicacionPlanificada {
   id: number;
   semana_inicio: string;
   dia: string;
+  hora_sugerida: string;
   canal: string;
   tipo: string;
   pieza_key: string;
