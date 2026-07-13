@@ -164,9 +164,12 @@ class APIClient {
   }
 
   // Subida de material (fotos). No usa this.fetch porque es multipart, no JSON.
-  async subirMaterial(id: number, files: File[]) {
+  // `segmento` (índice de Historia) opcional: si viene, la foto y su revisión
+  // van a esa historia; si no, a la publicación entera.
+  async subirMaterial(id: number, files: File[], segmento?: number) {
     const form = new FormData();
     files.forEach((f) => form.append('files', f));
+    if (segmento != null) form.append('segmento', String(segmento));
     try {
       const response = await fetch(`${this.baseURL}/api/v1/publicaciones/${id}/material`, {
         method: 'POST',

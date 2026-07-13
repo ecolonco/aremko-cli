@@ -128,7 +128,9 @@ function splitStories(text: string): string[] | null {
 }
 
 // Render de un campo del copy_json según su forma (string, guion, slides, lista).
-function CopyDetalle({ copyJson }: { copyJson: Record<string, unknown> }) {
+// omitTexto: para piezas con segmentos (historias), el texto se muestra por
+// historia, así que acá se omite para no duplicarlo.
+function CopyDetalle({ copyJson, omitTexto }: { copyJson: Record<string, unknown>; omitTexto?: boolean }) {
   const ORDEN = [
     'texto', 'guion', 'caption_completo', 'slides', 'asunto', 'preheader',
     'cuerpo_texto_plano_completo', 'texto_sugerido', 'hashtags',
@@ -158,6 +160,7 @@ function CopyDetalle({ copyJson }: { copyJson: Record<string, unknown> }) {
 
   const bloques: React.ReactNode[] = [];
   for (const key of ORDEN) {
+    if (omitTexto && (key === 'texto_sugerido' || key === 'caption_completo')) continue;
     const val = copyJson[key];
     if (val == null || val === '' || (Array.isArray(val) && val.length === 0)) continue;
 
@@ -257,6 +260,64 @@ const SEV_STYLE: Record<string, { dot: string; label: string; bg: string; fg: st
   menor: { dot: '#4E7E5E', label: 'Menor', bg: 'rgba(78,126,94,.14)', fg: '#3C6349' },
 };
 
+// Resultado de la revisión IA (compartido: publicación entera o una historia).
+function VeredictoBox({
+  veredicto,
+  resumen,
+  correcciones,
+}: {
+  veredicto: string;
+  resumen: string;
+  correcciones: RevisionCorreccion[];
+}) {
+  const cs = correcciones || [];
+  const criticos = cs.filter((c) => c.severidad === 'critico').length;
+  if (veredicto === 'revisando') {
+    return (
+      <div className="flex items-center gap-2 mt-3 text-sm text-blue-700 bg-blue-50 rounded-md px-3 py-2">
+        <span className="inline-block w-3.5 h-3.5 border-2 border-blue-300 border-t-blue-700 rounded-full animate-spin" />
+        El asistente está mirando tu foto…
+      </div>
+    );
+  }
+  if (veredicto === 'aprobado') {
+    return (
+      <div className="mt-3 text-sm text-green-800 bg-green-50 rounded-md px-3 py-2">
+        <b>✓ Aprobada.</b> {resumen}
+      </div>
+    );
+  }
+  if (veredicto === 'con_observaciones') {
+    return (
+      <>
+        <div className="mt-3 text-sm text-amber-800 bg-amber-50 rounded-md px-3 py-2">
+          {criticos > 0
+            ? `${criticos} ${criticos === 1 ? 'cosa importante por corregir' : 'cosas importantes por corregir'}`
+            : 'Algunas mejoras opcionales'}
+          {resumen ? ` · ${resumen}` : ''}
+        </div>
+        <div className="mt-3 space-y-2">
+          {cs.map((c: RevisionCorreccion, i) => {
+            const s = SEV_STYLE[c.severidad] || SEV_STYLE.menor;
+            return (
+              <div key={i} className="border border-gray-200 rounded-md p-3">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: s.dot }} />
+                  <span className="font-medium text-sm text-gray-900 flex-1">{c.aspecto}</span>
+                  <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ background: s.bg, color: s.fg }}>{s.label}</span>
+                </div>
+                <p className="text-sm text-gray-500">{c.encontrado}</p>
+                <p className="text-sm text-gray-900 mt-1">→ {c.correccion}</p>
+              </div>
+            );
+          })}
+        </div>
+      </>
+    );
+  }
+  return null;
+}
+
 function RevisionMaterial({
   pub,
   onUpdate,
@@ -310,7 +371,6 @@ function RevisionMaterial({
 
   const v = pub.revision_veredicto;
   const correcciones = pub.revision_json || [];
-  const criticos = correcciones.filter((c) => c.severidad === 'critico').length;
 
   return (
     <div className="mt-4 pt-4 border-t border-gray-100">
@@ -346,45 +406,108 @@ function RevisionMaterial({
           </label>
           {err && <p className="text-sm text-red-600 mt-2">{err}</p>}
 
-          {v === 'revisando' && (
-            <div className="flex items-center gap-2 mt-3 text-sm text-blue-700 bg-blue-50 rounded-md px-3 py-2">
-              <span className="inline-block w-3.5 h-3.5 border-2 border-blue-300 border-t-blue-700 rounded-full animate-spin" />
-              El asistente está mirando tu foto…
-            </div>
-          )}
-          {v === 'aprobado' && (
-            <div className="mt-3 text-sm text-green-800 bg-green-50 rounded-md px-3 py-2">
-              <b>✓ Aprobada.</b> {pub.revision_resumen}
-            </div>
-          )}
-          {v === 'con_observaciones' && (
-            <>
-              <div className="mt-3 text-sm text-amber-800 bg-amber-50 rounded-md px-3 py-2">
-                {criticos > 0
-                  ? `${criticos} ${criticos === 1 ? 'cosa importante por corregir' : 'cosas importantes por corregir'}`
-                  : 'Algunas mejoras opcionales'}
-                {pub.revision_resumen ? ` · ${pub.revision_resumen}` : ''}
-              </div>
-              <div className="mt-3 space-y-2">
-                {correcciones.map((c: RevisionCorreccion, i) => {
-                  const s = SEV_STYLE[c.severidad] || SEV_STYLE.menor;
-                  return (
-                    <div key={i} className="border border-gray-200 rounded-md p-3">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: s.dot }} />
-                        <span className="font-medium text-sm text-gray-900 flex-1">{c.aspecto}</span>
-                        <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ background: s.bg, color: s.fg }}>{s.label}</span>
-                      </div>
-                      <p className="text-sm text-gray-500">{c.encontrado}</p>
-                      <p className="text-sm text-gray-900 mt-1">→ {c.correccion}</p>
-                    </div>
-                  );
-                })}
-              </div>
-            </>
-          )}
+          <VeredictoBox veredicto={v} resumen={pub.revision_resumen} correcciones={correcciones} />
         </>
       )}
+    </div>
+  );
+}
+
+// Revisión POR HISTORIA (stories): cada Historia tiene su propia foto y su
+// propio veredicto — el asistente evalúa si la foto corresponde a ESA historia.
+function RevisionSegmentos({
+  pub,
+  onUpdate,
+}: {
+  pub: PublicacionPlanificada;
+  onUpdate: (p: PublicacionPlanificada) => void;
+}) {
+  const segmentos = pub.segmentos || [];
+  const [subiendo, setSubiendo] = useState<number | null>(null);
+  const [err, setErr] = useState<Record<number, string>>({});
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const algunoRevisando = segmentos.some((s) => s.revision_veredicto === 'revisando');
+
+  useEffect(() => {
+    if (algunoRevisando) {
+      pollRef.current = setInterval(async () => {
+        const resp = await apiClient.getPublicacion(pub.id);
+        if (resp.success && resp.data?.publicacion) {
+          const fresh = resp.data.publicacion;
+          onUpdate(fresh);
+          if (!(fresh.segmentos || []).some((s) => s.revision_veredicto === 'revisando')) {
+            if (pollRef.current) clearInterval(pollRef.current);
+          }
+        }
+      }, 3000);
+    }
+    return () => {
+      if (pollRef.current) clearInterval(pollRef.current);
+    };
+  }, [algunoRevisando, pub.id, onUpdate]);
+
+  const onFiles = async (indice: number, files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    setSubiendo(indice);
+    setErr((e) => ({ ...e, [indice]: '' }));
+    const resp = await apiClient.subirMaterial(pub.id, Array.from(files), indice);
+    setSubiendo(null);
+    if (resp.success && resp.data?.publicacion) onUpdate(resp.data.publicacion);
+    else setErr((e) => ({ ...e, [indice]: resp.error || 'No se pudo subir el material' }));
+  };
+
+  return (
+    <div className="mt-4 pt-4 border-t border-gray-100">
+      <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Revisión por historia</span>
+      <p className="text-xs text-gray-400 mt-0.5 mb-3">
+        Cada historia lleva su propia foto — el asistente revisa que la foto corresponda a lo que dice esa historia.
+      </p>
+      <div className="space-y-4">
+        {segmentos.map((seg) => (
+          <div key={seg.indice} className="rounded-lg border border-gray-200 p-3">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-[11px] font-semibold text-emerald-700 uppercase">{seg.titulo}</span>
+              <CopyButton text={seg.texto} />
+            </div>
+            <p className="text-sm text-gray-900 whitespace-pre-wrap bg-gray-50 rounded px-3 py-1.5">{seg.texto}</p>
+
+            {seg.material_urls?.length > 0 && (
+              <div className="flex gap-2 flex-wrap my-3">
+                {seg.material_urls.map((u, i) => (
+                  <a key={i} href={u} target="_blank" rel="noopener noreferrer">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={u} alt={`${seg.titulo} ${i + 1}`} loading="lazy" className="w-16 h-16 object-cover rounded-md border border-gray-200" />
+                  </a>
+                ))}
+              </div>
+            )}
+
+            <label className="inline-flex items-center mt-2 px-3 py-1.5 text-sm font-medium bg-slate-900 text-white rounded-md hover:bg-slate-700 cursor-pointer">
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                hidden
+                onChange={(e) => onFiles(seg.indice, e.target.files)}
+                disabled={subiendo === seg.indice || seg.revision_veredicto === 'revisando'}
+              />
+              {subiendo === seg.indice
+                ? 'Subiendo…'
+                : seg.material_urls?.length > 0
+                ? 'Subir versión corregida'
+                : 'Subir foto y pedir revisión'}
+            </label>
+            {err[seg.indice] && <p className="text-sm text-red-600 mt-2">{err[seg.indice]}</p>}
+
+            <VeredictoBox
+              veredicto={seg.revision_veredicto}
+              resumen={seg.revision_resumen}
+              correcciones={seg.revision_json}
+            />
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
@@ -550,9 +673,17 @@ export default function PublicacionesPage() {
                         {/* Detalle expandido */}
                         {abierta && (
                           <div className="border-t border-gray-100 px-4 py-4">
-                            <CopyDetalle copyJson={pub.copy_json} />
-
-                            <RevisionMaterial pub={pub} onUpdate={patchPublicacion} />
+                            {pub.segmentos && pub.segmentos.length > 0 ? (
+                              <>
+                                <CopyDetalle copyJson={pub.copy_json} omitTexto />
+                                <RevisionSegmentos pub={pub} onUpdate={patchPublicacion} />
+                              </>
+                            ) : (
+                              <>
+                                <CopyDetalle copyJson={pub.copy_json} />
+                                <RevisionMaterial pub={pub} onUpdate={patchPublicacion} />
+                              </>
+                            )}
 
                             <PublicarCTA canal={pub.canal} />
 

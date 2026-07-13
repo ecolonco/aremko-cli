@@ -313,6 +313,18 @@ export interface RevisionCorreccion {
   correccion: string;
 }
 
+export interface SegmentoHistoria {
+  indice: number;
+  titulo: string;
+  texto: string;
+  material_urls: string[];
+  material_meta?: Record<string, unknown>[];
+  revision_veredicto: RevisionVeredicto;
+  revision_resumen: string;
+  revision_json: RevisionCorreccion[];
+  revision_at: string | null;
+}
+
 export interface PublicacionPlanificada {
   id: number;
   semana_inicio: string;
@@ -327,6 +339,7 @@ export interface PublicacionPlanificada {
   tiempo_estimado: string;
   estado: PublicacionEstado;
   material_urls: string[];
+  segmentos?: SegmentoHistoria[];
   revision_veredicto: RevisionVeredicto;
   revision_resumen: string;
   revision_json: RevisionCorreccion[];
