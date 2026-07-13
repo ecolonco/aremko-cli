@@ -116,6 +116,17 @@ function PublicarCTA({ canal }: { canal: string }) {
   );
 }
 
+// El copywriter mete Story 1 y Story 2 en un mismo texto (separadas por "|").
+// En Instagram son DOS historias distintas → las separamos para mostrarlas
+// cada una en su recuadro. Divide justo antes de cada "STORY N".
+function splitStories(text: string): string[] | null {
+  const parts = text
+    .split(/\s*\|?\s*(?=STORY\s*\d)/i)
+    .map((s) => s.trim())
+    .filter(Boolean);
+  return parts.length > 1 ? parts : null;
+}
+
 // Render de un campo del copy_json según su forma (string, guion, slides, lista).
 function CopyDetalle({ copyJson }: { copyJson: Record<string, unknown> }) {
   const ORDEN = [
@@ -199,15 +210,39 @@ function CopyDetalle({ copyJson }: { copyJson: Record<string, unknown> }) {
         </div>
       );
     } else if (typeof val === 'string') {
-      bloques.push(
-        <div key={key} className="mb-3">
-          <div className="flex items-center justify-between mb-1">
+      const historias = (key === 'texto_sugerido' || key === 'caption_completo')
+        ? splitStories(val)
+        : null;
+      if (historias) {
+        bloques.push(
+          <div key={key} className="mb-3">
             <span className="text-xs font-semibold text-gray-500 uppercase">{LABELS[key] || key}</span>
-            <CopyButton text={val} />
+            <div className="space-y-2 mt-1">
+              {historias.map((h, i) => (
+                <div key={i} className="bg-gray-50 rounded px-3 py-1.5">
+                  <div className="flex items-center justify-between mb-0.5">
+                    <span className="text-[11px] font-semibold text-emerald-700 uppercase">Historia {i + 1}</span>
+                    <CopyButton text={h.replace(/^STORY\s*\d\s*[—-]\s*/i, '')} />
+                  </div>
+                  <p className="text-sm text-gray-900 whitespace-pre-wrap">
+                    {h.replace(/^STORY\s*\d\s*[—-]\s*/i, '')}
+                  </p>
+                </div>
+              ))}
+            </div>
           </div>
-          <p className="text-sm text-gray-900 whitespace-pre-wrap bg-gray-50 rounded px-3 py-1.5">{val}</p>
-        </div>
-      );
+        );
+      } else {
+        bloques.push(
+          <div key={key} className="mb-3">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-xs font-semibold text-gray-500 uppercase">{LABELS[key] || key}</span>
+              <CopyButton text={val} />
+            </div>
+            <p className="text-sm text-gray-900 whitespace-pre-wrap bg-gray-50 rounded px-3 py-1.5">{val}</p>
+          </div>
+        );
+      }
     }
   }
 
