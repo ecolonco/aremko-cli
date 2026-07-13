@@ -195,6 +195,9 @@ export function ConversacionWhatsApp({
   const [experienciaAlternativas, setExperienciaAlternativas] = useState<ExperienciaAlternativa[] | null>(null);
   const [experienciaIndice, setExperienciaIndice] = useState(0);
   const [experienciaCargando, setExperienciaCargando] = useState(false);
+  // Ritual/Refugio son siempre 2 personas (el endpoint ignora `personas` para
+  // esos tipos) — derivado del catálogo, no estado propio.
+  const experienciaPersonasFijas = EXPERIENCIA_TIPOS.find((o) => o.tipo === experienciaTipo)?.personasFijas;
   const [experienciaError, setExperienciaError] = useState<string | null>(null);
 
   const copiarTelefono = useCallback(() => {
@@ -512,7 +515,11 @@ export function ConversacionWhatsApp({
     setExperienciaCargando(true);
     setExperienciaError(null);
     try {
-      const data = await fetchExperienciaAlternativas(experienciaTipo, experienciaFecha, experienciaPersonas);
+      const data = await fetchExperienciaAlternativas(
+        experienciaTipo,
+        experienciaFecha,
+        experienciaPersonasFijas ?? experienciaPersonas
+      );
       if (!data.alternativas || data.alternativas.length === 0) {
         setExperienciaError('Sin combinaciones disponibles para esa fecha/personas');
         return;
@@ -573,7 +580,12 @@ export function ConversacionWhatsApp({
                 <span className="text-slate-600">Experiencia</span>
                 <select
                   value={experienciaTipo}
-                  onChange={(e) => setExperienciaTipo(e.target.value as TipoExperiencia)}
+                  onChange={(e) => {
+                    const nuevoTipo = e.target.value as TipoExperiencia;
+                    setExperienciaTipo(nuevoTipo);
+                    const fijas = EXPERIENCIA_TIPOS.find((o) => o.tipo === nuevoTipo)?.personasFijas;
+                    if (fijas) setExperienciaPersonas(fijas);
+                  }}
                   className="mt-1 w-full rounded-lg border border-slate-300 p-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
                 >
                   {EXPERIENCIA_TIPOS.map((opt) => (
@@ -594,14 +606,18 @@ export function ConversacionWhatsApp({
                 />
               </label>
               <label className="block text-sm">
-                <span className="text-slate-600">Personas</span>
+                <span className="text-slate-600">
+                  Personas
+                  {experienciaPersonasFijas ? ` (fijo en ${experienciaPersonasFijas} para esta experiencia)` : ''}
+                </span>
                 <input
                   type="number"
                   min={1}
                   max={6}
-                  value={experienciaPersonas}
+                  value={experienciaPersonasFijas ?? experienciaPersonas}
+                  disabled={!!experienciaPersonasFijas}
                   onChange={(e) => setExperienciaPersonas(Math.min(6, Math.max(1, Number(e.target.value) || 2)))}
-                  className="mt-1 w-full rounded-lg border border-slate-300 p-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                  className="mt-1 w-full rounded-lg border border-slate-300 p-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 disabled:bg-slate-100 disabled:text-slate-500"
                 />
               </label>
               {experienciaError && <p className="text-sm text-red-600">{experienciaError}</p>}

@@ -255,9 +255,8 @@ export interface CarritoEnCurso {
 }
 
 // Tipos de experiencia soportados por el buscador de alternativas (H-061,
-// generaliza el H-059 Pausa-only). Fase 1 de Django: solo los primeros 4
-// devuelven datos — ritual/refugio están deshabilitados en el selector hasta
-// que Django los construya (Fase 2).
+// generaliza el H-059 Pausa-only). Los 6 tipos están completos (Fase 1 + Fase 2
+// de Django, 2026-07-06/13).
 export type TipoExperiencia =
   | 'pausa'
   | 'tina_sola'
@@ -269,7 +268,11 @@ export type TipoExperiencia =
 export interface ExperienciaTipoOpcion {
   tipo: TipoExperiencia;
   label: string;
-  disponible: boolean; // false = Fase 2, deshabilitado en el selector
+  disponible: boolean;
+  // Si está seteado, este tipo SIEMPRE es para esa cantidad de personas (el
+  // endpoint ignora el parámetro `personas`) — Ritual/Refugio son 2 personas
+  // fijas. El modal deshabilita el campo y muestra este valor.
+  personasFijas?: number;
 }
 
 export const EXPERIENCIA_TIPOS: ExperienciaTipoOpcion[] = [
@@ -277,8 +280,8 @@ export const EXPERIENCIA_TIPOS: ExperienciaTipoOpcion[] = [
   { tipo: 'noche_aguas_calientes', label: 'Noche de Aguas Calientes', disponible: true },
   { tipo: 'tina_sola', label: 'Solo tina', disponible: true },
   { tipo: 'masaje_solo', label: 'Solo masaje', disponible: true },
-  { tipo: 'ritual', label: 'Ritual del Río', disponible: false },
-  { tipo: 'refugio', label: 'Refugio', disponible: false },
+  { tipo: 'ritual', label: 'Ritual del Río', disponible: true, personasFijas: 2 },
+  { tipo: 'refugio', label: 'Refugio', disponible: true, personasFijas: 2 },
 ];
 
 // Un paso del itinerario de una alternativa (ej. {servicio:"Tina Llaima", hora:"11:30"}).
