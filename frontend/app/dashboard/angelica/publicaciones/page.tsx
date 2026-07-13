@@ -42,6 +42,41 @@ function formatDia(iso: string): string {
   return d.toLocaleDateString('es-CL', { weekday: 'long', day: 'numeric', month: 'short' });
 }
 
+// ─── Destino de publicación por canal ───────────────────────────────────────
+// "Publicar en un clic": abre directo el lugar donde se pega el contenido, para
+// que el CM no tenga que recordar URLs. Google ya no ofrece un deep-link limpio
+// al editor de novedades (redirige a limbos de verificación); lo robusto cuando
+// administras la ficha es abrir tu ficha por búsqueda del nombre — ahí sale el
+// botón "Agregar novedad" sin pantallas raras.
+//
+// MULTI-TENANT: cuando el sistema se venda a otros negocios, GBP_QUERY / el
+// handle de IG salen de la config del tenant, no de constantes fijas.
+const GBP_QUERY = 'Aremko Aguas Calientes Puerto Varas';
+
+type Destino = { label: string; url: string; hint: string };
+
+function destinoDe(canal: string): Destino | null {
+  const c = (canal || '').toLowerCase();
+  if (c.includes('gbp') || c.includes('google')) {
+    return {
+      label: 'Publicar en Google',
+      url: `https://www.google.com/search?q=${encodeURIComponent(GBP_QUERY)}`,
+      hint: 'Se abre tu ficha de Aremko en Google (con tu sesión de administrador). ' +
+        'Toca “Promocionar” → “Agregar novedad”, pega el texto, sube la foto aprobada y pon el link.',
+    };
+  }
+  if (c.includes('instagram')) {
+    return {
+      label: 'Abrir Instagram',
+      url: 'https://www.instagram.com/',
+      hint: 'Se abre Instagram. Crea la publicación / historia / reel y pega el caption. ' +
+        '(En el celular es más cómodo desde la app.)',
+    };
+  }
+  // Email lo lleva Jorge por el flujo de campañas — sin botón acá.
+  return null;
+}
+
 function CopyButton({ text, label }: { text: string; label?: string }) {
   const [copied, setCopied] = useState(false);
   return (
@@ -55,6 +90,28 @@ function CopyButton({ text, label }: { text: string; label?: string }) {
     >
       {copied ? '✓ Copiado' : label || 'Copiar'}
     </button>
+  );
+}
+
+// Botón "publicar en un clic": abre el destino del canal en una pestaña nueva.
+function PublicarCTA({ canal }: { canal: string }) {
+  const destino = destinoDe(canal);
+  if (!destino) return null;
+  return (
+    <div className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <span className="text-sm font-medium text-emerald-900">¿Listo para publicar?</span>
+        <a
+          href={destino.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="px-4 py-1.5 text-sm font-semibold bg-emerald-600 text-white rounded-md hover:bg-emerald-700"
+        >
+          {destino.label} →
+        </a>
+      </div>
+      <p className="text-xs text-emerald-800 mt-1.5">{destino.hint}</p>
+    </div>
   );
 }
 
@@ -452,6 +509,8 @@ export default function PublicacionesPage() {
                             <CopyDetalle copyJson={pub.copy_json} />
 
                             <RevisionMaterial pub={pub} onUpdate={patchPublicacion} />
+
+                            <PublicarCTA canal={pub.canal} />
 
                             {pub.published_url && (
                               <p className="text-xs text-gray-500 mt-2">
