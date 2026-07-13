@@ -61,8 +61,9 @@ function destinoDe(canal: string): Destino | null {
     return {
       label: 'Publicar en Google',
       url: `https://www.google.com/search?q=${encodeURIComponent(GBP_QUERY)}`,
-      hint: 'Se abre tu ficha de Aremko en Google (con tu sesión de administrador). ' +
-        'Toca “Promocionar” → “Agregar novedad”, pega el texto, sube la foto aprobada y pon el link.',
+      hint: 'Entra con la cuenta aremkospa@gmail.com (es la dueña de la ficha). ' +
+        'En la barra de tu negocio toca “Publicaciones” → “Agregar novedad”, ' +
+        'pega el texto, sube la foto aprobada y pon el link.',
     };
   }
   if (c.includes('instagram')) {
