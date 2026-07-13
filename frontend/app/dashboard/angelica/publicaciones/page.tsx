@@ -435,7 +435,8 @@ export default function PublicacionesPage() {
                             </p>
                             <p className="text-xs text-gray-500">
                               {pub.canal} · {pub.tipo}
-                              {pub.tiempo_estimado ? ` · ${pub.tiempo_estimado}` : ''}
+                              {/* Tiempo estimado oculto a propósito: Angélica es dueña,
+                                  no una ejecutora con cronómetro. El dato sigue en la BD. */}
                               {pub.responsable ? ` · ${pub.responsable}` : ''}
                             </p>
                           </div>
