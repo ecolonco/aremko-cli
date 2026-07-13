@@ -523,8 +523,14 @@ export default function PublicacionesPage() {
                             )}
 
                             {/* Acciones de estado */}
-                            <div className="mt-4 flex flex-wrap items-center gap-2">
-                              {pub.estado === 'lista' && (
+                            {pub.estado !== 'publicada' && (
+                              <p className="mt-4 text-xs text-gray-500">
+                                ¿Ya la publicaste en {pub.canal}? Pega el link del post y márcala como publicada
+                                (el tablero no se entera solo de lo que pasa en Google/Instagram).
+                              </p>
+                            )}
+                            <div className="mt-2 flex flex-wrap items-center gap-2">
+                              {pub.estado !== 'publicada' && (
                                 <input
                                   type="url"
                                   placeholder="Link del post publicado (Instagram/GBP)…"
@@ -533,7 +539,17 @@ export default function PublicacionesPage() {
                                   className="flex-1 min-w-[220px] text-sm border border-gray-200 rounded-md px-3 py-1.5"
                                 />
                               )}
-                              {siguiente && (
+                              {pub.estado !== 'publicada' && (
+                                <button
+                                  onClick={() => actualizar(pub, 'publicada')}
+                                  disabled={guardando === pub.id}
+                                  className="px-4 py-1.5 text-sm font-semibold bg-emerald-600 text-white rounded-md hover:bg-emerald-700 disabled:opacity-50"
+                                >
+                                  {guardando === pub.id ? 'Guardando…' : '✓ Marcar publicada'}
+                                </button>
+                              )}
+                              {/* Paso intermedio opcional (marcar avance); no dup con "Marcar publicada". */}
+                              {siguiente && siguiente.estado !== 'publicada' && (
                                 <button
                                   onClick={() => actualizar(pub, siguiente.estado)}
                                   disabled={guardando === pub.id}
@@ -542,7 +558,7 @@ export default function PublicacionesPage() {
                                   {guardando === pub.id ? 'Guardando…' : siguiente.label}
                                 </button>
                               )}
-                              {pub.estado !== 'pendiente' && pub.estado !== 'publicada' && (
+                              {pub.estado !== 'pendiente' && (
                                 <button
                                   onClick={() => actualizar(pub, 'pendiente')}
                                   disabled={guardando === pub.id}
