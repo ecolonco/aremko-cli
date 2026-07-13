@@ -160,7 +160,7 @@ function CopyDetalle({ copyJson, omitTexto }: { copyJson: Record<string, unknown
 
   const bloques: React.ReactNode[] = [];
   for (const key of ORDEN) {
-    if (omitTexto && (key === 'texto_sugerido' || key === 'caption_completo')) continue;
+    if (omitTexto && (key === 'texto_sugerido' || key === 'caption_completo' || key === 'slides')) continue;
     const val = copyJson[key];
     if (val == null || val === '' || (Array.isArray(val) && val.length === 0)) continue;
 
@@ -423,6 +423,11 @@ function RevisionSegmentos({
   onUpdate: (p: PublicacionPlanificada) => void;
 }) {
   const segmentos = pub.segmentos || [];
+  const esCarrusel = pub.tipo === 'carrusel';
+  const tituloSeccion = esCarrusel ? 'Revisión por slide' : 'Revisión por historia';
+  const introSeccion = esCarrusel
+    ? 'Cada slide lleva su propia foto — el asistente revisa que la foto corresponda a lo que dice ese slide.'
+    : 'Cada historia lleva su propia foto — el asistente revisa que la foto corresponda a lo que dice esa historia.';
   const [subiendo, setSubiendo] = useState<number | null>(null);
   const [err, setErr] = useState<Record<number, string>>({});
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -459,10 +464,8 @@ function RevisionSegmentos({
 
   return (
     <div className="mt-4 pt-4 border-t border-gray-100">
-      <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Revisión por historia</span>
-      <p className="text-xs text-gray-400 mt-0.5 mb-3">
-        Cada historia lleva su propia foto — el asistente revisa que la foto corresponda a lo que dice esa historia.
-      </p>
+      <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{tituloSeccion}</span>
+      <p className="text-xs text-gray-400 mt-0.5 mb-3">{introSeccion}</p>
       <div className="space-y-4">
         {segmentos.map((seg) => (
           <div key={seg.indice} className="rounded-lg border border-gray-200 p-3">
