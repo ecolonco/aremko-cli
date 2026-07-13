@@ -1,7 +1,9 @@
 package handlers
 
 import (
+	"bytes"
 	"encoding/json"
+	"io"
 	"net/http"
 	"strconv"
 	"time"
@@ -107,13 +109,23 @@ func PublicacionMaterial(cfg *config.Config) http.HandlerFunc {
 			respondError(w, http.StatusBadRequest, "id inválido")
 			return
 		}
+		// Leer el multipart completo a memoria antes de reenviarlo: al pasar
+		// un *bytes.Reader, Go setea Content-Length y NO usa chunked encoding
+		// (Django no parsea request.FILES con transfer-encoding chunked, por
+		// eso "No se recibió ningún archivo" al hacer streaming directo).
+		raw, err := io.ReadAll(http.MaxBytesReader(w, r.Body, 64<<20)) // tope 64 MB total
+		if err != nil {
+			respondError(w, http.StatusBadRequest, "no se pudo leer el archivo: "+err.Error())
+			return
+		}
+
 		// Timeout más generoso: subir hasta 16 MB por foto a Cloudinary (vía
 		// Django) puede pasar los 10s por defecto del cliente.
 		client := bookings.NewClient(cfg.BookingSystemURL)
 		client.HTTPClient.Timeout = 60 * time.Second
 
 		status, body, err := client.PostPublicacionMaterialRaw(
-			cfg.AutomationAPIKey, id, r.Header.Get("Content-Type"), r.Body,
+			cfg.AutomationAPIKey, id, r.Header.Get("Content-Type"), bytes.NewReader(raw),
 		)
 		if err != nil {
 			respondError(w, http.StatusBadGateway, err.Error())
