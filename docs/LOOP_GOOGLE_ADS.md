@@ -117,7 +117,7 @@ a las 3 campañas. Las comillas ya fuerzan concordancia de frase.
 "olmue"
 "cajón del maipo"
 ```
-- [ ] Negativas cargadas (fecha: ____)
+- [x] Negativas cargadas (2026-07-14 · lista "Negativas base Aremko" aplicada a las 3 campañas)
 
 **② Keywords nuevas para RITUAL DEL RÍO — concordancia de FRASE.**
 Sirven también a Refugio, pero van SOLO en Ritual para que las dos campañas no compitan
