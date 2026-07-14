@@ -232,3 +232,38 @@ gasta no captura más demanda.
 vs IS-perdido-por-rango. Antes de recomendar mover presupuesto, confirmar en el panel
 (o con métricas de lost IS budget/rank) si la campaña realmente topa su budget. Acá no
 lo topaba → la plata no era la palanca.
+
+**ANÁLISIS DE KEYWORDS (endpoint `/search-terms` YA arreglado).** La nota técnica del
+Ciclo #1 (400 por `segments.keyword.match_type`) está OBSOLETA: la query ya usa
+`segments.search_term_match_type` (`backend/internal/googleads/queries.go:189`) y el
+endpoint responde 200. Se leyeron los 50 términos top de cada campaña (2026-06-30 a
+2026-07-13). **Hallazgo central:** el IS bajo de Ritual es por **dispersión de broad
+match**, no por presupuesto — la campaña gasta en tráfico tangencial (termas, domos,
+spa Puerto Montt, competidores) en vez de dominar su intención núcleo. Y hay demanda
+núcleo REAL sin keyword propia: 30+ clics dispersos en variantes de "cabaña con
+tinaja/jacuzzi puerto varas".
+
+**Negativas propuestas (alta confianza) — plata que se quema en tráfico que no compra:**
+- **Competidores por nombre:** `termas del sol` (Pausa: 6 clics/$2.505, CTR 12%),
+  `tungulu` (Refugio: 3/$1.593), `espacio sur` (Refugio: 1/$1.564), `dreams`, `enjoy`,
+  `cancagua`, `cabañas del lago`, `zen spa osorno`, `antea`, `hydra`, `rucamalen`.
+- **Intención ≠ producto:** `masajes descontracturantes` (QS 1 desde Ciclo #1),
+  `masaje tantrico`, `domos` (Ritual: 4 clics — producto que no es), `que hacer en
+  puerto varas` (turística, baja intención), `masajista`/`mujer masajista`/`masajes
+  para hombres`.
+- **Geo lejana:** `concepcion`, `talca`, `olmue`, `cajón del maipo` (0 clics hoy, por
+  higiene).
+- **A revisar con criterio (NO automático):** `termas` genérico y `puerto montt`
+  pueden convertir (gente de Pto Montt busca "cabaña con tinaja puerto montt", a 20 min)
+  — no negativizar a ciegas.
+
+**Keywords nuevas propuestas (demanda real, buen CTR, alta intención):**
+- Ritual/Refugio (cabaña+tina): **`cabañas con tinaja puerto varas`**, **`cabañas con
+  jacuzzi puerto varas`**, **`cabaña con tinaja`** (frase/exacta) — consolidar los 30+
+  clics dispersos sube relevancia (Quality Score) y baja CPC.
+- Pausa (tina+masaje día): **`día de spa puerto varas`**, **`tinajas por horas`**.
+
+Así se destraba el "no hay suficientes palabras clave relevantes": agregar las keywords
+núcleo + negativizar el ruido concentra el presupuesto (que sobra) en la demanda
+correcta. Es la palanca, no la plata. (Nivel 2: SOLO PROPUESTA — Jorge las carga en el
+panel.)
