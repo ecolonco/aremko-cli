@@ -149,3 +149,52 @@ plataforma.
    MISMO deploy que reautoriza el token.** Así el próximo ciclo recupera de una vez
    los términos de búsqueda reales (para detectar negativas y keywords nuevas) además
    del acceso base — evita un segundo viaje de mantención al backend.
+
+**ACTUALIZACIÓN (mismo día, con Jorge) — TOKEN RECONECTADO, ciclo completado.**
+El bloqueo se resolvió en la misma sesión. Causa real (no era falta de reautorizar
+desde cero): la app OAuth ya había quedado "En producción" el 2026-07-13 (token
+durable), pero el `GOOGLE_ADS_REFRESH_TOKEN` del servicio Go `aremko-cli-backend`
+había quedado con un token **intermedio/muerto** (durante el debugging del 07-13 se
+generaron varios y Google revocó los viejos; el bueno quedó solo en el servicio
+Django `aremko-booking-system-prod`). Fix: copiar el refresh token vivo de Django →
+Go y redeploy. El código Go ya estaba en `v21` (`backend/internal/googleads/client.go:29`),
+así que no hubo problema de versión. Endpoint `/summary` responde OK (`success:true`).
+
+**Snapshot Google Ads REAL (2026-06-30 a 2026-07-13, 14 días) × ventas reales:**
+
+| Campaña | Gasto | % gasto | Clicks | CPC | CTR | Search IS | Ventas reales |
+|---|---|---|---|---|---|---|---|
+| Refugio (cab+tina+masaje 2n) | $37.857 | 26% | 114 | $332 | **23,8%** | 49,0% | 4 res / $1.155.000 |
+| Ritual del Río (cab+tina+masaje 1n) | $52.351 | 35% | 293 | **$179** | 11,7% | **21,7%** | **11 res / $2.460.000** |
+| Pausa (tina+masaje) | $57.543 | 39% | 193 | $298 | 13,7% | 32,5% | **17 res / $2.030.000** |
+| **Total Search** | **$147.751** | — | 600 | $246 | 13,7% | — | — |
+| _(sin campaña)_ Noche Aguas Calientes | — | — | — | — | — | — | 6 res / $952.100 |
+
+_(Total negocio período: 83 res / $9.406.100. Conversiones de plataforma ignoradas: 0, atribución rota.)_
+
+**Diagnóstico (vs Ciclo #1):** **el rebalanceo propuesto en el Ciclo #1 SÍ se aplicó.**
+Refugio pasó de 63% → 26% del gasto (de $128.794 a $37.857) y Pausa de 12% → 39%
+(de $25.154 a $57.543). El gasto ya NO está concentrado en el combo que menos vende.
+Pero **Ritual quedó plano** (~$50k en ambos ciclos) y sigue siendo el mejor negocio
+del account sin capitalizar: CPC más barato ($179 vs $298-332), #1 en revenue
+($2,46M) y **Search IS de apenas 21,7%** → deja pasar ~78% de las búsquedas en un
+mercado GRANDE (2.504 impresiones, 5× las de Refugio).
+
+**Recomendaciones NUEVAS (SOLO PROPUESTA — esperar OK de Jorge):**
+
+1. **Subir Ritual del Río (mover presupuesto desde Pausa).** Es donde cada peso extra
+   rinde más: CPC más bajo del account, mayor revenue, y 78% de demanda de búsqueda
+   sin capturar en un mercado grande. Pausa ya está en 39% del gasto con IS más alto
+   (32,5%) y CPC más caro → tiene menos upside marginal. Propuesta: correr ~$15-20k
+   del período desde Pausa hacia Ritual y volver a medir su Search IS (meta: llevarlo
+   de 21,7% hacia ~40%).
+2. **Refugio: dejarlo como está, NO subir.** Su Search IS bajó a 49% pero con solo
+   478 impresiones el mercado de búsqueda es chico; su CTR 23,8% es excelente pero el
+   techo de volumen es bajo (vende 4 res). Gasta poco ($37,8k) y está bien así.
+3. **Ritual tiene el CTR más bajo (11,7%) pese al mejor CPC** — vale una pasada de
+   copy/keywords a sus anuncios (probar variantes de titular) EN PARALELO a subirle
+   presupuesto; capturar más IS con mejor CTR baja aún más el CPC. (Sigue pendiente
+   arreglar el endpoint `/search-terms` (400) para leer términos reales y afinar esto.)
+
+_(Sigue abierta del Ciclo #1: campaña dedicada "Noche de Aguas Calientes" — 6 res /
+$952k sin un peso de Ads.)_
