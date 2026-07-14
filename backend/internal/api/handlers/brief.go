@@ -214,6 +214,28 @@ func GetWeeklyBrief(cfg *config.Config) http.HandlerFunc {
 			}
 		}
 
+		// TikTok Organic section (Login Kit + Display API, solo lectura de
+		// estadísticas propias — NO es mensajería). Sin tendencia semanal
+		// histórica (la API no la da); solo estado actual + mejores videos.
+		if cfg.EnableTikTok {
+			ttClient := social.NewTikTokClient(cfg.TikTokClientKey, cfg.TikTokClientSecret, cfg.TikTokRefreshToken)
+			ctx := context.Background()
+			accountInfo, err := ttClient.GetAccountInfo(ctx)
+			if err == nil {
+				topVideos, _ := ttClient.GetTopVideos(ctx, 20)
+				brief["tiktok_organic"] = map[string]interface{}{
+					"account_info": accountInfo,
+					"top_videos":   topVideos,
+					"status":       "real_data",
+				}
+			} else {
+				brief["tiktok_organic"] = map[string]interface{}{
+					"status": "error",
+					"error":  err.Error(),
+				}
+			}
+		}
+
 		if cfg.EnableBookings {
 			reviewsClient := reviews.NewClient(cfg.BookingSystemURL)
 			reviewsSummary, err := reviewsClient.GetReviewsSummary()

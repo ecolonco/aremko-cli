@@ -32,7 +32,8 @@ import {
   Mail,
   Loader2,
   AlertCircle,
-  Printer
+  Printer,
+  Video
 } from 'lucide-react';
 
 interface BriefData {
@@ -49,6 +50,7 @@ interface BriefData {
     competitors?: any;
     instagram_organic?: any;
     facebook_organic?: any;
+    tiktok_organic?: any;
   };
   ai_analysis?: {
     content: string;
@@ -2329,6 +2331,96 @@ export default function BriefPage() {
                     <AlertCircle className="h-10 w-10 mx-auto mb-3 text-red-500" />
                     <p className="text-sm text-red-600 mb-1">No se pudo cargar Facebook orgánico</p>
                     <p className="text-xs text-red-500">{data.facebook_organic.error}</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* TikTok Orgánico */}
+          {data?.tiktok_organic && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Video className="h-5 w-5 mr-2 text-slate-900" />
+                  TikTok Orgánico
+                </CardTitle>
+                <CardDescription>Rendimiento propio de videos (@aremko.spa)</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {data.tiktok_organic.status === 'real_data' ? (
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      <div className="rounded-lg border p-4">
+                        <div className="text-sm text-muted-foreground">Cuenta</div>
+                        <div className="text-lg font-bold truncate">{data.tiktok_organic.account_info?.display_name || '—'}</div>
+                      </div>
+                      <div className="rounded-lg border p-4">
+                        <div className="text-sm text-muted-foreground">Seguidores</div>
+                        <div className="text-2xl font-bold">{(data.tiktok_organic.account_info?.follower_count || 0).toLocaleString()}</div>
+                      </div>
+                      <div className="rounded-lg border p-4">
+                        <div className="text-sm text-muted-foreground">Videos</div>
+                        <div className="text-2xl font-bold">{(data.tiktok_organic.account_info?.video_count || 0).toLocaleString()}</div>
+                      </div>
+                      <div className="rounded-lg border p-4">
+                        <div className="text-sm text-muted-foreground">Me gusta totales</div>
+                        <div className="text-2xl font-bold">{(data.tiktok_organic.account_info?.likes_count || 0).toLocaleString()}</div>
+                      </div>
+                    </div>
+                    {data.tiktok_organic.top_videos && data.tiktok_organic.top_videos.length > 0 ? (
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr className="border-b text-left text-muted-foreground">
+                              <th className="py-2 px-2 font-medium">Video</th>
+                              <th className="py-2 px-2 font-medium text-right">Vistas</th>
+                              <th className="py-2 px-2 font-medium text-right">Me gusta</th>
+                              <th className="py-2 px-2 font-medium text-right">Coment.</th>
+                              <th className="py-2 px-2 font-medium text-right">Compartidos</th>
+                              <th className="py-2 px-2 font-medium text-right">Interacción</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {[...data.tiktok_organic.top_videos]
+                              .sort((a: any, b: any) => (b.engagement_rate || 0) - (a.engagement_rate || 0))
+                              .slice(0, 10)
+                              .map((video: any) => (
+                                <tr key={video.id} className="border-b last:border-0 hover:bg-gray-50">
+                                  <td className="py-2 px-2 max-w-[320px]">
+                                    <a
+                                      href={video.share_url}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="line-clamp-1 text-gray-700 hover:text-slate-900 hover:underline"
+                                      title={video.title}
+                                    >
+                                      {video.title?.replace(/\s+/g, ' ').trim().substring(0, 80) || 'Video'}
+                                    </a>
+                                  </td>
+                                  <td className="py-2 px-2 text-right">{(video.view_count || 0).toLocaleString()}</td>
+                                  <td className="py-2 px-2 text-right">{(video.like_count || 0).toLocaleString()}</td>
+                                  <td className="py-2 px-2 text-right">{(video.comment_count || 0).toLocaleString()}</td>
+                                  <td className="py-2 px-2 text-right">{(video.share_count || 0).toLocaleString()}</td>
+                                  <td className="py-2 px-2 text-right font-semibold text-slate-900">
+                                    {video.engagement_rate !== undefined ? `${video.engagement_rate.toFixed(2)}%` : '—'}
+                                  </td>
+                                </tr>
+                              ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground text-center py-4">
+                        No hay videos recientes en la cuenta de TikTok.
+                      </p>
+                    )}
+                  </div>
+                ) : (
+                  <div className="p-6 text-center border-2 border-dashed border-red-200 rounded-lg bg-red-50">
+                    <AlertCircle className="h-10 w-10 mx-auto mb-3 text-red-500" />
+                    <p className="text-sm text-red-600 mb-1">No se pudo cargar TikTok orgánico</p>
+                    <p className="text-xs text-red-500">{data.tiktok_organic.error}</p>
                   </div>
                 )}
               </CardContent>

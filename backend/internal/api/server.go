@@ -85,6 +85,13 @@ func (s *Server) setupRoutes() {
 		r.Get("/seo/backlinks", handlers.GetSEOBacklinks(s.config))
 		r.Get("/seo/competitors", handlers.GetSEOCompetitors(s.config))
 
+		// TikTok (Login Kit + Display API): solo lectura de estadísticas
+		// propias (@aremko.spa) para el brief semanal. El callback recibe la
+		// autorización manual única y muestra el refresh_token a guardar en
+		// Render — sin auth propia porque TikTok llama directo a esta URL.
+		r.Get("/tiktok/oauth/authorize-url", handlers.TikTokOAuthAuthorizeURL(s.config))
+		r.Get("/tiktok/oauth/callback", handlers.TikTokOAuthCallback(s.config))
+
 		// Google Analytics 4 endpoints
 		r.Get("/ga4/stats", handlers.GetGA4Stats(s.config))
 		r.Get("/ga4/top-pages", handlers.GetGA4TopPages(s.config))

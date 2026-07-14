@@ -104,6 +104,13 @@ type Config struct {
 	Port        string
 	Environment string
 
+	// TikTok (Login Kit + Display API — solo lectura de estadísticas propias
+	// para el brief semanal; NO es mensajería, ver docs/HANDOFFS.md H-061/análisis
+	// TikTok DMs). OAuth2 con refresh token, mismo patrón que Google Ads.
+	TikTokClientKey    string
+	TikTokClientSecret string
+	TikTokRefreshToken string // se obtiene 1 vez a mano vía /api/v1/tiktok/oauth/callback
+
 	// Features
 	EnableMetaAds    bool
 	EnableGoogleAds  bool
@@ -113,6 +120,7 @@ type Config struct {
 	EnableAI         bool
 	EnableWhatsApp   bool
 	EnableDataForSEO bool
+	EnableTikTok     bool
 }
 
 var AppConfig *Config
@@ -142,6 +150,9 @@ func LoadConfig() (*Config, error) {
 		GoogleAdsBudgetCLP:         parseFloatEnv("GOOGLE_ADS_BUDGET_CLP", 100000),
 		DataForSEOAPILogin:         getEnvOrDefault("DATAFORSEO_API_LOGIN", ""),
 		DataForSEOAPIPassword:      getEnvOrDefault("DATAFORSEO_API_PASSWORD", ""),
+		TikTokClientKey:            getEnvOrDefault("TIKTOK_CLIENT_KEY", ""),
+		TikTokClientSecret:         getEnvOrDefault("TIKTOK_CLIENT_SECRET", ""),
+		TikTokRefreshToken:         getEnvOrDefault("TIKTOK_REFRESH_TOKEN", ""),
 		WhatsAppAccessToken:        getEnvOrDefault("WHATSAPP_ACCESS_TOKEN", ""),
 		WhatsAppPhoneNumberID:      getEnvOrDefault("WHATSAPP_PHONE_NUMBER_ID", ""),
 		WhatsAppWABAID:             getEnvOrDefault("WHATSAPP_WABA_ID", ""),
@@ -180,6 +191,7 @@ func LoadConfig() (*Config, error) {
 		EnableAI:                   getEnvOrDefault("ENABLE_AI", "true") == "true",
 		EnableWhatsApp:             getEnvOrDefault("ENABLE_WHATSAPP", "false") == "true",
 		EnableDataForSEO:           dataForSEOAutoEnabled(),
+		EnableTikTok:               tiktokAutoEnabled(),
 	}
 
 	// Validar configuración mínima
@@ -244,6 +256,16 @@ func dataForSEOAutoEnabled() bool {
 		return v == "true"
 	}
 	return os.Getenv("DATAFORSEO_API_LOGIN") != "" && os.Getenv("DATAFORSEO_API_PASSWORD") != ""
+}
+
+// tiktokAutoEnabled activa TikTok cuando están las 3 credenciales (client
+// key/secret + refresh token, este último se obtiene a mano la primera vez
+// vía /api/v1/tiktok/oauth/callback). ENABLE_TIKTOK explícito siempre gana.
+func tiktokAutoEnabled() bool {
+	if v := os.Getenv("ENABLE_TIKTOK"); v != "" {
+		return v == "true"
+	}
+	return os.Getenv("TIKTOK_CLIENT_KEY") != "" && os.Getenv("TIKTOK_CLIENT_SECRET") != "" && os.Getenv("TIKTOK_REFRESH_TOKEN") != ""
 }
 
 func parseFloatEnv(key string, defaultValue float64) float64 {
