@@ -143,7 +143,11 @@ campaña, decidir UNA de estas dos rutas (SOLO PROPUESTA, esperar OK de Jorge):
     los lagos", "cabaña aguas calientes puerto varas", "hot tub puerto varas"), presupuesto
     chico ($2-3k/día), y agregar las keywords de Ritual como NEGATIVAS de Noche (y viceversa)
     para que no se canibalicen.
-- [ ] Ruta elegida (A / B) — fecha: ____
+- [x] Ruta elegida: **A** (2026-07-14, decisión de Jorge). NO se crea campaña "Noche de
+  Aguas Calientes". La intención genérica "cabaña con tinaja" queda capturada por Ritual
+  (mayor ticket, incluye masaje) + orgánico. **Seguimiento:** monitorear en los próximos
+  ciclos si la venta orgánica de Noche (base **6 res / $952k** en 14 días) se mantiene; sólo
+  si CAE de forma sostenida, reabrir la evaluación de campaña propia (Ruta B).
 
 **④ NO tocar / NO aplicar (sin cambios vs Ciclo #2):** presupuestos (ninguna campaña topa
 su budget de $13.000/día en total; Ritual usa solo ~75% del suyo → el IS bajo es por
@@ -438,8 +442,12 @@ Jorge cargó a mano en el panel (Biblioteca compartida → lista "Negativas base
 4 negativas round 2 (`purkaus`, `santocha`, `piscina temperada`, `piscinas temperadas`),
 en concordancia de frase; la lista pasó de **21 → 25** y quedó aplicada a las 3 campañas.
 (Al primer intento el Guardar no tomó porque se tocó el paginador antes de guardar —
-lección UI: guardar y esperar el refresco antes de navegar.) Quedan sin ejecutar del Ciclo
-#3: ítem ③ (decidir ruta A/B de "Noche de Aguas Calientes") — pendiente de decisión de Jorge.
+lección UI: guardar y esperar el refresco antes de navegar.) **Ítem ③ RESUELTO (mismo día):
+Jorge eligió la Ruta A** — NO se crea campaña "Noche de Aguas Calientes"; esa intención se
+captura vía Ritual + orgánico, y se monitorea que la venta orgánica de Noche (6 res / $952k)
+no caiga. Con esto el Ciclo #3 cierra con TODAS sus correcciones resueltas (ejecutadas o
+decididas): negativas round 2 cargadas, ítem ④ resuelto (no negativizar termas/puerto montt),
+ítem ③ decidido (Ruta A). No quedan pendientes abiertos del Ciclo #3.
 
 **⚠️ HALLAZGO CRÍTICO (visto en el panel, 2026-07-14): las campañas NO se están publicando
 por PAGO VENCIDO.** Banner rojo en la cuenta: *"No se están publicando sus anuncios. —
