@@ -112,7 +112,9 @@ a las 3 campañas). Concordancia de FRASE (las comillas ya la fuerzan).
     variantes ("piscina temperada puerto varas", "…en puerto varas", "piscinas temperadas
     en puerto montt/puerto varas"). Se necesitan las dos formas (singular y plural) porque
     la frase no cubre el plural.
-- [ ] Negativas round 2 cargadas (fecha: ____)
+- [x] Negativas round 2 cargadas (2026-07-14 · 4 negativas de frase agregadas a mano por
+  Jorge a "Negativas base Aremko"; la lista pasó de 21 → 25 palabras clave y quedó aplicada
+  a las 3 campañas)
 
 **② ÍTEM ④ del Ciclo #2 RESUELTO con datos — NO negativizar `termas` ni `puerto montt`.**
 No es un pegado: es una DECISIÓN para no bloquear demanda buena.
@@ -430,3 +432,21 @@ ejecutar aún.)
 21 negativas del Ciclo #2 bajaron el gasto en competidores/masaje suelto; (b) si las
 keywords nuevas subieron el Search IS de Ritual (base **21,7%**) y su CTR (base **11,7%**);
 (c) efecto en ventas reales por combo. Dar ~7-14 días de aprendizaje antes de concluir.
+
+**CIERRE Ciclo #3 (2026-07-14) — negativas round 2 EJECUTADAS + hallazgo crítico de pago.**
+Jorge cargó a mano en el panel (Biblioteca compartida → lista "Negativas base Aremko") las
+4 negativas round 2 (`purkaus`, `santocha`, `piscina temperada`, `piscinas temperadas`),
+en concordancia de frase; la lista pasó de **21 → 25** y quedó aplicada a las 3 campañas.
+(Al primer intento el Guardar no tomó porque se tocó el paginador antes de guardar —
+lección UI: guardar y esperar el refresco antes de navegar.) Quedan sin ejecutar del Ciclo
+#3: ítem ③ (decidir ruta A/B de "Noche de Aguas Calientes") — pendiente de decisión de Jorge.
+
+**⚠️ HALLAZGO CRÍTICO (visto en el panel, 2026-07-14): las campañas NO se están publicando
+por PAGO VENCIDO.** Banner rojo en la cuenta: *"No se están publicando sus anuncios. —
+Realiza un pago para tu saldo de cuenta vencido."* Las 3 campañas de Búsqueda están
+detenidas por saldo impago (facturación es responsabilidad de Jorge; el loop no toca medios
+de pago). **Implicancia para el loop:** el gasto / CTR / Search IS de los próximos días
+quedará distorsionado (campañas caídas parte del tiempo) → NO sacar conclusiones sobre el
+efecto de las negativas/keywords hasta que (a) se regularice el pago y (b) pasen ~7-14 días
+de campañas efectivamente al aire. Al inicio del Ciclo #4, primero verificar si el banner de
+pago desapareció; si sigue, el ciclo queda otra vez ciego a nivel plataforma.
