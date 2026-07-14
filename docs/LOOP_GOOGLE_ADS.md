@@ -67,6 +67,44 @@
 
 ---
 
+## Pendientes abiertos — acciones propuestas (Nivel 2, esperando OK de Jorge)
+
+> Se cargan A MANO en el panel de Google Ads (cuenta `5399750827`, login
+> `ecolonco1@gmail.com`). Origen: análisis de search terms del Ciclo #2
+> (2026-06-30 a 2026-07-13). El loop NO las ejecuta. Al cargar una, marcar `[x]`
+> con la fecha y anotar el efecto en el ciclo siguiente.
+
+### ➖ Negativas a agregar (tráfico que gasta sin comprar)
+- [ ] `termas del sol` — Pausa (competidor · 6 clics / $2.505 · CTR 12%)
+- [ ] `tungulu` — Refugio (competidor de tinajas · 3 clics / $1.593)
+- [ ] `espacio sur` — Refugio (competidor · $1.564 por 1 clic)
+- [ ] `domos` — Ritual (producto que no se ofrece · ~4 clics)
+- [ ] `masajes descontracturantes` — Pausa (masaje clínico · QS 1 desde Ciclo #1)
+- [ ] `masaje tantrico` — no ofrecido
+- [ ] `que hacer en puerto varas` — turística, baja intención
+- [ ] `masajista` / `mujer masajista` / `masajes para hombres` — masaje suelto, fuera de foco
+- [ ] Competidores por nombre: `dreams`, `enjoy`, `cancagua`, `cabañas del lago`,
+      `zen spa osorno`, `antea`, `hydra`, `rucamalen`
+- [ ] Geo lejana (higiene): `concepcion`, `talca`, `olmue`, `cajón del maipo`
+- [ ] ⚠️ REVISAR uno a uno (NO negativizar a ciegas): `termas` genérico y `puerto montt`
+      (pueden convertir — gente de Pto Montt a 20 min)
+
+### ➕ Keywords nuevas a agregar (demanda real, alta intención)
+- [ ] `cabañas con tinaja puerto varas` — Ritual / Refugio
+- [ ] `cabañas con jacuzzi puerto varas` — Ritual / Refugio
+- [ ] `cabaña con tinaja` — Ritual / Refugio
+- [ ] `día de spa puerto varas` — Pausa
+- [ ] `tinajas por horas` — Pausa
+
+### 🔲 Otros pendientes del loop
+- [ ] Campaña dedicada **"Noche de Aguas Calientes"** (cab+tina 1n) — vende sin Ads
+      (6 res / $952k en el período). Propuesta abierta desde el Ciclo #1.
+
+> **NO reproponer:** subir presupuesto de Ritual — descartado en Ciclo #2 (ninguna
+> campaña topa su budget; el cuello es keywords, no plata).
+
+---
+
 ## Bitácora de ciclos
 
 ### 2026-07-02 — Ciclo #1 (primera corrida)
