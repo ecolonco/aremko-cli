@@ -198,3 +198,37 @@ mercado GRANDE (2.504 impresiones, 5× las de Refugio).
 
 _(Sigue abierta del Ciclo #1: campaña dedicada "Noche de Aguas Calientes" — 6 res /
 $952k sin un peso de Ads.)_
+
+**CORRECCIÓN (con Jorge, viendo el panel de Google Ads).** Jorge mostró los
+presupuestos diarios reales, que la API no exponía y que **cambian el diagnóstico**:
+
+| Campaña | Presupuesto | Gasto real/día (÷14) | Uso del budget |
+|---|---|---|---|
+| Refugio | $3.000/día | ~$2.704 | 90% |
+| Ritual del Río | **$5.000/día** | ~$3.739 | **75%** |
+| Pausa junto al río | **$5.000/día** | ~$4.110 | 82% |
+| **Total cuenta** | **$13.000/día** | | |
+
+Estado de las 3 campañas en el panel: **"Apto (limitado): No hay suficientes palabras
+clave relevantes"** — NO "Limitado por presupuesto".
+
+➡️ **Queda DESCARTADA la recomendación #1 de arriba ("subir Ritual moviendo
+presupuesto desde Pausa").** Ritual y Pausa ya tienen el MISMO presupuesto ($5.000/día)
+y **ninguna campaña topa su budget** (Ritual usa solo 75% del suyo). El Search IS bajo
+de Ritual (21,7%) NO es por presupuesto sino **por rango/keywords** (Google mismo dice
+"no hay suficientes palabras clave relevantes"). Echarle plata a un budget que no se
+gasta no captura más demanda.
+
+**Recomendación corregida (SOLO PROPUESTA):**
+1. **No subir presupuestos** — ninguno se topa; los $13.000/día quedan como están.
+2. **La palanca real es ampliar/afinar KEYWORDS** (relevancia y rango), empezando por
+   Ritual (mercado grande de 2.504 impresiones, IS perdido por rango). Eso sí destraba
+   el ~78% de búsquedas que hoy se pierde.
+3. **Prioridad técnica: arreglar el endpoint `/search-terms` (error 400).** Es el que
+   habilita ver los términos de búsqueda reales para decidir qué keywords agregar y
+   cuáles negativizar — sin eso, la acción correcta (keywords) queda a ciegas.
+
+**Lección para el loop:** el Search IS de la API no distingue IS-perdido-por-presupuesto
+vs IS-perdido-por-rango. Antes de recomendar mover presupuesto, confirmar en el panel
+(o con métricas de lost IS budget/rank) si la campaña realmente topa su budget. Acá no
+lo topaba → la plata no era la palanca.
