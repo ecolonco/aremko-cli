@@ -21,15 +21,30 @@
   Calientes (`cabanas_tinas_1n`, ver H-055). Campañas Meta correspondientes se
   descubren por nombre (`findCampaignByName` en `internal/api/handlers/brief.go`).
 
+## Metodología de trabajo con Jorge (definida 2026-07-14)
+
+- **El loop TERMINA EN ACCIONES, no en recomendaciones.** Tras el diagnóstico
+  debe decir "debemos ejecutar las siguientes N acciones" (lista concreta y
+  numerada), no un set de sugerencias abiertas.
+- **Guiar a Jorge una acción a la vez.** Indicarle exactamente dónde hacer cada
+  cambio en Meta Ads Manager, esperar su confirmación antes de pasar a la
+  siguiente. (Sigue Nivel 2: el loop NO ejecuta por API; Jorge aplica manual.)
+- **Documentar cada cambio ejecutado en la bitácora** (con fecha) apenas Jorge
+  confirma que lo hizo — no solo la propuesta, sino el "hecho".
+- **El ciclo siguiente EVALÚA lo ejecutado.** No solo comparar métricas: partir
+  por "¿qué acción se ejecutó el ciclo pasado y qué efecto tuvo?".
+- En corridas autónomas (Jorge ausente) el output es la lista de acciones lista
+  para ejecutar cuando Jorge aparezca en una sesión interactiva.
+
 ## Qué hacer en cada ciclo
 
-1. Leer la última entrada de este archivo (qué se propuso, si Jorge respondió algo).
+1. Leer la última entrada de este archivo: ¿qué acciones se ejecutaron?, ¿qué quedó pendiente?
 2. Traer desempeño Meta Ads de los últimos 7-14 días (gasto, CTR, alcance) por campaña.
 3. Cruzar con ventas reales del mismo período (bridge de arriba) — NO usar conversiones de plataforma.
-4. Comparar contra el ciclo anterior: ¿cambió algo? ¿se implementó la recomendación pasada?
-5. Producir 1-3 recomendaciones NUEVAS y concretas (no repetir un reporte completo).
-6. Agregar una entrada nueva abajo con fecha, snapshot corto, y las recomendaciones.
-7. Presentar a Jorge un resumen breve en el chat, dejando explícito que no se ejecutó nada.
+4. **Evaluar el efecto de las acciones ejecutadas** en el ciclo anterior (¿mejoró lo que se cambió?).
+5. Convertir el diagnóstico en una LISTA CONCRETA DE ACCIONES numeradas (no recomendaciones abiertas).
+6. Agregar una entrada nueva abajo con fecha, snapshot corto, y la lista de acciones.
+7. Si Jorge está presente: guiarlo una acción a la vez y documentar cada cambio confirmado.
 
 ---
 
@@ -216,3 +231,19 @@ crecer (3→5 res, $1,425M, el ticket más alto $285k) SIN NADA de pauta.**
    para lanzar Refugio en la cuenta operativa `214650…` duplicando la estructura
    de Ritual (que acaba de demostrar que escala bien). Conecta la recomendación
    pendiente de Refugio (Ciclos 1 y 2) con una fuente concreta de fondos.
+
+**Ejecución — Rec 1 (Jorge aprobó aplicarla el 2026-07-14).** Se guía paso a
+paso; se marca cada acción al confirmarse. Recs 2 y 3 quedan en cola para el
+próximo tramo.
+
+- [ ] **A1. Bajar presupuesto diario de Pausa a ~$1.900/día** (ad set de "Pausa
+  junto al río – junio 2026", cuenta operativa `214650980544393`). Enfría el
+  gasto sobre el creativo fatigado (CTR 3,76% / CPC $24) hasta rotar creativo.
+- [ ] **A2. Definir 2 conceptos de creativo nuevos para Pausa** (hooks + copy +
+  qué toma usar). Los redacta Claude.
+- [ ] **A3. Conseguir/elegir las tomas** (B-roll tina+masaje, sin persona a
+  cámara) para los 2 creativos. Lo hace Jorge.
+- [ ] **A4. Subir los 2 anuncios nuevos** al ad set de Pausa y pausar el
+  creativo viejo fatigado (Jorge en UI, guiado).
+- [ ] **A5. Documentar en bitácora** presupuesto final + creativos cargados con
+  fecha, para evaluar en el Ciclo 4.
