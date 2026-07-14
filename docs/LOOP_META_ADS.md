@@ -145,3 +145,74 @@ CTR bajó (4,63% → 4,45%) y su CPC ($21) es ~40% más caro que el de Ritual ($
    1, mover el gasto a ~60/40 Ritual/Pausa y, de paso, renombrar ambas a
    "julio – vacaciones de invierno" con hook estacional (ya es julio; el nombre
    "junio" quedó vencido).
+
+### 2026-07-14 — Ciclo 3
+
+**Ventana:** 2026-06-28 → 2026-07-11 (14d). Fuentes: `campaigns-with-insights`
+(backend Go en Render) + `family-combinations-range` (Django, ventas reales,
+mismo rango). Nota: el bridge Django devolvió por defecto una ventana 2 días
+más adelante; se re-consultó con fechas explícitas para alinear ambas fuentes.
+
+**Snapshot Meta Ads (14d):**
+
+| Campaña | Estado | Gasto CLP | Alcance | Impres. | Clicks | CTR | CPC | Cuenta |
+|---|---|---|---|---|---|---|---|---|
+| Ritual del Río - junio 2026 | ACTIVE | $69.997 | 42.386 | 85.221 | 3.760 | 4,41% | $19 | operativa `214650…` |
+| Pausa junto al río – junio 2026 | ACTIVE | $70.000 | 39.121 | 76.628 | 2.883 | 3,76% | $24 | operativa `214650…` |
+| Refugio Aremko - Lanzamiento Junio 2026 | **PAUSED** | $0 | — | — | — | — | — | vieja `455070…` |
+| Noche de Aguas Calientes | **no existe campaña** | — | — | — | — | — | — | — |
+
+Gasto total 14d: **~$139.997 CLP (~$10.000/día, 50/50)**. **Salto grande: +156%
+vs Ciclo 2** (~$54.764). El presupuesto SÍ se escaló (~2,6×) desde el ciclo
+pasado — la primera recomendación estructural (subir pauta) se implementó, pero
+50/50 y sobre los mismos creativos "junio 2026".
+
+**Ventas reales del período (bridge Django, 14d alineado):**
+
+| Programa (combinación) | Ciclo 3 (14d) | Ciclo 2 (14d) | Ticket prom. |
+|---|---|---|---|
+| Ritual (`cabanas_tinas_masajes_1n`) | 10 res / $2.255.000 | 6 res / $1.407.000 | $225.500 |
+| Pausa (`tinas_masajes`) | 15 res / $1.810.000 | 9 res / $1.260.000 | $120.667 |
+| Refugio (`cabanas_tinas_masajes_2n`) | 5 res / $1.425.000 | 3 res / $830.000 | $285.000 |
+| Noche Aguas Calientes (`cabanas_tinas_1n`) | 6 res / $992.100 | 6 res / $970.000 | $165.350 |
+| **Total sitio (todas las combinaciones)** | 89 res / $9.941.099 | 88 res / $8.602.099 | — |
+
+Lectura: los 2 programas CON pauta crecieron fuerte tras escalar el gasto —
+Ritual 6→10 res, Pausa 9→15 res; ventas combinadas $2.667.000 → **$4.065.000**.
+Pero la eficiencia (ingreso/gasto) bajó de **48,7× a 29,0×** (rendimientos
+decrecientes al escalar). ROAS incremental sobre el gasto EXTRA (+$85.233):
+**16,4×** — todavía muy sano. Ojo: el sitio total sólo subió ~15% ($8,6M→$9,94M)
+mientras estos 2 programas subieron ~52%; parte es empuje pagado, parte
+temporada de invierno (correlación, no atribución fina). **Refugio volvió a
+crecer (3→5 res, $1,425M, el ticket más alto $285k) SIN NADA de pauta.**
+
+**Comparación con Ciclo 2 (¿se implementó lo propuesto?):** PARCIAL.
+- ✅ Subir presupuesto: hecho (~2,6×), pero 50/50 en vez del 60/40 hacia Ritual
+  que se propuso, y sin renombrar (siguen "junio 2026").
+- ❌ Rotar creativo de Pausa ANTES de escalar (Ciclo 2 rec #2): NO se hizo — y
+  pasó exactamente lo advertido. La fatiga de Pausa se profundizó: CTR
+  4,63%→4,45%→**3,76%** y CPC subió a **$24** (29% más caro que Ritual $19). Se
+  escaló sobre un creativo cansado.
+- ❌ Refugio sigue PAUSED en la cuenta vieja; Noche sigue sin campaña.
+
+**Recomendaciones nuevas (Nivel 2 — nada ejecutado, esperan respuesta de Jorge):**
+
+1. **Frenar el escalado de Pausa hasta rotar su creativo — ya no es opcional.**
+   Post-escalado, Pausa quedó con CTR 3,76% (mínimo histórico) y CPC $24 con
+   $5.000/día encima. Se está pagando más por menos: cada peso extra en Pausa
+   entra sobre un anuncio en clara fatiga. Propuesta concreta: bajar Pausa a su
+   presupuesto pre-escalado (~$1.900/día) HASTA cargar 1–2 creativos nuevos
+   (foto/hook fresco, mismo ángulo tina+masaje); recién ahí volver a subir.
+2. **Rebalancear el presupuesto ya escalado hacia Ritual (65/35), no 50/50.**
+   Bajo el mismo escalado, Ritual aguantó mucho mejor que Pausa: CTR 4,41% vs
+   3,76%, CPC $19 vs $24, ticket $225k vs $121k, y creció más en ventas. En vez
+   del $5k/$5k actual, mover a ~$6.500/día Ritual y ~$3.500/día Pausa. Rationale
+   nuevo: no es sólo el ticket (arg. del Ciclo 2) sino que Ritual demostró
+   responder mejor AL ESCALADO real de este ciclo.
+3. **Financiar el lanzamiento de Refugio con el presupuesto liberado de Pausa.**
+   Refugio es hoy el mejor "vendedor gratis" (5 res / $1,425M, ticket más alto
+   $285k) y sigue sin pauta. Ya está probado que hay apetito de ~$10k/día. En vez
+   de pedir presupuesto nuevo, redirigir los ~$1.600/día que se le quitan a Pausa
+   para lanzar Refugio en la cuenta operativa `214650…` duplicando la estructura
+   de Ritual (que acaba de demostrar que escala bien). Conecta la recomendación
+   pendiente de Refugio (Ciclos 1 y 2) con una fuente concreta de fondos.
