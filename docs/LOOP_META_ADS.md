@@ -236,9 +236,12 @@ crecer (3→5 res, $1,425M, el ticket más alto $285k) SIN NADA de pauta.**
 paso; se marca cada acción al confirmarse. Recs 2 y 3 quedan en cola para el
 próximo tramo.
 
-- [ ] **A1. Bajar presupuesto diario de Pausa a ~$1.900/día** (ad set de "Pausa
-  junto al río – junio 2026", cuenta operativa `214650980544393`). Enfría el
-  gasto sobre el creativo fatigado (CTR 3,76% / CPC $24) hasta rotar creativo.
+- [x] **A1. Bajar presupuesto diario de Pausa a $1.900/día** — ✅ HECHO
+  2026-07-14 (Jorge). Confirmado: estaba en **$5.000/día** a nivel de conjunto
+  de anuncios (ABO, objetivo "Interacción"), campaña "Pausa junto al río –
+  junio 2026", cuenta operativa `214650980544393`. Cambiado a **$1.900/día** y
+  publicado. Enfría el gasto sobre el creativo fatigado (CTR 3,76% / CPC $24)
+  hasta rotar creativo.
 - [ ] **A2. Definir 2 conceptos de creativo nuevos para Pausa** (hooks + copy +
   qué toma usar). Los redacta Claude.
 - [ ] **A3. Conseguir/elegir las tomas** (B-roll tina+masaje, sin persona a
