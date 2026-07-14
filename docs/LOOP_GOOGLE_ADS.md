@@ -10,6 +10,13 @@
 - **Nivel 2: SOLO PROPONE.** El loop nunca pausa campañas, cambia presupuesto,
   ni edita keywords — solo analiza y deja recomendaciones esperando aprobación
   de Jorge.
+- **El entregable son CORRECCIONES, no un listado (definido con Jorge, 2026-07-14).**
+  Cada ciclo TERMINA en cambios ejecutables listos para pegar (negativas/keywords en
+  bloque con su tipo de concordancia, ajustes de config como instrucción exacta), cada
+  uno con la ruta del panel donde se pega. Jorge lee → pega → listo. Un análisis sin
+  correcciones concretas NO es un ciclo terminado. La integración API es de solo
+  lectura → el loop nunca puede escribir en Ads; por eso el output se optimiza para que
+  Jorge lo ejecute en 2 minutos.
 - **⚠️ NUNCA usar el campo "conversions"/"conversions_value" de Google Ads.**
   Confirmado en vivo (2026-07-02): las 3 campañas activas muestran `conversions: 0`
   pese a que las ventas reales del período son millonarias — la atribución de
@@ -57,51 +64,93 @@
 
 4. Comparar contra la última entrada de la bitácora: ¿qué se propuso antes?,
    ¿cambió algo desde entonces (search impression share, CPC, Quality Score)?
-5. Producir 1-3 recomendaciones NUEVAS y concretas (no repetir un reporte
-   completo ni recomendaciones ya hechas).
-6. Agregar una entrada nueva al final de este archivo con fecha, snapshot corto
-   y las recomendaciones. Commitear (solo este .md) con mensaje en español.
+5. Producir las CORRECCIONES CONCRETAS del ciclo — no un listado ni un análisis
+   abstracto, sino cambios ejecutables que Jorge carga a mano en el panel:
+   - Negativas y keywords en bloque **LISTO PARA PEGAR** (con comillas = frase /
+     corchetes = exacta), agrupadas por dónde van (lista de cuenta / campaña X).
+   - Ajustes de config como instrucción exacta ("subir presupuesto de X a $Y").
+   - Cada corrección con: campaña, motivo en 1 línea y el dato que la respalda.
+   - La RUTA del panel para ejecutarla.
+   Regla de oro: **el ciclo termina en correcciones, no en un listado.**
+6. Volcar esas correcciones a la sección "▶ Correcciones del ciclo — listas para
+   pegar" (reemplazar las ya ejecutadas por Jorge; conservar las pendientes).
+   Agregar además la entrada de bitácora con fecha + snapshot corto. Commitear
+   (solo este .md) con mensaje en español.
 7. Nivel 2 — SOLO PROPONER: no ejecutar ningún cambio en Google Ads (no tocar
    presupuestos, keywords, ni pausar/activar nada). Solo proponer y esperar la
    respuesta de Jorge.
 
 ---
 
-## Pendientes abiertos — acciones propuestas (Nivel 2, esperando OK de Jorge)
+## ▶ Correcciones del ciclo — LISTAS PARA PEGAR (Nivel 2: Jorge las ejecuta)
 
 > Se cargan A MANO en el panel de Google Ads (cuenta `5399750827`, login
-> `ecolonco1@gmail.com`). Origen: análisis de search terms del Ciclo #2
-> (2026-06-30 a 2026-07-13). El loop NO las ejecuta. Al cargar una, marcar `[x]`
-> con la fecha y anotar el efecto en el ciclo siguiente.
+> `ecolonco1@gmail.com`). El loop NO las ejecuta (API de solo lectura). Al ejecutar
+> una, marcar `[x]` con la fecha y medir el efecto en el ciclo siguiente.
+> Origen: Ciclo #2 (search terms 2026-06-30 a 2026-07-13).
 
-### ➖ Negativas a agregar (tráfico que gasta sin comprar)
-- [ ] `termas del sol` — Pausa (competidor · 6 clics / $2.505 · CTR 12%)
-- [ ] `tungulu` — Refugio (competidor de tinajas · 3 clics / $1.593)
-- [ ] `espacio sur` — Refugio (competidor · $1.564 por 1 clic)
-- [ ] `domos` — Ritual (producto que no se ofrece · ~4 clics)
-- [ ] `masajes descontracturantes` — Pausa (masaje clínico · QS 1 desde Ciclo #1)
-- [ ] `masaje tantrico` — no ofrecido
-- [ ] `que hacer en puerto varas` — turística, baja intención
-- [ ] `masajista` / `mujer masajista` / `masajes para hombres` — masaje suelto, fuera de foco
-- [ ] Competidores por nombre: `dreams`, `enjoy`, `cancagua`, `cabañas del lago`,
-      `zen spa osorno`, `antea`, `hydra`, `rucamalen`
-- [ ] Geo lejana (higiene): `concepcion`, `talca`, `olmue`, `cajón del maipo`
-- [ ] ⚠️ REVISAR uno a uno (NO negativizar a ciegas): `termas` genérico y `puerto montt`
-      (pueden convertir — gente de Pto Montt a 20 min)
+**① Palabras clave NEGATIVAS — nivel CUENTA, concordancia de FRASE.**
+Ruta: llave ⚙️ (arriba a la derecha) → *Biblioteca compartida* → *Listas de exclusión
+de palabras clave* → **+** → nombre "Negativas base Aremko" → pegar el bloque → aplicar
+a las 3 campañas. Las comillas ya fuerzan concordancia de frase.
 
-### ➕ Keywords nuevas a agregar (demanda real, alta intención)
-- [ ] `cabañas con tinaja puerto varas` — Ritual / Refugio
-- [ ] `cabañas con jacuzzi puerto varas` — Ritual / Refugio
-- [ ] `cabaña con tinaja` — Ritual / Refugio
-- [ ] `día de spa puerto varas` — Pausa
-- [ ] `tinajas por horas` — Pausa
+```
+"termas del sol"
+"tungulu"
+"espacio sur"
+"dreams"
+"enjoy"
+"cancagua"
+"cabañas del lago"
+"zen spa"
+"antea"
+"hydra"
+"rucamalen"
+"masajes descontracturantes"
+"masaje tantrico"
+"masajes para hombres"
+"mujer masajista"
+"domos"
+"que hacer en puerto varas"
+"concepcion"
+"talca"
+"olmue"
+"cajón del maipo"
+```
+- [ ] Negativas cargadas (fecha: ____)
 
-### 🔲 Otros pendientes del loop
-- [ ] Campaña dedicada **"Noche de Aguas Calientes"** (cab+tina 1n) — vende sin Ads
-      (6 res / $952k en el período). Propuesta abierta desde el Ciclo #1.
+**② Keywords nuevas para RITUAL DEL RÍO — concordancia de FRASE.**
+Sirven también a Refugio, pero van SOLO en Ritual para que las dos campañas no compitan
+entre sí y se suban el CPC. Ruta: *Campañas* → "Ritual del Río – Search" → grupo de
+anuncios → *Palabras clave* → **+** → pegar → Guardar.
 
-> **NO reproponer:** subir presupuesto de Ritual — descartado en Ciclo #2 (ninguna
-> campaña topa su budget; el cuello es keywords, no plata).
+```
+"cabañas con tinaja puerto varas"
+"cabañas con jacuzzi puerto varas"
+"cabaña con tinaja"
+```
+- [ ] Keywords Ritual cargadas (fecha: ____)
+
+**③ Keywords nuevas para PAUSA JUNTO AL RÍO — concordancia de FRASE.**
+Ruta: *Campañas* → "Pausa junto al río - Search" → grupo → *Palabras clave* → **+** → pegar.
+
+```
+"día de spa puerto varas"
+"tinajas por horas"
+```
+- [ ] Keywords Pausa cargadas (fecha: ____)
+
+**④ Revisar a criterio (NO pegar a ciegas):** decidir si `termas` genérico y `puerto
+montt` merecen negativa — pueden convertir (gente de Pto Montt a 20 min). Mirar sus
+términos de búsqueda antes.
+- [ ] Revisado (fecha: ____)
+
+**⑤ NO tocar / NO aplicar:** presupuestos (ninguna campaña topa su budget); y NO aplicar
+la recomendación de Google *"Agrega palabras clave de concordancia amplia"* (agranda la
+dispersión que estamos corrigiendo).
+
+**Corrección abierta (sin lista aún):** crear campaña dedicada **"Noche de Aguas
+Calientes"** (cab+tina 1n) — vende 6 res / $952k sin Ads (desde Ciclo #1).
 
 ---
 
