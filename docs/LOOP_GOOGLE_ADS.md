@@ -96,3 +96,56 @@ _(Ventas totales del negocio en el período: 89 reservas / $8.647.099. Conversio
 3. **Proponer campaña nueva "Noche de Aguas Calientes" (cab+tina 1 noche).** 7 reservas / $1.130.000 en el período SIN un peso de Google Ads — 2º combo con cabaña más vendido, demanda orgánica comprobada. Crear campaña de Búsqueda dedicada (keywords tipo "cabaña con tina caliente puerto varas", "alojamiento con tinaja los lagos") con presupuesto chico y medir con el puente de ventas reales.
 
 **Nota técnica (no bloquea el ciclo):** el endpoint `GET /api/v1/google-ads/search-terms` devuelve 400 — el GAQL usa `segments.keyword.match_type`, campo no válido para `search_term_view` (UNRECOGNIZED_FIELD). Sin él, el loop no puede leer los términos de búsqueda reales para detectar negativas. Conviene arreglarlo para el próximo ciclo.
+
+---
+
+### 2026-07-14 — Ciclo #2
+
+**Período analizado:** 2026-06-28 a 2026-07-11 (14 días).
+
+**⚠️ BLOQUEO — Google Ads API caída (token OAuth expirado/revocado).** Los dos
+endpoints del backend (`/summary` y `/quality-scores`) devolvieron el mismo error:
+`googleads: token refresh failed: oauth2: "invalid_grant" "Token has been expired
+or revoked."`. El ciclo #1 (2026-07-02) SÍ leyó datos, así que el refresh token se
+rompió en los últimos ~10 días. **Este ciclo quedó CIEGO en Google Ads**: sin gasto,
+CPC, CTR, search impression share ni Quality Score. No hay datos de plataforma que
+cruzar. La única mitad disponible fue el puente de ventas reales (Django, OK).
+
+**Ventas reales del período (fuente de verdad, plataforma ignorada):**
+
+| Producto (combo) | Campaña | Reservas | Revenue | vs Ciclo #1 |
+|---|---|---|---|---|
+| tinas_masajes | **Pausa junto al río** | 15 | $1.810.000 | ↑ (era 9 / $1,28M) |
+| cabanas_tinas_masajes_1n | **Ritual del Río** | 10 | $2.255.000 | ↑ (era 6 / $1,42M) |
+| cabanas_tinas_masajes_2n | **Refugio** | 5 | $1.425.000 | ↑ (era 2 / $540k) |
+| cabanas_tinas_1n | _(sin campaña)_ Noche de Aguas Calientes | 6 | $992.100 | ≈ (era 7 / $1,13M) |
+| **Total negocio** | — | **89** | **$9.941.099** | ↑ revenue (+$1,29M) |
+
+**Diagnóstico:** las ventas siguen fuertes y CRECIERON en revenue en los 4 combos
+clave; los 3 productos publicitados subieron reservas y facturación (Ritual es ahora
+el combo de MAYOR revenue del negocio). Pero **no puedo confirmar si el rebalanceo
+propuesto en el ciclo #1 se aplicó** ni medir su efecto en gasto/IS, porque la API
+está caída. El crecimiento observado NO puede atribuirse a Google Ads sin datos de
+plataforma.
+
+**Recomendaciones (SOLO PROPUESTA — esperar OK de Jorge):**
+
+1. **CRÍTICO / PREREQUISITO — Reautorizar el token OAuth de Google Ads en el backend.**
+   El refresh token está expirado o revocado. Acción concreta: regenerar el refresh
+   token de la Google Ads API (re-correr el flujo OAuth con la cuenta que administra
+   la MCC/cuenta de Aremko) y actualizar la env var correspondiente en Render
+   (backend `aremko-cli-backend`). Hasta que esto se resuelva, el loop de Google Ads
+   NO puede analizar nada — es el bloqueo #1 y todo lo demás depende de él.
+
+2. **Las 2 propuestas del ciclo #1 siguen ABIERTAS y sin respuesta de Jorge; la
+   evidencia de ventas las refuerza.** (a) Rebalancear presupuesto hacia Ritual/Pausa
+   y bajar Refugio — Ritual es hoy el #1 en revenue ($2,26M), lo que confirma la
+   apuesta; una vez restaurado el token, primer paso = verificar en qué quedó el
+   reparto de gasto actual. (b) Crear campaña dedicada "Noche de Aguas Calientes"
+   (cab+tina 1n): 6 reservas / $992k este período SIN un peso de Ads, demanda
+   orgánica sostenida. Ambas quedan pendientes de decisión.
+
+3. **Priorizar el arreglo del endpoint `/search-terms` (bug 400 del ciclo #1) en el
+   MISMO deploy que reautoriza el token.** Así el próximo ciclo recupera de una vez
+   los términos de búsqueda reales (para detectar negativas y keywords nuevas) además
+   del acceso base — evita un segundo viaje de mantención al backend.
