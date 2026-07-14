@@ -94,6 +94,35 @@ function CopyButton({ text, label }: { text: string; label?: string }) {
   );
 }
 
+// El link del sticker/bio suele venir enterrado en el texto ("Sticker de link:
+// aremko.cl/blog/..."). Instagram lo pide como campo aparte, así que lo sacamos
+// y lo mostramos con su propio botón Copiar. Toma URLs con protocolo o dominios
+// con ruta (aremko.cl/blog/...); descarta puntuación final.
+function extractUrl(text?: string): string | null {
+  if (!text) return null;
+  const m = text.match(
+    /(https?:\/\/[^\s'")]+|(?:[a-z0-9-]+\.)+[a-z]{2,}\/[^\s'")]+)/i,
+  );
+  if (!m) return null;
+  return m[1].replace(/[.,;:)»"']+$/, '');
+}
+
+// Chip del link listo para pegar: copia SIEMPRE con https:// (Instagram lo exige).
+function LinkChip({ text }: { text?: string }) {
+  const url = extractUrl(text);
+  if (!url) return null;
+  const conProtocolo = /^https?:\/\//i.test(url) ? url : `https://${url}`;
+  return (
+    <div className="mt-2 flex items-center justify-between gap-2 rounded-md border border-blue-200 bg-blue-50 px-3 py-1.5">
+      <div className="min-w-0">
+        <span className="text-[11px] font-semibold uppercase text-blue-700">🔗 Link para el sticker</span>
+        <p className="truncate text-sm text-blue-900">{conProtocolo}</p>
+      </div>
+      <CopyButton text={conProtocolo} label="Copiar link" />
+    </div>
+  );
+}
+
 // Botón "publicar en un clic": abre el destino del canal en una pestaña nueva.
 function PublicarCTA({ canal }: { canal: string }) {
   const destino = destinoDe(canal);
@@ -474,6 +503,7 @@ function RevisionSegmentos({
               <CopyButton text={seg.texto} />
             </div>
             <p className="text-sm text-gray-900 whitespace-pre-wrap bg-gray-50 rounded px-3 py-1.5">{seg.texto}</p>
+            <LinkChip text={seg.texto} />
 
             {seg.material_urls?.length > 0 && (
               <div className="flex gap-2 flex-wrap my-3">
@@ -684,6 +714,7 @@ export default function PublicacionesPage() {
                             ) : (
                               <>
                                 <CopyDetalle copyJson={pub.copy_json} />
+                                <LinkChip text={JSON.stringify(pub.copy_json)} />
                                 <RevisionMaterial pub={pub} onUpdate={patchPublicacion} />
                               </>
                             )}
