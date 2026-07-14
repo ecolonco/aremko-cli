@@ -129,7 +129,7 @@ anuncios → *Palabras clave* → **+** → pegar → Guardar.
 "cabañas con jacuzzi puerto varas"
 "cabaña con tinaja"
 ```
-- [ ] Keywords Ritual cargadas (fecha: ____)
+- [x] Keywords Ritual cargadas (2026-07-14 · frase, en "Grupo de anuncios 1")
 
 **③ Keywords nuevas para PAUSA JUNTO AL RÍO — concordancia de FRASE.**
 Ruta: *Campañas* → "Pausa junto al río - Search" → grupo → *Palabras clave* → **+** → pegar.
