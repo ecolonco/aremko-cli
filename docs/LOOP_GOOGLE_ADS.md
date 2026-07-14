@@ -138,7 +138,7 @@ Ruta: *Campañas* → "Pausa junto al río - Search" → grupo → *Palabras cla
 "día de spa puerto varas"
 "tinajas por horas"
 ```
-- [ ] Keywords Pausa cargadas (fecha: ____)
+- [x] Keywords Pausa cargadas (2026-07-14 · frase, en "Grupo de anuncios 1")
 
 **④ Revisar a criterio (NO pegar a ciegas):** decidir si `termas` genérico y `puerto
 montt` merecen negativa — pueden convertir (gente de Pto Montt a 20 min). Mirar sus
@@ -354,3 +354,16 @@ Así se destraba el "no hay suficientes palabras clave relevantes": agregar las 
 núcleo + negativizar el ruido concentra el presupuesto (que sobra) en la demanda
 correcta. Es la palanca, no la plata. (Nivel 2: SOLO PROPUESTA — Jorge las carga en el
 panel.)
+
+**CIERRE Ciclo #2 (2026-07-14) — CORRECCIONES EJECUTADAS.** Jorge cargó a mano en el
+panel, en vivo: (1) lista "Negativas base Aremko" (21 negativas de frase) aplicada a
+las 3 campañas; (2) keywords de frase en Ritual (`cabañas con tinaja/jacuzzi puerto
+varas`, `cabaña con tinaja`); (3) keywords de frase en Pausa (`día de spa puerto varas`,
+`tinajas por horas`). Primer ciclo que termina en correcciones ejecutadas de punta a
+punta (no en un listado). Quedan a criterio de Jorge las negativas `termas`/`puerto
+montt`, y abierta la campaña "Noche de Aguas Calientes". **A MEDIR en el Ciclo #3
+(comparar contra el snapshot de arriba):** (a) si las negativas bajaron el gasto en
+tráfico irrelevante (competidores / masaje suelto); (b) si las keywords nuevas subieron
+el Search IS de Ritual (base **21,7%**) y su CTR (base **11,7%**); (c) el efecto en las
+ventas reales de cada combo. Ojo con el lag de datos de Google Ads (no es tiempo real) y
+el aprendizaje de las nuevas keywords: dar ~7-14 días antes de sacar conclusiones.
