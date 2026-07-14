@@ -450,3 +450,10 @@ quedará distorsionado (campañas caídas parte del tiempo) → NO sacar conclus
 efecto de las negativas/keywords hasta que (a) se regularice el pago y (b) pasen ~7-14 días
 de campañas efectivamente al aire. Al inicio del Ciclo #4, primero verificar si el banner de
 pago desapareció; si sigue, el ciclo queda otra vez ciego a nivel plataforma.
+
+**✅ RESUELTO (2026-07-14, mismo día): Jorge regularizó el pago vencido** → las 3 campañas
+vuelven a publicarse. Igual aplica el lag de datos + aprendizaje de las keywords nuevas: el
+efecto real (negativas round 1+2, keywords de Ritual/Pausa) recién se podrá medir limpio a
+partir de ~7-14 días de campañas al aire SIN interrupción de pago. Ojo en el Ciclo #4:
+descontar del análisis los días en que estuvieron caídas por saldo impago (gasto/IS
+subestimados en esa ventana).
