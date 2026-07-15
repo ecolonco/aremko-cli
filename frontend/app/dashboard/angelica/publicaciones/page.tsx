@@ -74,6 +74,15 @@ function destinoDe(canal: string): Destino | null {
         '(En el celular es más cómodo desde la app.)',
     };
   }
+  if (c.includes('tiktok')) {
+    return {
+      label: 'Subir a TikTok',
+      url: 'https://www.tiktok.com/upload',
+      hint: 'Se abre la subida web de TikTok (cuenta @aremko.spa). Sube el video ORIGINAL exportado ' +
+        '(sin marca de agua de Instagram) y pega el caption + hashtags de acá — no descargues el Reel ya ' +
+        'publicado para volver a subirlo, baja el alcance.',
+    };
+  }
   // Email lo lleva Jorge por el flujo de campañas — sin botón acá.
   return null;
 }
@@ -165,6 +174,7 @@ function CopyDetalle({ copyJson, omitTexto }: { copyJson: Record<string, unknown
     'cuerpo_texto_plano_completo', 'texto_sugerido', 'hashtags',
     'tomas_sugeridas', 'audio_sugerido', 'url_cta', 'foto_sugerida',
     'filtro_5_50', 'concepto', 'angulo', 'dato_o_evidencia', 'tipo',
+    'nota_publicacion',
   ];
   const LABELS: Record<string, string> = {
     texto: 'Texto',
@@ -185,6 +195,7 @@ function CopyDetalle({ copyJson, omitTexto }: { copyJson: Record<string, unknown
     angulo: 'Ángulo',
     dato_o_evidencia: 'Dato / evidencia',
     tipo: 'Tipo',
+    nota_publicacion: '⚠️ Nota',
   };
 
   const bloques: React.ReactNode[] = [];
