@@ -317,6 +317,9 @@ export interface SegmentoHistoria {
   indice: number;
   titulo: string;
   texto: string;
+  // Prompt listo para pegar en el editor de imágenes IA (H-064). Django lo
+  // manda como '' en historias sin foto (encuestas/stickers) — ocultar el chip.
+  prompt_imagen_ia?: string;
   material_urls: string[];
   material_meta?: Record<string, unknown>[];
   revision_veredicto: RevisionVeredicto;

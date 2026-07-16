@@ -132,6 +132,23 @@ function LinkChip({ text }: { text?: string }) {
   );
 }
 
+// Chip del prompt de imagen IA (H-064): listo para pegar en el editor que use
+// Angélica (Higgsfield, Nano Banana, etc.). La línea de estilo boutique ya
+// viene sellada dentro del texto. Django manda '' en historias sin foto
+// (encuestas/stickers) → no se muestra nada.
+function PromptImagenChip({ prompt }: { prompt?: string }) {
+  if (!prompt || !prompt.trim()) return null;
+  return (
+    <div className="mt-2 flex items-center justify-between gap-2 rounded-md border border-violet-200 bg-violet-50 px-3 py-1.5">
+      <div className="min-w-0">
+        <span className="text-[11px] font-semibold uppercase text-violet-700">🎨 Prompt de imagen (IA)</span>
+        <p className="truncate text-sm text-violet-900">{prompt}</p>
+      </div>
+      <CopyButton text={prompt} label="Copiar prompt" />
+    </div>
+  );
+}
+
 // Botón "publicar en un clic": abre el destino del canal en una pestaña nueva.
 function PublicarCTA({ canal }: { canal: string }) {
   const destino = destinoDe(canal);
@@ -173,6 +190,7 @@ function CopyDetalle({ copyJson, omitTexto }: { copyJson: Record<string, unknown
     'texto', 'guion', 'caption_completo', 'slides', 'asunto', 'preheader',
     'cuerpo_texto_plano_completo', 'texto_sugerido', 'hashtags',
     'tomas_sugeridas', 'audio_sugerido', 'url_cta', 'foto_sugerida',
+    'prompt_imagen_ia',
     'filtro_5_50', 'concepto', 'angulo', 'dato_o_evidencia', 'tipo',
     'nota_publicacion',
   ];
@@ -190,6 +208,7 @@ function CopyDetalle({ copyJson, omitTexto }: { copyJson: Record<string, unknown
     audio_sugerido: 'Audio',
     url_cta: 'URL con UTM',
     foto_sugerida: 'Foto sugerida',
+    prompt_imagen_ia: '🎨 Prompt para el editor de imágenes IA',
     filtro_5_50: 'Filtro 5/50',
     concepto: 'Concepto',
     angulo: 'Ángulo',
@@ -515,6 +534,7 @@ function RevisionSegmentos({
             </div>
             <p className="text-sm text-gray-900 whitespace-pre-wrap bg-gray-50 rounded px-3 py-1.5">{seg.texto}</p>
             <LinkChip text={seg.texto} />
+            <PromptImagenChip prompt={seg.prompt_imagen_ia} />
 
             {seg.material_urls?.length > 0 && (
               <div className="flex gap-2 flex-wrap my-3">
