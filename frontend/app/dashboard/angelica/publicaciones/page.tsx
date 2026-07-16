@@ -109,7 +109,11 @@ function CopyButton({ text, label }: { text: string; label?: string }) {
 // con ruta (aremko.cl/blog/...); descarta puntuación final.
 function extractUrl(text?: string): string | null {
   if (!text) return null;
-  const m = text.match(
+  // El texto puede venir de JSON.stringify(copy_json): los saltos de línea
+  // escapados (\n) dejan una "n" pegada al dominio ("...🌧️\naremko.cl" →
+  // "naremko.cl", link roto). Se neutralizan antes de buscar.
+  const clean = text.replace(/\\[nrt]/g, ' ');
+  const m = clean.match(
     /(https?:\/\/[^\s'")]+|(?:[a-z0-9-]+\.)+[a-z]{2,}\/[^\s'")]+)/i,
   );
   if (!m) return null;
