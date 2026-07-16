@@ -113,16 +113,20 @@ func PublicacionMaterial(cfg *config.Config) http.HandlerFunc {
 		// un *bytes.Reader, Go setea Content-Length y NO usa chunked encoding
 		// (Django no parsea request.FILES con transfer-encoding chunked, por
 		// eso "No se recibió ningún archivo" al hacer streaming directo).
-		raw, err := io.ReadAll(http.MaxBytesReader(w, r.Body, 64<<20)) // tope 64 MB total
+		// Tope 110 MB: por sobre el límite por archivo de Django para reels
+		// (100 MB, H-065), así el 400 claro de Django es el que llega al
+		// front y no un "body too large" opaco de acá.
+		raw, err := io.ReadAll(http.MaxBytesReader(w, r.Body, 110<<20))
 		if err != nil {
 			respondError(w, http.StatusBadRequest, "no se pudo leer el archivo: "+err.Error())
 			return
 		}
 
-		// Timeout más generoso: subir hasta 16 MB por foto a Cloudinary (vía
-		// Django) puede pasar los 10s por defecto del cliente.
+		// Timeout generoso: un reel de 30-100 MB viaja Go→Django→Cloudinary
+		// antes de que Django responda (H-065); las fotos de 16 MB ya rozaban
+		// los 60s en conexiones lentas.
 		client := bookings.NewClient(cfg.BookingSystemURL)
-		client.HTTPClient.Timeout = 60 * time.Second
+		client.HTTPClient.Timeout = 180 * time.Second
 
 		status, body, err := client.PostPublicacionMaterialRaw(
 			cfg.AutomationAPIKey, id, r.Header.Get("Content-Type"), bytes.NewReader(raw),
