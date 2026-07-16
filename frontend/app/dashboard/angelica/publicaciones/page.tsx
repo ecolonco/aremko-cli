@@ -136,16 +136,17 @@ function LinkChip({ text }: { text?: string }) {
   );
 }
 
-// Chip del prompt de imagen IA (H-064): listo para pegar en el editor que use
-// Angélica (Higgsfield, Nano Banana, etc.). La línea de estilo boutique ya
-// viene sellada dentro del texto. Django manda '' en historias sin foto
-// (encuestas/stickers) → no se muestra nada.
-function PromptImagenChip({ prompt }: { prompt?: string }) {
+// Chip de prompt IA listo para pegar en la herramienta que use Angélica
+// (Higgsfield, Nano Banana, etc.): foto por defecto (H-064) o video por clip
+// con label propio (H-066). La línea de estilo boutique ya viene sellada
+// dentro del texto. Django manda '' cuando no aplica (historias sin foto,
+// tomas en shape viejo) → no se muestra nada.
+function PromptImagenChip({ prompt, label }: { prompt?: string; label?: string }) {
   if (!prompt || !prompt.trim()) return null;
   return (
     <div className="mt-2 flex items-center justify-between gap-2 rounded-md border border-violet-200 bg-violet-50 px-3 py-1.5">
       <div className="min-w-0">
-        <span className="text-[11px] font-semibold uppercase text-violet-700">🎨 Prompt de imagen (IA)</span>
+        <span className="text-[11px] font-semibold uppercase text-violet-700">{label || '🎨 Prompt de imagen (IA)'}</span>
         <p className="truncate text-sm text-violet-900">{prompt}</p>
       </div>
       <CopyButton text={prompt} label="Copiar prompt" />
@@ -224,7 +225,15 @@ function CopyDetalle({ copyJson, omitTexto }: { copyJson: Record<string, unknown
   const bloques: React.ReactNode[] = [];
   for (const key of ORDEN) {
     if (omitTexto && (key === 'texto_sugerido' || key === 'caption_completo' || key === 'slides')) continue;
-    const val = copyJson[key];
+    let val = copyJson[key];
+    // H-066: tomas_sugeridas puede venir como objetos {descripcion, prompt_video_ia}.
+    // Acá se muestran solo las descripciones — el prompt vive como chip 🎬 en la
+    // sección "Producción por clip" (segmentos), no se duplica en este bloque.
+    if (key === 'tomas_sugeridas' && Array.isArray(val)) {
+      val = (val as unknown[])
+        .map((t) => (t && typeof t === 'object' ? String((t as Record<string, unknown>).descripcion ?? '') : t))
+        .filter((t) => t !== '');
+    }
     if (val == null || val === '' || (Array.isArray(val) && val.length === 0)) continue;
 
     if (key === 'guion' && Array.isArray(val)) {
@@ -487,8 +496,15 @@ function RevisionSegmentos({
 }) {
   const segmentos = pub.segmentos || [];
   const esCarrusel = pub.tipo === 'carrusel';
-  const tituloSeccion = esCarrusel ? 'Revisión por slide' : 'Revisión por historia';
-  const introSeccion = esCarrusel
+  const esReel = pub.tipo === 'reel';
+  const tituloSeccion = esReel
+    ? 'Producción por clip'
+    : esCarrusel
+    ? 'Revisión por slide'
+    : 'Revisión por historia';
+  const introSeccion = esReel
+    ? 'Cada clip se genera con su prompt: cópialo en tu herramienta de video IA, genera el mini-video a partir de tu foto real, y después se unen en el reel. La revisión por clip llega pronto.'
+    : esCarrusel
     ? 'Cada slide lleva su propia foto — el asistente revisa que la foto corresponda a lo que dice ese slide.'
     : 'Cada historia lleva su propia foto — el asistente revisa que la foto corresponda a lo que dice esa historia.';
   const [subiendo, setSubiendo] = useState<number | null>(null);
@@ -539,6 +555,7 @@ function RevisionSegmentos({
             <p className="text-sm text-gray-900 whitespace-pre-wrap bg-gray-50 rounded px-3 py-1.5">{seg.texto}</p>
             <LinkChip text={seg.texto} />
             <PromptImagenChip prompt={seg.prompt_imagen_ia} />
+            <PromptImagenChip prompt={seg.prompt_video_ia} label="🎬 Prompt de video (IA)" />
 
             {seg.material_urls?.length > 0 && (
               <div className="flex gap-2 flex-wrap my-3">
@@ -551,21 +568,25 @@ function RevisionSegmentos({
               </div>
             )}
 
-            <label className="inline-flex items-center mt-2 px-3 py-1.5 text-sm font-medium bg-slate-900 text-white rounded-md hover:bg-slate-700 cursor-pointer">
-              <input
-                type="file"
-                accept="image/*"
-                multiple
-                hidden
-                onChange={(e) => onFiles(seg.indice, e.target.files)}
-                disabled={subiendo === seg.indice || seg.revision_veredicto === 'revisando'}
-              />
-              {subiendo === seg.indice
-                ? 'Subiendo…'
-                : seg.material_urls?.length > 0
-                ? 'Subir versión corregida'
-                : 'Subir foto y pedir revisión'}
-            </label>
+            {/* Clips de reel: la subida por clip llega con H-065 F2 (Django hoy
+                solo acepta imágenes) — sin botón hasta que exista el endpoint. */}
+            {!esReel && (
+              <label className="inline-flex items-center mt-2 px-3 py-1.5 text-sm font-medium bg-slate-900 text-white rounded-md hover:bg-slate-700 cursor-pointer">
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  hidden
+                  onChange={(e) => onFiles(seg.indice, e.target.files)}
+                  disabled={subiendo === seg.indice || seg.revision_veredicto === 'revisando'}
+                />
+                {subiendo === seg.indice
+                  ? 'Subiendo…'
+                  : seg.material_urls?.length > 0
+                  ? 'Subir versión corregida'
+                  : 'Subir foto y pedir revisión'}
+              </label>
+            )}
             {err[seg.indice] && <p className="text-sm text-red-600 mt-2">{err[seg.indice]}</p>}
 
             <VeredictoBox
@@ -743,7 +764,11 @@ export default function PublicacionesPage() {
                           <div className="border-t border-gray-100 px-4 py-4">
                             {pub.segmentos && pub.segmentos.length > 0 ? (
                               <>
-                                <CopyDetalle copyJson={pub.copy_json} omitTexto />
+                                {/* En reels los segmentos son CLIPS de producción, no
+                                    duplican el texto: el caption/guion se muestra entero.
+                                    En stories/carrusel el texto va por segmento → omitTexto. */}
+                                <CopyDetalle copyJson={pub.copy_json} omitTexto={pub.tipo !== 'reel'} />
+                                {pub.tipo === 'reel' && <LinkChip text={JSON.stringify(pub.copy_json)} />}
                                 <RevisionSegmentos pub={pub} onUpdate={patchPublicacion} />
                               </>
                             ) : (

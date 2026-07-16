@@ -320,6 +320,9 @@ export interface SegmentoHistoria {
   // Prompt listo para pegar en el editor de imágenes IA (H-064). Django lo
   // manda como '' en historias sin foto (encuestas/stickers) — ocultar el chip.
   prompt_imagen_ia?: string;
+  // Prompt de video por clip para los reels (H-066): anima una foto real de la
+  // toma en la herramienta de video IA. '' en shapes viejos — ocultar el chip.
+  prompt_video_ia?: string;
   material_urls: string[];
   material_meta?: Record<string, unknown>[];
   revision_veredicto: RevisionVeredicto;
