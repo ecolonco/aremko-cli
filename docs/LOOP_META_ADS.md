@@ -361,3 +361,121 @@ $952.100) también sin campaña.
 
 Recs 2–4 quedan en cola; se evalúan en el Ciclo 5 junto con el efecto real de
 A1 (piso de Pausa) que este ciclo aún no pudo medir.
+
+### 2026-07-18 — Ciclo 5
+
+**Ventana:** 2026-07-04 → 2026-07-17 (14d). Fuentes: `campaigns-with-insights`
+(backend Go en Render) + `family-combinations-range` (Django, ventas reales,
+mismo rango). Corrida autónoma (Jorge ausente): el output es la lista de
+acciones lista para ejecutar cuando aparezca en sesión interactiva.
+
+**Snapshot Meta Ads (14d):**
+
+| Campaña | Estado | Gasto CLP | Alcance | Impres. | Clicks | CTR | CPC | Cuenta |
+|---|---|---|---|---|---|---|---|---|
+| Ritual del Río - junio 2026 | ACTIVE | $69.397 | 43.154 | 87.194 | 3.647 | 4,18% | $19,03 | operativa `214650…` |
+| Pausa junto al río – junio 2026 | ACTIVE | $54.109 | 34.420 | 62.638 | 2.120 | 3,38% | $25,52 | operativa `214650…` |
+| Refugio Aremko - Lanzamiento Junio 2026 | **PAUSED** | $0 | — | — | — | — | — | vieja `455070…` |
+| Noche de Aguas Calientes | **no existe campaña** | — | — | — | — | — | — | — |
+
+Gasto total 14d: **~$123.506 CLP (~$8.822/día)** — baja ~8% vs Ciclo 4
+(~$134.723). Toda la baja viene de Pausa: su gasto cayó **−18%** ($65.748 →
+$54.109) porque A1 (piso de $1.900/día, aplicado el 07-14) ya opera en la cola
+de esta ventana. Ritual quedó plano (~$69k). El rebalanceo 65/35 hacia Ritual
+(rec pendiente) sigue sin aplicarse.
+
+**Ventas reales del período (bridge Django, 14d alineado):**
+
+| Programa (combinación) | Ciclo 5 (14d) | Ciclo 4 (14d) | Ticket prom. |
+|---|---|---|---|
+| Ritual (`cabanas_tinas_masajes_1n`) | 9 res / $2.010.000 | 12 res / $2.670.000 | $223.333 |
+| Pausa (`tinas_masajes`) | 25 res / $3.010.000 | 21 res / $2.530.000 | $120.400 |
+| Refugio (`cabanas_tinas_masajes_2n`) | 4 res / $1.155.000 | 4 res / $1.155.000 | $288.750 |
+| Noche Aguas Calientes (`cabanas_tinas_1n`) | 8 res / $1.285.000 | 6 res / $952.100 | $160.625 |
+| **Total sitio (todas las combinaciones)** | 106 res / $11.361.099 | 90 res / $10.326.100 | — |
+
+Lectura: **el sitio marca récord del loop ($11,36M, 106 res)**, pero la mezcla se
+invirtió respecto a lo que la pauta empujaba. Los 2 programas pagados: gasto
+$123.506 → ventas $5.020.000 = **40,6× ingreso/gasto** (vs 38,6× Ciclo 4, sin
+atribución fina). Dentro de ese total, dos movimientos opuestos y muy
+informativos:
+
+- **Ritual CAE por primera vez en el loop: 12 → 9 res (−25%) con gasto plano.**
+  Es exactamente lo que se advirtió en el Ciclo 4 (CTR 4,41→4,27→**4,18%** en 3
+  ciclos sobre el mismo creativo "junio 2026" de ~2 meses). La rec #2 del Ciclo 4
+  (rotar el creativo de Ritual para adelantarse) NO se ejecutó, y la fatiga ya no
+  es sólo señal de CTR: bajó las ventas del programa de mayor ticket.
+- **Pausa SUBE 21 → 25 res (+19%) MIENTRAS se le BAJÓ el gasto (−18%).** Esto
+  valida A1: recortar el presupuesto sobre el creativo fatigado (CTR 3,38%, CPC
+  $25,52, el peor) NO dañó las ventas — al contrario. Confirma que las ventas de
+  Pausa hoy las mueve la temporada/orgánico, no el anuncio cansado. El piso debe
+  quedarse; el gasto liberado rinde más en otro lado.
+- **Noche crece a 8 res / $1.285.000 (+33%, su mejor cifra en varios ciclos) y
+  Refugio se mantiene (4 res, ticket más alto $288.750)** — ambos siguen
+  vendiendo SIN un peso de pauta, 5 ciclos seguidos.
+
+**Comparación con Ciclo 4 (¿se implementó lo propuesto?):**
+- ✅ **A1 — piso de Pausa $1.900/día:** operando y VALIDADO. Efecto medible este
+  ciclo: gasto −18%, ventas +19%. Recortar no costó ventas.
+- ❌ **A4 — subir los 2 creativos nuevos de Pausa (Conceptos A/B) y pausar el
+  viejo:** NO se hizo. Por eso Pausa sigue con CTR 3,38% / CPC $25,52. Bloqueado
+  en A3 (Jorge debe conseguir las tomas B-roll).
+- ❌ **Rec #2 Ciclo 4 — rotar creativo de Ritual:** NO se hizo → la fatiga bajó
+  las ventas de Ritual este ciclo. Ya no es preventivo, es correctivo urgente.
+- ❌ **Rebalanceo 65/35 y lanzar Refugio + Noche:** siguen pendientes (recs Ciclos
+  1–4).
+
+**Recomendaciones nuevas (Nivel 2 — nada ejecutado, esperan respuesta de Jorge):**
+
+1. **Rotar el creativo de Ritual YA — pasó de preventivo a correctivo.** Ritual
+   perdió 3 reservas este ciclo sobre el mismo anuncio "junio 2026". Entrego el
+   concepto listo para producir (mismo formato que los de Pausa del Ciclo 4:
+   B-roll del lugar SIN persona a cámara, landing `/ritual-del-rio/`, precio
+   $210.000 dom–jue / $240.000 vie–sáb, y renombrar la campaña a
+   "julio – vacaciones de invierno"):
+
+   - **Concepto Ritual — "La noche que el invierno pide".** Ángulo: la noche
+     completa junto al río en temporada de frío — cabaña + tina caliente + masaje
+     + desayuno, el ritual entero, no una escapada de tarde.
+     - *Hook (texto en pantalla, primeros 2 s):* "Una noche de invierno junto al
+       río: tina caliente, masaje y despertar sin apuro."
+     - *Copy primario:* "Cabaña para dos, tina caliente humeando junto al río,
+       masaje para soltar la semana y desayuno sin reloj a la mañana siguiente.
+       El ritual completo, en plena temporada de invierno. Ritual del Río desde
+       $210.000 (dom a jue)."
+     - *Tomas (B-roll):* vapor de la tina subiendo al aire frío al atardecer,
+       interior cálido de la cabaña con luz baja, camilla de masaje con vista al
+       bosque, mesa de desayuno junto a la ventana con el río de fondo.
+     - *CTA:* "Reservá tu noche" → `/ritual-del-rio/`
+
+   Subir este anuncio al ad set de Ritual y pausar el "junio 2026" fatigado.
+   Falta que Jorge consiga/elija las tomas (puede reutilizar B-roll de invierno
+   que ya tenga).
+
+2. **Fijar el piso de Pausa como definitivo y desbloquear A4 con material que ya
+   existe.** A1 demostró que Pausa no necesita el gasto alto para vender; lo que
+   la frena es el CTR del creativo cansado. En vez de seguir esperando tomas
+   nuevas (A3 lleva 2 ciclos trabado), **cargar los Conceptos A/B del Ciclo 4 con
+   fotos/clips de invierno que Aremko ya tenga en el disco** (banco de fotos web),
+   pausar el creativo viejo, y mantener Pausa en $1.900/día. Perfecto es enemigo
+   de hecho: cualquier creativo fresco supera al que está en 3,38%.
+
+3. **Lanzar Refugio con el gasto liberado de Pausa — 5 ciclos de demanda probada
+   sin pauta, ya no hay excusa de presupuesto.** A1 dejó ~$3.100/día libres de
+   Pausa. Refugio vende solo (4 res/ciclo, ticket $288.750, el más alto) y Noche
+   viene subiendo (8 res, +33%). Prioridad a **Refugio** por ticket: duplicar en
+   la cuenta operativa `214650…` la estructura de Ritual, landing del Refugio,
+   presupuesto de prueba ~$1.900/día tomado del gasto que Pausa ya no usa —
+   presupuesto total del sistema no sube. (Noche queda como el siguiente en cola.)
+
+**Acciones concretas para la próxima sesión interactiva (Jorge presente):**
+1. Rotar Ritual: subir el "Concepto Ritual – La noche que el invierno pide",
+   pausar el "junio 2026" y renombrar la campaña a "julio – vacaciones de
+   invierno". (Correctivo #1 — la fatiga ya baja ventas.)
+2. Subir Conceptos A/B de Pausa con fotos de invierno del banco existente, pausar
+   el creativo viejo, mantener piso $1.900/día (A4, desbloqueado sin esperar A3).
+3. Lanzar Refugio en la cuenta operativa duplicando Ritual, ~$1.900/día
+   financiado con el gasto liberado de Pausa (sin subir el total).
+
+Se evalúan en el Ciclo 6: efecto de la rotación de Ritual en su CTR/ventas, y si
+Refugio pagado mueve la aguja sobre su venta orgánica.
