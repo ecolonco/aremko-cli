@@ -790,32 +790,36 @@ export default function PublicacionesPage() {
                               </p>
                             )}
 
-                            {/* Acciones de estado */}
-                            {pub.estado !== 'publicada' && (
-                              <p className="mt-4 text-xs text-gray-500">
-                                ¿Ya la publicaste en {pub.canal}? Pega el link del post y márcala como publicada
-                                (el tablero no se entera solo de lo que pasa en Google/Instagram).
-                              </p>
-                            )}
+                            {/* Acciones de estado. El campo del link vive SIEMPRE:
+                                una pieza ya publicada sin link (o con link malo)
+                                necesita poder corregirlo — sin published_url de
+                                Instagram la cosecha de métricas (H-067) no la ve. */}
+                            <p className="mt-4 text-xs text-gray-500">
+                              {pub.estado !== 'publicada'
+                                ? `¿Ya la publicaste en ${pub.canal}? Pega el link del post y márcala como publicada (el tablero no se entera solo de lo que pasa en Google/Instagram).`
+                                : pub.published_url
+                                ? 'Si el link quedó malo, pega el correcto y guárdalo.'
+                                : 'Está publicada pero SIN link — pégalo para que el viernes se le cuelguen las métricas.'}
+                            </p>
                             <div className="mt-2 flex flex-wrap items-center gap-2">
-                              {pub.estado !== 'publicada' && (
-                                <input
-                                  type="url"
-                                  placeholder="Link del post publicado (Instagram/GBP)…"
-                                  value={urlPublicada[pub.id] || ''}
-                                  onChange={(e) => setUrlPublicada({ ...urlPublicada, [pub.id]: e.target.value })}
-                                  className="flex-1 min-w-[220px] text-sm border border-gray-200 rounded-md px-3 py-1.5"
-                                />
-                              )}
-                              {pub.estado !== 'publicada' && (
-                                <button
-                                  onClick={() => actualizar(pub, 'publicada')}
-                                  disabled={guardando === pub.id}
-                                  className="px-4 py-1.5 text-sm font-semibold bg-emerald-600 text-white rounded-md hover:bg-emerald-700 disabled:opacity-50"
-                                >
-                                  {guardando === pub.id ? 'Guardando…' : '✓ Marcar publicada'}
-                                </button>
-                              )}
+                              <input
+                                type="url"
+                                placeholder="Link del post publicado (Instagram/GBP)…"
+                                value={urlPublicada[pub.id] || ''}
+                                onChange={(e) => setUrlPublicada({ ...urlPublicada, [pub.id]: e.target.value })}
+                                className="flex-1 min-w-[220px] text-sm border border-gray-200 rounded-md px-3 py-1.5"
+                              />
+                              <button
+                                onClick={() => actualizar(pub, 'publicada')}
+                                disabled={guardando === pub.id || (pub.estado === 'publicada' && !urlPublicada[pub.id])}
+                                className="px-4 py-1.5 text-sm font-semibold bg-emerald-600 text-white rounded-md hover:bg-emerald-700 disabled:opacity-50"
+                              >
+                                {guardando === pub.id
+                                  ? 'Guardando…'
+                                  : pub.estado === 'publicada'
+                                  ? 'Guardar link'
+                                  : '✓ Marcar publicada'}
+                              </button>
                               {/* Paso intermedio opcional (marcar avance); no dup con "Marcar publicada". */}
                               {siguiente && siguiente.estado !== 'publicada' && (
                                 <button
