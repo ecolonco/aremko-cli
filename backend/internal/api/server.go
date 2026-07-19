@@ -122,6 +122,10 @@ func (s *Server) setupRoutes() {
 		// Reporte diario de Google Ads (Búsqueda), en paralelo al de Meta.
 		r.Get("/cron/reporte-diario-google", handlers.ReporteDiarioGoogleAds(s.config))
 		r.Post("/cron/reporte-diario-google", handlers.ReporteDiarioGoogleAds(s.config))
+		// H-067: cosecha semanal de métricas por publicación (viernes AM;
+		// dry-run por defecto, apply=1 escribe en Django).
+		r.Get("/cron/publicaciones-metricas", handlers.SyncPublicacionesMetricas(s.config))
+		r.Post("/cron/publicaciones-metricas", handlers.SyncPublicacionesMetricas(s.config))
 
 		// Sales AI Analysis
 		r.Post("/analytics/sales/analyze", handlers.AnalyzeSales(s.config))

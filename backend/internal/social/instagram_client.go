@@ -15,25 +15,25 @@ type InstagramClient struct {
 }
 
 type InstagramInsights struct {
-	AccountID       string                   `json:"account_id"`
-	Username        string                   `json:"username"`
-	FollowersCount  int64                    `json:"followers_count"`
-	FollowsCount    int64                    `json:"follows_count"`
-	MediaCount      int64                    `json:"media_count"`
-	WeeklyInsights  []WeeklyInstagramMetrics `json:"weekly_insights"`
-	TopPosts        []InstagramPost          `json:"top_posts"`
-	ProfilePicture  string                   `json:"profile_picture_url"`
+	AccountID      string                   `json:"account_id"`
+	Username       string                   `json:"username"`
+	FollowersCount int64                    `json:"followers_count"`
+	FollowsCount   int64                    `json:"follows_count"`
+	MediaCount     int64                    `json:"media_count"`
+	WeeklyInsights []WeeklyInstagramMetrics `json:"weekly_insights"`
+	TopPosts       []InstagramPost          `json:"top_posts"`
+	ProfilePicture string                   `json:"profile_picture_url"`
 }
 
 type WeeklyInstagramMetrics struct {
-	WeekLabel       string    `json:"week_label"`
-	StartDate       string    `json:"start_date"`
-	EndDate         string    `json:"end_date"`
-	Reach           int64     `json:"reach"`
-	Impressions     int64     `json:"impressions"`
-	ProfileViews    int64     `json:"profile_views"`
-	WebsiteClicks   int64     `json:"website_clicks"`
-	EngagementRate  float64   `json:"engagement_rate"`
+	WeekLabel      string  `json:"week_label"`
+	StartDate      string  `json:"start_date"`
+	EndDate        string  `json:"end_date"`
+	Reach          int64   `json:"reach"`
+	Impressions    int64   `json:"impressions"`
+	ProfileViews   int64   `json:"profile_views"`
+	WebsiteClicks  int64   `json:"website_clicks"`
+	EngagementRate float64 `json:"engagement_rate"`
 }
 
 type InstagramPost struct {
@@ -311,7 +311,7 @@ func (c *InstagramClient) GetTopPosts(ctx context.Context, accountID string, lim
 
 				var insights struct {
 					Data []struct {
-						Name  string `json:"name"`
+						Name   string `json:"name"`
 						Values []struct {
 							Value int64 `json:"value"`
 						} `json:"values"`
@@ -348,4 +348,131 @@ func (c *InstagramClient) GetTopPosts(ctx context.Context, accountID string, lim
 	}
 
 	return posts, nil
+}
+
+// ─── H-067: cosecha de métricas por publicación ─────────────────────────────
+
+// InstagramMediaBasic es un item del listado de media propia, SIN insights
+// (esos se piden aparte y solo para los media que matchean una publicación
+// de la cola — evita 50+ llamadas de insights innecesarias).
+type InstagramMediaBasic struct {
+	ID            string    `json:"id"`
+	Caption       string    `json:"caption"`
+	MediaType     string    `json:"media_type"`
+	Permalink     string    `json:"permalink"`
+	Timestamp     time.Time `json:"timestamp"`
+	LikeCount     int64     `json:"like_count"`
+	CommentsCount int64     `json:"comments_count"`
+}
+
+// ListMedia lista la media propia reciente (1 sola llamada, sin insights).
+func (c *InstagramClient) ListMedia(ctx context.Context, accountID string, limit int) ([]InstagramMediaBasic, error) {
+	u := fmt.Sprintf("https://graph.facebook.com/v21.0/%s/media?fields=id,caption,media_type,permalink,timestamp,like_count,comments_count&limit=%d&access_token=%s",
+		accountID, limit, c.accessToken)
+
+	req, err := http.NewRequestWithContext(ctx, "GET", u, nil)
+	if err != nil {
+		return nil, fmt.Errorf("error creating media request: %w", err)
+	}
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("error fetching media: %w", err)
+	}
+	defer resp.Body.Close()
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("error reading media response: %w", err)
+	}
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("media API error (status %d): %s", resp.StatusCode, string(body))
+	}
+
+	var mediaResp struct {
+		Data []struct {
+			ID            string `json:"id"`
+			Caption       string `json:"caption"`
+			MediaType     string `json:"media_type"`
+			Permalink     string `json:"permalink"`
+			Timestamp     string `json:"timestamp"`
+			LikeCount     int64  `json:"like_count"`
+			CommentsCount int64  `json:"comments_count"`
+		} `json:"data"`
+	}
+	if err := json.Unmarshal(body, &mediaResp); err != nil {
+		return nil, fmt.Errorf("error parsing media: %w", err)
+	}
+
+	items := make([]InstagramMediaBasic, 0, len(mediaResp.Data))
+	for _, m := range mediaResp.Data {
+		ts, _ := time.Parse(time.RFC3339, m.Timestamp)
+		items = append(items, InstagramMediaBasic{
+			ID: m.ID, Caption: m.Caption, MediaType: m.MediaType,
+			Permalink: m.Permalink, Timestamp: ts,
+			LikeCount: m.LikeCount, CommentsCount: m.CommentsCount,
+		})
+	}
+	return items, nil
+}
+
+// InstagramMediaInsights son las métricas de UN media (0 = no disponible).
+type InstagramMediaInsights struct {
+	Reach  int64 `json:"reach"`
+	Saves  int64 `json:"saves"`
+	Shares int64 `json:"shares"`
+	Views  int64 `json:"views"`
+}
+
+// GetMediaInsights pide reach/saved/shares/views para un media. shares/views
+// no existen para todos los tipos: si Graph rechaza el set completo, se
+// reintenta con el set mínimo (reach,saved) — mismo criterio tolerante que
+// GetTopPosts, pero sin perder la llamada entera.
+func (c *InstagramClient) GetMediaInsights(ctx context.Context, mediaID string) (InstagramMediaInsights, error) {
+	out := InstagramMediaInsights{}
+	for _, metricSet := range []string{"reach,saved,shares,views", "reach,saved"} {
+		u := fmt.Sprintf("https://graph.facebook.com/v21.0/%s/insights?metric=%s&access_token=%s",
+			mediaID, metricSet, c.accessToken)
+		req, err := http.NewRequestWithContext(ctx, "GET", u, nil)
+		if err != nil {
+			return out, fmt.Errorf("error creating insights request: %w", err)
+		}
+		resp, err := c.httpClient.Do(req)
+		if err != nil {
+			return out, fmt.Errorf("error fetching insights: %w", err)
+		}
+		body, _ := io.ReadAll(resp.Body)
+		resp.Body.Close()
+		if resp.StatusCode != http.StatusOK {
+			// Set completo rechazado (p.ej. shares no aplica a este media_type):
+			// probar el siguiente set más conservador.
+			continue
+		}
+		var insights struct {
+			Data []struct {
+				Name   string `json:"name"`
+				Values []struct {
+					Value int64 `json:"value"`
+				} `json:"values"`
+			} `json:"data"`
+		}
+		if err := json.Unmarshal(body, &insights); err != nil {
+			return out, fmt.Errorf("error parsing insights: %w", err)
+		}
+		for _, m := range insights.Data {
+			if len(m.Values) == 0 {
+				continue
+			}
+			switch m.Name {
+			case "reach":
+				out.Reach = m.Values[0].Value
+			case "saved":
+				out.Saves = m.Values[0].Value
+			case "shares":
+				out.Shares = m.Values[0].Value
+			case "views":
+				out.Views = m.Values[0].Value
+			}
+		}
+		return out, nil
+	}
+	return out, fmt.Errorf("insights no disponibles para media %s (ambos sets rechazados)", mediaID)
 }
