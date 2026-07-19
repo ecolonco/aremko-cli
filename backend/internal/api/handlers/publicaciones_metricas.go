@@ -194,6 +194,9 @@ func SyncPublicacionesMetricas(cfg *config.Config) http.HandlerFunc {
 			if metricas == nil {
 				metricas = map[string]interface{}{}
 			}
+			// Contrato v1 — documentado en docs/CONTRATO_H-067_METRICAS.md (repo Django).
+			metricas["v"] = 1
+			metricas["fetched_at"] = hoyISO
 			metricas["fuente"] = "instagram_graph"
 			metricas["media_id"] = m.ID
 			metricas["permalink"] = m.Permalink
