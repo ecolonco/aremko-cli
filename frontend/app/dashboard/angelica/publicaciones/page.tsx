@@ -154,6 +154,88 @@ function PromptImagenChip({ prompt, label }: { prompt?: string; label?: string }
   );
 }
 
+// ─── Métricas por publicación (H-067) ───────────────────────────────────────
+// La cosecha del viernes guarda en `metricas` el historial del post real de
+// Instagram (contrato v1: CONTRATO_H-067_METRICAS.md, repo Django). Acá se
+// pinta el último snapshot + la "tasa valiosa" ((guardados+compartidos)/alcance,
+// la métrica de ranking mientras no haya atribución de ventas — los likes
+// nunca como principal). Sin `v` en metricas → no se muestra nada.
+
+type MetricasV1 = {
+  v?: number;
+  fetched_at?: string;
+  snapshots?: Array<Record<string, unknown>>;
+  tasas?: { valiosa?: number; interaccion?: number };
+};
+
+function metricasDe(pub: PublicacionPlanificada): MetricasV1 | null {
+  const m = pub.metricas as MetricasV1 | undefined;
+  if (!m || !m.v || !Array.isArray(m.snapshots) || m.snapshots.length === 0) return null;
+  return m;
+}
+
+function num(x: unknown): number {
+  return typeof x === 'number' ? x : 0;
+}
+
+function TasaValiosaBadge({ pub }: { pub: PublicacionPlanificada }) {
+  const t = metricasDe(pub)?.tasas?.valiosa;
+  if (typeof t !== 'number') return null;
+  return (
+    <span
+      className="text-xs font-semibold px-2 py-0.5 rounded-full bg-violet-100 text-violet-800 shrink-0"
+      title="Tasa valiosa: (guardados + compartidos) / alcance"
+    >
+      💎 {(t * 100).toFixed(1)}%
+    </span>
+  );
+}
+
+function MetricasBox({ pub }: { pub: PublicacionPlanificada }) {
+  const m = metricasDe(pub);
+  if (!m) return null;
+  const snaps = m.snapshots!;
+  const last = snaps[snaps.length - 1];
+  const prev = snaps.length > 1 ? snaps[snaps.length - 2] : null;
+  const stats: Array<[string, string]> = [
+    ['Alcance', 'reach'],
+    ['Guardados', 'saves'],
+    ['Compartidos', 'shares'],
+    ['Likes', 'likes'],
+    ['Comentarios', 'comments'],
+    ['Vistas', 'views'],
+  ];
+  return (
+    <div className="mt-4 rounded-lg border border-violet-200 bg-violet-50 px-4 py-3">
+      <div className="flex items-center justify-between flex-wrap gap-2 mb-2">
+        <span className="text-xs font-semibold uppercase text-violet-700">
+          📈 Métricas del post · cosecha {String(last.fetched_at || m.fetched_at || '')}
+        </span>
+        <TasaValiosaBadge pub={pub} />
+      </div>
+      <div className="flex flex-wrap gap-2">
+        {stats.map(([label, key]) => {
+          const val = num(last[key]);
+          if (key === 'views' && val === 0) return null; // fotos/carruseles sin vistas
+          const delta = prev ? val - num(prev[key]) : 0;
+          return (
+            <div key={key} className="flex-1 min-w-[90px] bg-white rounded-md border border-violet-100 px-2 py-1.5 text-center">
+              <p className="text-sm font-semibold text-gray-900">{val.toLocaleString('es-CL')}</p>
+              <p className="text-[10px] uppercase text-gray-500">{label}</p>
+              {prev && delta !== 0 ? (
+                <p className={`text-[10px] ${delta > 0 ? 'text-emerald-600' : 'text-red-500'}`}>
+                  {delta > 0 ? '+' : ''}
+                  {delta.toLocaleString('es-CL')} vs cosecha ant.
+                </p>
+              ) : null}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 // Botón "publicar en un clic": abre el destino del canal en una pestaña nueva.
 function PublicarCTA({ canal }: { canal: string }) {
   const destino = destinoDe(canal);
@@ -753,6 +835,7 @@ export default function PublicacionesPage() {
                               ) : null}
                             </p>
                           </div>
+                          <TasaValiosaBadge pub={pub} />
                           <span className={`inline-flex px-2.5 py-1 text-xs font-semibold rounded-full shrink-0 ${ESTADO_STYLES[pub.estado]}`}>
                             {ESTADO_LABELS[pub.estado]}
                           </span>
@@ -789,6 +872,8 @@ export default function PublicacionesPage() {
                                 </a>
                               </p>
                             )}
+
+                            <MetricasBox pub={pub} />
 
                             {/* Acciones de estado. El campo del link vive SIEMPRE:
                                 una pieza ya publicada sin link (o con link malo)
