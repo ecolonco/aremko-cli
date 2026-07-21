@@ -479,3 +479,112 @@ informativos:
 
 Se evalúan en el Ciclo 6: efecto de la rotación de Ritual en su CTR/ventas, y si
 Refugio pagado mueve la aguja sobre su venta orgánica.
+
+### 2026-07-21 — Ciclo 6
+
+**Ventana:** 2026-07-07 → 2026-07-20 (14d). Fuentes: `campaigns-with-insights`
+(backend Go en Render) + `family-combinations-range` (Django, ventas reales,
+mismo rango). Corrida autónoma (Jorge ausente): el output es la lista de
+acciones lista para ejecutar cuando aparezca en sesión interactiva.
+
+**Snapshot Meta Ads (14d):**
+
+| Campaña | Estado | Gasto CLP | Alcance | Impres. | Clicks | CTR | CPC | Cuenta |
+|---|---|---|---|---|---|---|---|---|
+| Ritual del Río - junio 2026 | ACTIVE | $69.684 | 44.383 | 91.479 | 3.738 | 4,09% | $18,64 | operativa `214650…` |
+| Pausa junto al río – junio 2026 | ACTIVE | $47.839 | 30.204 | 52.953 | 1.812 | 3,42% | $26,40 | operativa `214650…` |
+| Refugio Aremko - Lanzamiento Junio 2026 | **PAUSED** | $0 | — | — | — | — | — | vieja `455070…` |
+| Noche de Aguas Calientes | **no existe campaña** | — | — | — | — | — | — | — |
+
+Gasto total 14d: **~$117.523 CLP (~$8.394/día)** — baja ~5% vs Ciclo 5
+(~$123.506). El mix se inclinó a **59/41 Ritual/Pausa** (ya no 50/50): no por un
+rebalanceo activo, sino porque el piso de Pausa (A1, $1.900/día) sigue enfriando
+su gasto (−12% vs Ciclo 5, $54.109 → $47.839) mientras Ritual quedó plano
+(~$69k). ⚠️ **Dato clave: el gasto que Pausa liberó NO se está redesplegando —
+se está ahorrando.** El total del sistema bajó, Ritual no absorbió esos pesos y
+Refugio sigue en $0. Hay ~$3.100/día ociosos.
+
+**Ventas reales del período (bridge Django, 14d alineado):**
+
+| Programa (combinación) | Ciclo 6 (14d) | Ciclo 5 (14d) | Ticket prom. |
+|---|---|---|---|
+| Ritual (`cabanas_tinas_masajes_1n`) | 10 res / $2.220.000 | 9 res / $2.010.000 | $222.000 |
+| Pausa (`tinas_masajes`) | 26 res / $3.220.000 | 25 res / $3.010.000 | $123.846 |
+| Refugio (`cabanas_tinas_masajes_2n`) | 4 res / $1.155.000 | 4 res / $1.155.000 | $288.750 |
+| Noche Aguas Calientes (`cabanas_tinas_1n`) | 7 res / $1.125.000 | 8 res / $1.285.000 | $160.714 |
+| **Total sitio (todas las combinaciones)** | 111 res / $11.944.099 | 106 res / $11.361.099 | — |
+
+Lectura: **el sitio marca nuevo récord del loop ($11,94M, 111 res)**, tercer ciclo
+consecutivo al alza. Los 2 programas pagados: gasto $117.523 → ventas $5.440.000
+= **46,3× ingreso/gasto** (vs 40,6× Ciclo 5 — mejor cifra del loop; sin
+atribución fina, parte es temporada de invierno). Movimientos por línea:
+
+- **Ritual se estabiliza: 9 → 10 res (+1) con gasto plano, y el CPC MEJORÓ**
+  ($19,03 → $18,64). El desplome del Ciclo 5 (12→9) no continuó. Pero el CTR
+  sigue erosionándose lento (4,18% → **4,09%**) sobre el mismo creativo "junio
+  2026" de ~2,5 meses. No está en pánico; está en una meseta frágil.
+- **Pausa vuelve a subir: 25 → 26 res MIENTRAS su gasto baja otro −12%.** Segundo
+  ciclo que confirma A1: menos plata sobre el creativo cansado (CTR 3,42%, CPC
+  $26,40, el peor) no daña las ventas. Lo que la mueve es temporada/orgánico, no
+  el anuncio. El piso se queda.
+- **Refugio: 6º ciclo seguido vendiendo SIN un peso de pauta** (4 res, ticket
+  $288.750, el más alto de todos). **Noche baja levemente** (8 → 7 res), también
+  sin campaña.
+
+**Comparación con Ciclo 5 (¿se implementó lo propuesto?):**
+- ✅ **A1 — piso de Pausa $1.900/día:** operando y re-validado (2º ciclo). Gasto
+  −12%, ventas +1 res. Recortar sigue sin costar ventas.
+- ❌ **A4 — subir Conceptos A/B de Pausa y pausar el viejo:** NO se hizo (3er
+  ciclo trabado). Pausa sigue en CTR 3,42%. El bloqueo declarado es A3 (Jorge
+  debe conseguir las tomas B-roll).
+- ❌ **Rotar creativo de Ritual (rec #1 Ciclo 5, "correctivo urgente"):** NO se
+  hizo. La venta no siguió cayendo, pero el CTR sigue bajando sobre el creativo
+  viejo.
+- ❌ **Lanzar Refugio con el gasto liberado de Pausa (rec #3):** NO se hizo. La
+  plata liberada quedó ociosa (ver arriba), no se redirigió.
+
+**Recomendaciones nuevas (Nivel 2 — nada ejecutado, esperan respuesta de Jorge):**
+
+1. **El bloqueo de A3 ("Jorge tiene que conseguir las tomas") ES FALSO — el
+   propio agente puede PRODUCIR los 3 creativos pendientes esta semana desde el
+   banco de clips, sin que Jorge grabe nada.** Lleva 3 ciclos frenado esperando
+   material que ya existe: hay banco de clips catalogado (disco JAguilera) +
+   skills `/video-aremko` y `/historia-aremko` que montan video/imagen 9:16 desde
+   tomas reales, y ya se validó producción sin watermark. Acción concreta:
+   autorizar al agente a producir los **3 creativos** — Concepto A y Concepto B de
+   Pausa (Ciclo 4) + "Concepto Ritual – La noche que el invierno pide" (Ciclo 5) —
+   desde el banco de clips de invierno, entregarlos en ~/Desktop para el OK de
+   Jorge, y que Jorge solo los SUBA. Convierte 3 ítems trabados (A4 + rotación
+   Ritual) en 1 entregable producible ya. Perfecto es enemigo de hecho:
+   cualquier creativo fresco supera a Pausa en 3,42% y a Ritual en erosión.
+
+2. **La plata que Pausa liberó está ociosa: úsala YA para lanzar Refugio —
+   presupuesto cero adicional.** Dato nuevo de este ciclo: el gasto total bajó
+   ($123.506 → $117.523), Ritual no absorbió lo de Pausa y Refugio sigue en $0 →
+   ~$3.100/día no se están gastando. Refugio lleva **6 ciclos** vendiendo solo
+   (ticket $288.750, el más alto). Reducirlo a su mínimo accionable: en la cuenta
+   operativa `214650…`, **duplicar la campaña de Ritual**, cambiar landing a la de
+   Refugio y fijar **$1.900/día** tomados del gasto ocioso de Pausa. Es un puñado
+   de clics, no "armar de cero", y el total del sistema no sube.
+
+3. **Ritual se estabilizó — aprovechar esta ventana de calma para rotar SIN
+   pánico y corregir el nombre.** A diferencia del Ciclo 5 (caída de ventas), hoy
+   Ritual recuperó (9→10) y su CPC mejoró: no hay urgencia correctiva, y por eso
+   mismo es el momento de bajo riesgo para cambiar el creativo de 2,5 meses antes
+   de que el CTR (4,09% y bajando) arrastre otra vez las ventas. Va incluido en la
+   producción del punto #1; sumar el renombre pendiente de campaña **"junio 2026"
+   → "julio – vacaciones de invierno"** (vencido hace 3 semanas).
+
+**Acciones concretas para la próxima sesión interactiva (Jorge presente):**
+1. **Autorizar al agente a producir los 3 creativos** (Pausa A, Pausa B, Ritual
+   invierno) desde el banco de clips → entrega en ~/Desktop para OK. Desbloquea A4
+   y la rotación de Ritual sin esperar tomas nuevas.
+2. Subir los 2 de Pausa al ad set y pausar el "junio 2026" viejo; mantener piso
+   $1.900/día. Subir el de Ritual y pausar su "junio 2026"; renombrar la campaña a
+   "julio – vacaciones de invierno".
+3. Lanzar Refugio en la cuenta operativa `214650…` duplicando Ritual, $1.900/día
+   financiado con el gasto ocioso de Pausa (total no sube).
+
+Se evalúan en el Ciclo 7: si los creativos producidos por el agente se subieron y
+movieron el CTR de Pausa (3,42%) y Ritual (4,09%), y si Refugio pagado mueve la
+aguja sobre su venta orgánica de 6 ciclos.
