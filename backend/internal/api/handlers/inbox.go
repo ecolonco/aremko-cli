@@ -65,6 +65,25 @@ func InboxMediaLibrary(cfg *config.Config) http.HandlerFunc {
 	}
 }
 
+// InboxCatalogoAgregables proxea el catálogo de ítems agregables a una cotización
+// (ambientaciones + productos vendibles) para el picker "+ Agregar ítem" del cajón.
+func InboxCatalogoAgregables(cfg *config.Config) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if cfg.LunaAPIKey == "" || cfg.BookingSystemURL == "" {
+			respondError(w, http.StatusServiceUnavailable, "Django no configurado")
+			return
+		}
+		raw, err := bookings.NewClient(cfg.BookingSystemURL).GetCatalogoAgregablesRaw(cfg.LunaAPIKey)
+		if err != nil {
+			respondError(w, http.StatusBadGateway, err.Error())
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write(raw)
+	}
+}
+
 // InboxLimpiarConversacion borra el historial + carrito de un teléfono (PRUEBAS).
 // Destructivo; el front confirma antes. Default el teléfono de Jorge si no viene.
 func InboxLimpiarConversacion(cfg *config.Config) http.HandlerFunc {

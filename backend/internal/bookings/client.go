@@ -707,6 +707,14 @@ func (c *Client) GetMediaLibraryRaw(apiKey string) ([]byte, error) {
 	return c.getRaw(u, apiKey, "media library")
 }
 
+// GetCatalogoAgregablesRaw devuelve el catálogo de ítems agregables a una cotización
+// (ambientaciones + productos Comestibles/Bebestibles) para el picker "+ Agregar ítem"
+// del cajón. JSON crudo de Django.
+func (c *Client) GetCatalogoAgregablesRaw(apiKey string) ([]byte, error) {
+	u := c.BaseURL + "/api/luna/catalogo-agregables/"
+	return c.getRaw(u, apiKey, "catalogo agregables")
+}
+
 // CrearReservaLuna finaliza una propuesta de reserva (H-028): POST a la Luna API
 // con el propuesta_id. Django crea la reserva (idempotente, re-verifica
 // disponibilidad). Devuelve el JSON crudo `{success, reserva:{id,numero,total,estado_pago}}`.

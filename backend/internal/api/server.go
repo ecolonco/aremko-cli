@@ -220,6 +220,8 @@ func (s *Server) setupRoutes() {
 		r.Get("/inbox/conversations", handlers.InboxConversations(s.config))
 		r.Get("/inbox/conversation", handlers.InboxConversation(s.config))
 		r.Get("/inbox/media-library", handlers.InboxMediaLibrary(s.config))
+		// Catálogo de ítems agregables a la cotización (picker "+ Agregar ítem" del cajón).
+		r.Get("/inbox/catalogo-agregables", handlers.InboxCatalogoAgregables(s.config))
 		// H-028: Deborah aprueba una propuesta → crea la reserva + trae el resumen.
 		r.Post("/luna/crear-reserva", handlers.LunaCrearReserva(s.config))
 		// H-042: Deborah corrige (editar) o cierra (descartar) el borrador de cotización.

@@ -16,7 +16,14 @@ import {
   ShoppingCart,
 } from 'lucide-react';
 import type { PropuestaReserva, ReservaCreada, CarritoEnCurso } from './types';
-import { editarPropuestaLuna, descartarPropuestaLuna } from './api';
+import {
+  editarPropuestaLuna,
+  descartarPropuestaLuna,
+  fetchCatalogoAgregables,
+  type CatalogoAgregablesResp,
+  type AgregableAmbientacion,
+  type AgregableProducto,
+} from './api';
 
 const clp = (n: number) =>
   new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(n);
@@ -122,11 +129,84 @@ export function CotizacionCajon({ propuesta, reservaCreada, carrito, onUsarTexto
   const [confirmarCierre, setConfirmarCierre] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // H-077 — picker "+ Agregar ítem": ambientaciones + productos del catálogo.
+  const [agregarAbierto, setAgregarAbierto] = useState(false);
+  const [catalogo, setCatalogo] = useState<CatalogoAgregablesResp | null>(null);
+  const [catalogoCargando, setCatalogoCargando] = useState(false);
+  const [catalogoError, setCatalogoError] = useState<string | null>(null);
+  const [filtro, setFiltro] = useState('');
+
+  const toggleAgregar = async () => {
+    const abrir = !agregarAbierto;
+    setAgregarAbierto(abrir);
+    setFiltro('');
+    if (!abrir || catalogo || catalogoCargando) return;
+    setCatalogoCargando(true);
+    setCatalogoError(null);
+    try {
+      setCatalogo(await fetchCatalogoAgregables());
+    } catch (e) {
+      setCatalogoError(e instanceof Error ? e.message : 'No se pudo cargar el catálogo');
+    } finally {
+      setCatalogoCargando(false);
+    }
+  };
+
+  // La ambientación acompaña al servicio del día (tina-first): hereda fecha/hora de
+  // la primera línea de servicio con fecha. cantidad=1 a propósito — para servicios
+  // Django cobra precio_base × cantidad_personas.
+  const agregarAmbientacion = (a: AgregableAmbientacion) =>
+    setLineas((ls) => {
+      const ya = ls.find((l) => l.servicioId === a.servicio_id);
+      if (ya) {
+        return ls.map((l) =>
+          l.servicioId === a.servicio_id ? { ...l, cantidad: l.cantidad + 1 } : l,
+        );
+      }
+      const base = ls.find((l) => !l.esProducto && l.fecha);
+      return [
+        ...ls,
+        {
+          key: `add-s-${a.servicio_id}`,
+          nombre: a.nombre,
+          esProducto: false,
+          servicioId: a.servicio_id,
+          fecha: base?.fecha ?? null,
+          hora: base?.hora ?? null,
+          cantidad: 1,
+        },
+      ];
+    });
+
+  const agregarProducto = (p: AgregableProducto) =>
+    setLineas((ls) => {
+      const ya = ls.find((l) => l.productoId === p.producto_id);
+      if (ya) {
+        return ls.map((l) =>
+          l.productoId === p.producto_id ? { ...l, cantidad: l.cantidad + 1 } : l,
+        );
+      }
+      return [
+        ...ls,
+        {
+          key: `add-p-${p.producto_id}`,
+          nombre: p.nombre,
+          esProducto: true,
+          productoId: p.producto_id,
+          fecha: null,
+          hora: null,
+          cantidad: 1,
+        },
+      ];
+    });
+
   const entrarEditar = () => {
     if (!propuesta) return;
     setLineas(construirLineas(propuesta));
     setError(null);
     setConfirmarCierre(false);
+    setAgregarAbierto(false);
+    setFiltro('');
     setModo('editar');
   };
   const cancelarEditar = () => {
@@ -278,6 +358,13 @@ export function CotizacionCajon({ propuesta, reservaCreada, carrito, onUsarTexto
   // se calcula aquí; lo recalcula Django al guardar (precios siempre del catálogo).
   if (modo === 'editar') {
     const sinServicios = !lineas.some((l) => l.servicioId != null);
+    const q = filtro.trim().toLowerCase();
+    const ambFiltradas = (catalogo?.ambientaciones ?? []).filter((a) =>
+      a.nombre.toLowerCase().includes(q),
+    );
+    const prodFiltrados = (catalogo?.productos ?? []).filter((p) =>
+      p.nombre.toLowerCase().includes(q),
+    );
     return (
       <div className="rounded-md border border-amber-300 bg-amber-50 p-2.5 text-xs">
         <div className="mb-1.5 flex items-center gap-1.5 font-semibold text-amber-900">
@@ -328,6 +415,73 @@ export function CotizacionCajon({ propuesta, reservaCreada, carrito, onUsarTexto
           ))}
           {lineas.length === 0 && (
             <p className="text-amber-700/80">Quitaste todas las líneas. Cancela para volver.</p>
+          )}
+        </div>
+        {/* H-077 — agregar ambientaciones / productos del catálogo a la cotización */}
+        <div className="mt-2">
+          <button
+            type="button"
+            onClick={toggleAgregar}
+            disabled={guardando}
+            className="flex items-center gap-1 rounded-md border border-amber-300 px-2 py-1 text-[11px] font-medium text-amber-800 hover:bg-amber-100 disabled:opacity-50"
+          >
+            <Plus className="h-3 w-3" />
+            Agregar ítem
+          </button>
+          {agregarAbierto && (
+            <div className="mt-1.5 rounded border border-amber-200 bg-white p-1.5">
+              <input
+                value={filtro}
+                onChange={(e) => setFiltro(e.target.value)}
+                placeholder="Buscar: tabla, jugo, café, ambientación…"
+                className="mb-1 w-full rounded border border-slate-200 px-1.5 py-1 text-[11px] focus:border-amber-400 focus:outline-none"
+              />
+              {catalogoCargando ? (
+                <div className="flex justify-center py-2 text-slate-400">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                </div>
+              ) : catalogoError ? (
+                <p className="py-1 text-[11px] text-red-600">{catalogoError}</p>
+              ) : catalogo ? (
+                <div className="max-h-44 space-y-0.5 overflow-y-auto">
+                  {ambFiltradas.length > 0 && (
+                    <p className="pt-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+                      Ambientaciones
+                    </p>
+                  )}
+                  {ambFiltradas.map((a) => (
+                    <button
+                      key={`amb-${a.servicio_id}`}
+                      type="button"
+                      onClick={() => agregarAmbientacion(a)}
+                      className="flex w-full items-center justify-between gap-2 rounded px-1.5 py-1 text-left text-[11px] text-slate-700 hover:bg-amber-50"
+                    >
+                      <span className="truncate">{a.nombre}</span>
+                      <span className="flex-shrink-0 font-medium text-slate-500">{clp(a.precio)}</span>
+                    </button>
+                  ))}
+                  {prodFiltrados.length > 0 && (
+                    <p className="pt-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+                      Productos
+                    </p>
+                  )}
+                  {prodFiltrados.map((p) => (
+                    <button
+                      key={`prod-${p.producto_id}`}
+                      type="button"
+                      onClick={() => agregarProducto(p)}
+                      className="flex w-full items-center justify-between gap-2 rounded px-1.5 py-1 text-left text-[11px] text-slate-700 hover:bg-amber-50"
+                    >
+                      <span className="truncate">{p.nombre}</span>
+                      <span className="flex-shrink-0 font-medium text-slate-500">{clp(p.precio)}</span>
+                    </button>
+                  ))}
+                  {ambFiltradas.length === 0 && prodFiltrados.length === 0 && (
+                    <p className="py-1 text-[11px] text-slate-400">Sin resultados para “{filtro}”.</p>
+                  )}
+                </div>
+              ) : null}
+            </div>
           )}
         </div>
         <p className="mt-1.5 text-[11px] text-amber-700/80">El total se recalcula al guardar.</p>

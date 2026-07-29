@@ -603,6 +603,33 @@ export const fetchBibliotecaMedios = async (): Promise<MediaLibraryResp> => {
   return json as MediaLibraryResp;
 };
 
+// --- Catálogo agregable (H-077): picker "+ Agregar ítem" del cajón de cotización ---
+export interface AgregableAmbientacion {
+  servicio_id: number;
+  nombre: string;
+  precio: number;
+}
+export interface AgregableProducto {
+  producto_id: number;
+  nombre: string;
+  precio: number;
+  categoria: string; // Comestibles | Bebestibles
+}
+export interface CatalogoAgregablesResp {
+  ambientaciones: AgregableAmbientacion[];
+  productos: AgregableProducto[];
+}
+
+/** Catálogo de ítems que se pueden agregar a una cotización: ambientaciones +
+ * productos vendibles (tablas/jugos/café/torta). Los precios son referencia para
+ * elegir; al guardar, Django re-lee el catálogo (fuente única). */
+export const fetchCatalogoAgregables = async (): Promise<CatalogoAgregablesResp> => {
+  const res = await fetch(`${apiBase()}/api/v1/inbox/catalogo-agregables`);
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok || json.success === false) throw new Error(json.error || `HTTP ${res.status}`);
+  return json as CatalogoAgregablesResp;
+};
+
 /** Envía una foto/video de la biblioteca (por URL pública) por el canal indicado. */
 export const enviarAdjuntoURL = async (
   canal: 'whatsapp' | 'instagram' | 'messenger',
