@@ -17,6 +17,7 @@ import {
   Loader2,
   AlertTriangle,
   Camera as InstagramIcon,
+  Lock,
 } from 'lucide-react';
 import { ConversacionWhatsApp } from '../bandeja/ConversacionWhatsApp';
 import { ConversacionInstagram } from '../bandeja/ConversacionInstagram';
@@ -32,6 +33,19 @@ const canalDe = (c: ConversacionResumen): CanalMensaje => c.canal || 'whatsapp';
 // legacy de WA); en Instagram es el IGSID (external_id).
 const extDe = (c: ConversacionResumen): string =>
   canalDe(c) === 'whatsapp' ? c.phone || c.external_id || '' : c.external_id || '';
+
+// Candado 🔒 en la lista: para IG/Messenger, si el último mensaje (de cualquier
+// dirección) tiene más de 24h, la ventana de Meta está cerrada con certeza (el
+// último ENTRANTE es aún más antiguo). Regla conservadora: si respondimos hace
+// poco no lo sabemos con seguridad, así que no marcamos (no sobre-avisamos).
+const VENTANA_24H_MS = 24 * 60 * 60 * 1000;
+const fueraDeVentana = (c: ConversacionResumen): boolean => {
+  const canal = canalDe(c);
+  if (canal !== 'instagram' && canal !== 'messenger') return false;
+  const t = Date.parse(c.ultimo_timestamp);
+  if (Number.isNaN(t)) return false;
+  return Date.now() - t >= VENTANA_24H_MS;
+};
 
 // Número piloto de Meta (sandbox) con el que validamos el end-to-end.
 const PILOTO = '+56958655810';
@@ -345,7 +359,12 @@ export default function MensajesWhatsAppPage() {
                               {titulo}
                             </span>
                           </span>
-                          <span className="flex-shrink-0 text-[10px] text-slate-400">
+                          <span className="flex flex-shrink-0 items-center gap-1 text-[10px] text-slate-400">
+                            {fueraDeVentana(c) && (
+                              <span title="Fuera de la ventana de 24 h — respóndele desde la app de Instagram/Messenger">
+                                <Lock className="h-3 w-3 text-amber-500" />
+                              </span>
+                            )}
                             {horaCorta(c.ultimo_timestamp)}
                           </span>
                         </div>

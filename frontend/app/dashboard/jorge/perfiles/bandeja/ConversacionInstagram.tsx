@@ -7,6 +7,7 @@ import { fetchConversacionInbox, marcarAtendidoInbox, responderInstagram, respon
 import { BibliotecaMedios } from './BibliotecaMedios';
 import type { CanalMensaje, MensajeInbox, SugerenciaAgente, PropuestaReserva, ReservaCreada, CarritoEnCurso } from './types';
 import { CotizacionCajon } from './CotizacionCajon';
+import { useAlternativasHorario } from './useAlternativasHorario';
 
 interface Props {
   externalId: string; // IGSID (Instagram) o PSID (Messenger) del cliente
@@ -132,6 +133,19 @@ export function ConversacionInstagram({ externalId, nombre, canal = 'instagram',
     if (e instanceof Error && e.message.includes('2534022')) setVentanaMetaCerrada(true);
     setSendError(traducirError(e, fallback));
   };
+
+  // Alternativas de horario (H-061) — mismo feature que WhatsApp, vía el hook
+  // compartido. Deshabilitado si la ventana de 24h está cerrada o mientras envía.
+  const alt = useAlternativasHorario({
+    onUsarTexto: setInput,
+    disabled: bloqueado || enviando,
+    resetKey: externalId,
+    btnClass:
+      'flex h-[38px] w-[38px] flex-shrink-0 items-center justify-center rounded-md border border-slate-300 text-slate-500 hover:bg-slate-100 disabled:opacity-50',
+    ringClass: tema.focus,
+    buscarBtnClass: tema.sendBg,
+    accentText: tema.accent,
+  });
 
   const cargar = useCallback(
     // conSugerencia: pide el borrador del agente IA (H-019). Solo en la carga
@@ -266,6 +280,7 @@ export function ConversacionInstagram({ externalId, nombre, canal = 'instagram',
           onSelect={(url) => enviarDesdeBiblioteca(url)}
         />
       )}
+      {alt.modal}
       <header className={`flex flex-shrink-0 items-center gap-2 border-b ${tema.hBorder} ${tema.hBg} p-3`}>
         {onVolver && (
           <button
@@ -403,6 +418,7 @@ export function ConversacionInstagram({ externalId, nombre, canal = 'instagram',
             Borrador sugerido por IA — revísalo antes de enviar.
           </p>
         ) : null}
+        {alt.chip}
         <form
           onSubmit={(e) => {
             e.preventDefault();
@@ -435,6 +451,7 @@ export function ConversacionInstagram({ externalId, nombre, canal = 'instagram',
           >
             <Images className="h-4 w-4" />
           </button>
+          {alt.boton}
           <textarea
             ref={textareaRef}
             value={input}
