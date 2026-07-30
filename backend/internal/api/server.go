@@ -227,6 +227,8 @@ func (s *Server) setupRoutes() {
 		// H-042: Deborah corrige (editar) o cierra (descartar) el borrador de cotización.
 		r.Post("/luna/editar-reserva", handlers.LunaEditarPropuesta(s.config))
 		r.Post("/luna/descartar-reserva", handlers.LunaDescartarPropuesta(s.config))
+		// H-079 (H-046 F2): corregir el carrito EN CURSO (pre-cotización) desde el cajón.
+		r.Post("/luna/editar-carrito", handlers.LunaEditarCarrito(s.config))
 		r.Get("/resumen-reserva/{id}", handlers.ResumenReserva(s.config))
 		// Utilidad de pruebas: borrar historial + carrito de un teléfono.
 		r.Post("/inbox/limpiar-conversacion", handlers.InboxLimpiarConversacion(s.config))

@@ -731,6 +731,14 @@ func (c *Client) EditarPropuestaLuna(apiKey string, payload interface{}) ([]byte
 	return c.postWhatsAppRaw("/api/luna/reservas/editar/", apiKey, payload)
 }
 
+// EditarCarritoLuna (H-079, H-046 F2): corrige el carrito EN CURSO (pre-cotización) de
+// una conversación — REEMPLAZO TOTAL de servicios + productos; Django re-lee precios
+// del catálogo y recalcula totales + descuento. Listas vacías → Django elimina el
+// carrito. JSON crudo `{success, items_count, total}` | `{success, vacio}`.
+func (c *Client) EditarCarritoLuna(apiKey string, payload interface{}) ([]byte, error) {
+	return c.postWhatsAppRaw("/api/luna/carrito/editar/", apiKey, payload)
+}
+
 // DescartarPropuestaLuna cierra/descarta el borrador de cotización (H-042): la marca
 // como 'descartada' → deja de ser vigente y desaparece del cajón. JSON crudo.
 func (c *Client) DescartarPropuestaLuna(apiKey, propuestaID string) ([]byte, error) {

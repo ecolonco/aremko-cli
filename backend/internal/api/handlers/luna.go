@@ -147,6 +147,62 @@ func LunaEditarPropuesta(cfg *config.Config) http.HandlerFunc {
 	}
 }
 
+// LunaEditarCarrito (H-079, H-046 F2): corrige el carrito EN CURSO (pre-cotización)
+// de una conversación — reemplazo total de servicios + productos. A diferencia de la
+// propuesta, acá las listas PUEDEN quedar vacías: Django elimina el carrito (vaciar).
+func LunaEditarCarrito(cfg *config.Config) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if cfg.LunaAPIKey == "" || cfg.BookingSystemURL == "" {
+			respondError(w, http.StatusServiceUnavailable, "Django no configurado")
+			return
+		}
+		var body struct {
+			Canal      string `json:"canal"`
+			ExternalID string `json:"external_id"`
+			Servicios  []struct {
+				ServicioID       int     `json:"servicio_id"`
+				Fecha            *string `json:"fecha"`
+				Hora             *string `json:"hora"`
+				CantidadPersonas int     `json:"cantidad_personas"`
+			} `json:"servicios"`
+			Productos []struct {
+				ProductoID int `json:"producto_id"`
+				Cantidad   int `json:"cantidad"`
+			} `json:"productos"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil ||
+			strings.TrimSpace(body.Canal) == "" || strings.TrimSpace(body.ExternalID) == "" {
+			respondError(w, http.StatusBadRequest, "se requieren 'canal' y 'external_id'")
+			return
+		}
+		// Django exige que 'servicios' venga como lista (aunque sea vacía); nil → [].
+		if body.Servicios == nil {
+			body.Servicios = []struct {
+				ServicioID       int     `json:"servicio_id"`
+				Fecha            *string `json:"fecha"`
+				Hora             *string `json:"hora"`
+				CantidadPersonas int     `json:"cantidad_personas"`
+			}{}
+		}
+		if body.Productos == nil {
+			body.Productos = []struct {
+				ProductoID int `json:"producto_id"`
+				Cantidad   int `json:"cantidad"`
+			}{}
+		}
+
+		raw, err := bookings.NewClient(cfg.BookingSystemURL).EditarCarritoLuna(cfg.LunaAPIKey, body)
+		if err != nil {
+			// Propaga el detalle de Django (carrito_not_found / validation_error / etc.).
+			respondError(w, http.StatusBadGateway, err.Error())
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write(raw)
+	}
+}
+
 // LunaDescartarPropuesta cierra/descarta el borrador de cotización desde la
 // conversación (H-042). Reenvía a Django POST /api/luna/reservas/descartar/. La
 // propuesta queda 'descartada' → desaparece del cajón en la próxima lectura.

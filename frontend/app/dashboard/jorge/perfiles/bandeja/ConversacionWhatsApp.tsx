@@ -701,9 +701,11 @@ export function ConversacionWhatsApp({
           <CotizacionCajon
             propuesta={propuesta}
             reservaCreada={reservaCreada}
-            carrito={carrito} // H-046: carrito en vivo (solo lectura)
+            carrito={carrito} // H-046: carrito en vivo (editable desde H-079)
             onUsarTexto={(texto) => setTexto(texto)} // Deborah revisa y lo envía al cliente
             onRefrescar={() => cargar(true)} // H-042: tras editar/cerrar, releer la conversación
+            editCanal="whatsapp" // H-079: identidad para corregir el carrito en curso
+            editExternalId={phone}
           />
         )}
         {!ventanaAbierta && mensajes.length > 0 && (

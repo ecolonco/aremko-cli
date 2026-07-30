@@ -719,6 +719,29 @@ export const editarPropuestaLuna = async (
   return json as EditarPropuestaResult;
 };
 
+/**
+ * H-079 (H-046 F2): corrige el carrito EN CURSO (pre-cotización). Mismo contrato de
+ * reemplazo total que editarPropuestaLuna, pero identificado por (canal, external_id)
+ * y con una diferencia: las listas PUEDEN quedar vacías → Django elimina el carrito.
+ */
+export const editarCarritoLuna = async (
+  canal: 'whatsapp' | 'instagram' | 'messenger',
+  externalId: string,
+  servicios: EditarPropuestaServicio[],
+  productos: EditarPropuestaProducto[]
+): Promise<{ success: boolean; items_count?: number; total?: number; vacio?: boolean }> => {
+  const res = await fetch(`${apiBase()}/api/v1/luna/editar-carrito`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ canal, external_id: externalId, servicios, productos }),
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok || json.success === false) {
+    throw new Error(json.mensaje || json.error || `HTTP ${res.status}`);
+  }
+  return json;
+};
+
 /** H-042: Deborah cierra/descarta el borrador de cotización desde la conversación. */
 export const descartarPropuestaLuna = async (
   propuestaId: string

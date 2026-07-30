@@ -364,9 +364,11 @@ export function ConversacionInstagram({ externalId, nombre, canal = 'instagram',
           <CotizacionCajon
             propuesta={propuesta}
             reservaCreada={reservaCreada}
-            carrito={carrito} // H-046: carrito en vivo (solo lectura)
+            carrito={carrito} // H-046: carrito en vivo (editable desde H-079)
             onUsarTexto={(texto) => setInput(texto)} // Deborah revisa y lo envía al cliente
             onRefrescar={() => cargar(true)} // H-042: tras editar/cerrar, releer la conversación
+            editCanal={canal} // H-079: identidad para corregir el carrito en curso
+            editExternalId={externalId}
           />
         )}
         {sendError && (
