@@ -514,7 +514,12 @@ export function CotizacionCajon({ propuesta, reservaCreada, carrito, onUsarTexto
                       onClick={() => agregarProducto(p)}
                       className="flex w-full items-center justify-between gap-2 rounded px-1.5 py-1 text-left text-[11px] text-slate-700 hover:bg-amber-50"
                     >
-                      <span className="truncate">{p.nombre}</span>
+                      {/* H-087: el picker ya no es solo comestibles/bebestibles (entran ramos,
+                          batas, souvenirs...) → la categoría desambigua de un vistazo. */}
+                      <span className="truncate">
+                        {p.nombre}
+                        {p.categoria && <span className="text-slate-400"> · {p.categoria}</span>}
+                      </span>
                       <span className="flex-shrink-0 font-medium text-slate-500">{clp(p.precio)}</span>
                     </button>
                   ))}
