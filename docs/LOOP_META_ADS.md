@@ -164,6 +164,22 @@ de ambas campañas. Con los datos reales eso es lo contrario de lo correcto para
 Pausa — el presupuesto YA se subió ~2,6x y el retorno en clicks fue nulo. No se
 ejecutó nada, por suerte.
 
+**Addendum — la escritura en Meta NO funciona (token sin permiso).** Jorge pidió
+pausar "Pausa junto al río"; el endpoint respondió 502 con error de Meta:
+
+```
+OAuthException code 200, subcode 4841013
+"El usuario no tiene permiso para realizar esta acción"
+```
+
+El `META_ACCESS_TOKEN` de Render sirve para leer (`ads_read`) pero **no tiene
+`ads_management`** — o el usuario detrás del token tiene rol *Analista* en la
+cuenta `act_214650980544393` en vez de *Anunciante/Administrador*. Verificado tras
+el intento: ambas campañas siguen **ACTIVE**, no quedó estado a medias.
+
+Implicancia: mientras no se arregle el token, el loop **no puede** pasar de Nivel 2
+a ejecutar nada — ni pausar, ni ajustar presupuesto. Todo cambio pasa por el panel.
+
 ### 2026-07-03 — Ciclo 2
 
 **Ventana:** 2026-06-19 → 2026-07-02 (14d). Fuentes: `campaigns-with-insights`
