@@ -112,6 +112,58 @@ editar copy. Consecuencia:
 - Nota para el próximo ciclo: proponer solo acciones dentro de pausar/activar/budget,
   o marcar explícitamente cuáles requieren mano humana.
 
+---
+
+### 2026-08-09 — Ciclo 2 · ⚠️ CORRECCIÓN del ciclo 1
+
+**El ciclo 1 analizó una ventana equivocada.** Se tomó 2026-06-18 → 2026-07-02
+anclándose en el reloj del backend, cuando la fecha real era agosto. Todo el
+snapshot y las 3 recomendaciones del ciclo 1 quedaron **~5 semanas desactualizados**.
+Regla nueva: anclar SIEMPRE la ventana en la fecha del sistema (`date`), no en
+`/health` ni en el último commit.
+
+**Snapshot real — 14d (2026-07-27 → 2026-08-09):**
+
+| Campaña | Gasto | Gasto/día | Alcance | Clicks | CTR | CPC |
+|---|---|---|---|---|---|---|
+| Ritual del Río | $69.994 | ~$5.000 | 43.885 | 3.023 | 3,36% | $23 |
+| Pausa junto al río | $69.755 | ~$4.982 | 24.012 | 1.086 | 2,80% | **$64** |
+
+**Comparado con la ventana de junio del ciclo 1:**
+
+| | Ritual | Pausa |
+|---|---|---|
+| Gasto/día | $1.988 → $5.000 (**2,5x**) | $1.928 → $4.982 (**2,6x**) |
+| CTR | 4,93% → 3,36% (−32%) | 4,63% → 2,80% (−40%) |
+| CPC | $15 → $23 (+53%) | $21 → **$64 (+205%)** |
+| Clicks | 1.597 → 3.023 | 1.079 → **1.086 (plano)** |
+
+**Ventas reales (14d 27jul-9ago / 7d 3-9ago):**
+
+| Programa | 14d | 7d |
+|---|---|---|
+| Pausa (`tinas_masajes`) | 17 res / $2.210.000 | 8 res / $1.120.000 |
+| Ritual (`cabanas_tinas_masajes_1n`) | 9 res / $2.080.000 | 6 res / $1.350.000 |
+| Noche Aguas Calientes (`cabanas_tinas_1n`) | 8 res / $940.000 | 4 res / $620.000 |
+| Refugio (`cabanas_tinas_masajes_2n`) | **0** | **0** |
+| **Total sitio** | 82 res / $7.977.000 | 39 res / $4.275.000 |
+
+**Hallazgos:**
+
+1. **Pausa junto al río está quemando plata.** Gastó 2,6x más y trajo la misma
+   cantidad de clicks (1.079 → 1.086). El CPC se triplicó a $64. Sus ventas
+   subieron (9 → 17 res), pero eso es más consistente con vacaciones de invierno
+   que con la pauta: la pauta entregó cero clicks incrementales por $42.000 extra.
+2. **Fatiga de creatividad confirmada.** Ambas campañas siguen con creatividad y
+   nombre de "junio 2026" corriendo hace ~7 semanas. CTR cayó 32-40% en ambas.
+3. **Refugio pasó de $830.000 a CERO** reservas en 14 días. Sin pauta activa,
+   y el programa de 2 noches desapareció de las ventas del período.
+
+**Recomendación del ciclo 1 RETIRADA:** la nº3 proponía subir +50% el presupuesto
+de ambas campañas. Con los datos reales eso es lo contrario de lo correcto para
+Pausa — el presupuesto YA se subió ~2,6x y el retorno en clicks fue nulo. No se
+ejecutó nada, por suerte.
+
 ### 2026-07-03 — Ciclo 2
 
 **Ventana:** 2026-06-19 → 2026-07-02 (14d). Fuentes: `campaigns-with-insights`
