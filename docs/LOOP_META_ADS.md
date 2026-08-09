@@ -244,6 +244,22 @@ el gasto no mueve la aguja de forma proporcional.
 Campaña de mensajes → conversaciones + costo/conversación + reservas reales. NUNCA
 juzgar por CPC de enlace. Y usar `/brief/weekly`, no `campaigns-with-insights`.
 
+**ESTADO FINAL 2026-08-09:** Pausa se pausó y se **reactivó el mismo día** (ambas
+acciones por Jorge desde el panel; verificado vía API: las dos campañas ACTIVE).
+Neto: sin cambio de configuración, solo un corte de entrega de algunas horas el
+09-08 — tenerlo en cuenta si esa fecha aparece como anomalía en los datos del
+ciclo 3. **No se ejecutó ningún cambio real de estrategia; todo sigue como estaba.**
+
+**Pendientes reales para el ciclo 3** (con la métrica correcta esta vez):
+1. Ambas campañas llevan ~7 semanas con creatividad de junio; CTR de Ritual bajó de
+   4,9% a 3,7%. La fatiga sigue siendo el problema de fondo, no el presupuesto.
+2. Probar Pausa a medio presupuesto (~$16.000/semana), que es donde tuvo su mejor
+   semana (17 reservas). Es una hipótesis a validar, no una certeza.
+3. Ritual cuesta $8.234 por reserva vs $2.526 de Pausa, y vende 4 reservas/semana
+   gastando $0. Es el candidato lógico a recortar si hay que recortar algo.
+4. Refugio: $186.343 gastados históricamente para ROAS 2,68 — el peor de todos, y
+   con `budget_pct_used` en 186%. Revisar antes de reactivar nada ahí.
+
 ### 2026-07-03 — Ciclo 2
 
 **Ventana:** 2026-06-19 → 2026-07-02 (14d). Fuentes: `campaigns-with-insights`
