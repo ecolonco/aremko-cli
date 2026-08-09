@@ -180,6 +180,21 @@ el intento: ambas campañas siguen **ACTIVE**, no quedó estado a medias.
 Implicancia: mientras no se arregle el token, el loop **no puede** pasar de Nivel 2
 a ejecutar nada — ni pausar, ni ajustar presupuesto. Todo cambio pasa por el panel.
 
+**CAMBIO EJECUTADO — 2026-08-09, por Jorge desde el panel.**
+"Pausa junto al río – junio 2026" (`120251270498180782`) → **PAUSED**
+(verificado vía API tras el cambio). Ritual del Río sigue ACTIVE a ~$5.000/día.
+
+**Qué debe medir el ciclo 3** (esto es un experimento, no solo un corte de gasto):
+las ventas de `tinas_masajes` corrían en 17 res / $2.210.000 por 14d con la campaña
+prendida. Comparar los 14d posteriores al 09-08 contra esa base:
+- Si las ventas **se mantienen** → la pauta no las estaba generando (era temporada
+  de invierno) y los ~$5.000/día eran desperdicio puro. Confirmaría la hipótesis.
+- Si las ventas **caen** → la campaña sí aportaba pese al CPC de $64, y el problema
+  era de eficiencia, no de inutilidad. Ahí correspondería relanzarla con
+  creatividad nueva en vez de dejarla apagada.
+Ojo con el confound: agosto avanza y las vacaciones de invierno terminan, así que
+parte de cualquier caída es estacional. Mirar también `solo_tinas` como control.
+
 ### 2026-07-03 — Ciclo 2
 
 **Ventana:** 2026-06-19 → 2026-07-02 (14d). Fuentes: `campaigns-with-insights`
