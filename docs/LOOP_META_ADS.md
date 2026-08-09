@@ -195,6 +195,55 @@ prendida. Comparar los 14d posteriores al 09-08 contra esa base:
 Ojo con el confound: agosto avanza y las vacaciones de invierno terminan, así que
 parte de cualquier caída es estacional. Mirar también `solo_tinas` como control.
 
+---
+
+### 2026-08-09 — Ciclo 2b · ⚠️⚠️ ERROR DE MÉTRICA: se midió lo que no era
+
+**Los ciclos 1 y 2 usaron el endpoint equivocado.** Se usó
+`/meta-ads/campaigns-with-insights`, que reporta *clicks de enlace* y `leads`
+(action_type `lead`/`fb_pixel_lead`). Pero **Ritual y Pausa son campañas de
+MENSAJES** (`objective: mensajes (conversaciones/WhatsApp)`): su resultado son
+conversaciones iniciadas, y `leads` da 0 siempre. El CPC de "$64" que motivó pausar
+Pausa medía una métrica que la campaña ni siquiera optimiza.
+
+El endpoint correcto — el que el prompt del loop pedía desde el inicio — es
+`/api/v1/brief/weekly` (`brief.go`), que ya entrega conversaciones, costo por
+conversación **y** las cruza con reservas e ingresos reales por programa.
+
+**Datos correctos, últimas 4 semanas (12-07 → 02-08), gasto vs VENTAS REALES:**
+
+| | Pausa junto al río | Ritual del Río |
+|---|---|---|
+| Gasto | $118.733 | $139.978 |
+| Conversaciones | 216 | 401 |
+| Costo/conversación | $552 | $350 |
+| **Reservas reales** | **47** | **17** |
+| **Ingresos reales** | **$5.900.000** | **$3.900.000** |
+| **Costo por reserva** | **$2.526** | **$8.234** |
+| **ROAS** | **~50x** | **~28x** |
+
+**Conclusión invertida:** por la regla madre del loop (ventas reales, no métricas de
+plataforma), **Pausa era la MEJOR de las dos**, no la peor. Costaba más por
+conversación pero convertía 2,8x mejor a reserva. Se recomendó pausar la campaña
+más rentable de las dos.
+
+**Matiz importante — ninguna de las dos muestra respuesta causal clara al gasto:**
+
+| Semana | Pausa: gasto → reservas | Ritual: gasto → reservas |
+|---|---|---|
+| 14-06 | $0 → 4 | $0 → 4 |
+| 28-06 | $35.000 → 7 | $34.997 → 5 |
+| 12-07 | **$16.182 → 17** | $34.990 → 4 |
+| 02-08 | $34.901 → 8 | $34.996 → 6 |
+
+La mejor semana de Pausa (17 reservas) fue la de **medio presupuesto**. Ritual vende
+4 reservas gastando $0 y 6 gastando $35.000/semana. Ambos programas venden solos;
+el gasto no mueve la aguja de forma proporcional.
+
+**Regla nueva para el loop:** antes de juzgar una campaña, leer su `objective`.
+Campaña de mensajes → conversaciones + costo/conversación + reservas reales. NUNCA
+juzgar por CPC de enlace. Y usar `/brief/weekly`, no `campaigns-with-insights`.
+
 ### 2026-07-03 — Ciclo 2
 
 **Ventana:** 2026-06-19 → 2026-07-02 (14d). Fuentes: `campaigns-with-insights`
