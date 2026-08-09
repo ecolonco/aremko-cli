@@ -87,72 +87,54 @@
 > Se cargan A MANO en el panel de Google Ads (cuenta `5399750827`, login
 > `ecolonco1@gmail.com`). El loop NO las ejecuta (API de solo lectura). Al ejecutar
 > una, marcar `[x]` con la fecha y medir el efecto en el ciclo siguiente.
-> Origen: Ciclo #3 (2026-07-14). Las 3 correcciones del Ciclo #2 (21 negativas base +
-> keywords de Ritual y Pausa) ya fueron ejecutadas por Jorge el 2026-07-14 → registradas
-> en la bitácora del Ciclo #2, salen de esta lista.
+> Origen: Ciclo #4 (2026-08-08). Todas las correcciones del Ciclo #3 (negativas round 2,
+> ítem termas/puerto montt, Ruta A de Noche) fueron ejecutadas/decididas el 2026-07-14 →
+> registradas en su bitácora, salen de esta lista.
 
-**① Negativas ROUND 2 — mismas rutas, agregar al final de la lista de cuenta.**
+**① Negativas ROUND 3 — misma ruta, agregar al final de la lista de cuenta.**
 Ruta: llave ⚙️ → *Biblioteca compartida* → *Listas de exclusión de palabras clave* →
 abrir **"Negativas base Aremko"** → **+** → pegar el bloque → Guardar (ya está aplicada
-a las 3 campañas). Concordancia de FRASE (las comillas ya la fuerzan).
+a las 3 campañas). Concordancia de FRASE (las comillas ya la fuerzan). ⚠️ Guardar ANTES
+de tocar el paginador (lección del round 2).
 
 ```
-"purkaus"
-"santocha"
-"piscina temperada"
-"piscinas temperadas"
+"alma lemu"
+"dalcahue"
 ```
-- Motivos (respaldo en search-terms 2026-06-30 a 2026-07-13):
-  - `purkaus` → marca de sauna competidora (Pucón); en Refugio "purkaus cl" 2 clics, el
-    clic más caro del período. No es Aremko.
-  - `santocha` → marca de surf/yoga (Pucón); "santocha puerto varas" 1 clic, clic caro,
-    intención ajena.
-  - `piscina temperada` / `piscinas temperadas` → PRODUCTO EQUIVOCADO. Aremko tiene
-    tinajas de agua caliente, no piscina temperada para nadar. En Pausa se van ~$2.900 en
-    variantes ("piscina temperada puerto varas", "…en puerto varas", "piscinas temperadas
-    en puerto montt/puerto varas"). Se necesitan las dos formas (singular y plural) porque
-    la frase no cubre el plural.
-- [x] Negativas round 2 cargadas (2026-07-14 · 4 negativas de frase agregadas a mano por
-  Jorge a "Negativas base Aremko"; la lista pasó de 21 → 25 palabras clave y quedó aplicada
-  a las 3 campañas)
+- Motivos (respaldo en search-terms 2026-07-25 a 2026-08-07):
+  - `alma lemu` → competidor de tinas calientes; "alma lemu tinas calientes" en Refugio:
+    2 clics / $3.443 con CPC $1.721 — **el clic más caro de toda la cuenta** en el período.
+  - `dalcahue` → geo equivocada (Chiloé): "cabañas con tinajas en dalcahue" 3 clics / $547
+    en Ritual. Quien busca cabaña EN Dalcahue no va a manejar 4 horas + ferry.
 
-**② ÍTEM ④ del Ciclo #2 RESUELTO con datos — NO negativizar `termas` ni `puerto montt`.**
-No es un pegado: es una DECISIÓN para no bloquear demanda buena.
-- `termas` genérico = intención núcleo "aguas calientes": "termas puerto varas" 9 clics,
-  "termas en puerto varas" 10, "termas cerca de puerto montt" 13, todos con CTR sano. El
-  competidor "termas del sol" ya está negativizado como frase → el ruido puntual ya está
-  cubierto sin matar la categoría.
-- `puerto montt` = geo cercana de alta intención (audiencia Meta ya incluye Pto Montt):
-  "cabaña con tinaja puerto montt" 6 clics, "tinajas puerto montt" 7, "cabañas con tinajas
-  puerto montt" 3. Convierte. NO negativizar.
-- [x] Resuelto (2026-07-14 · decisión del Ciclo #3, respaldada en search-terms)
+**② Refugio: bajar presupuesto de $3.000 → $1.500/día.**
+Ruta: *Campañas* → **"Refugio - Search - Lanzamiento Junio 2026"** → clic en la columna
+*Presupuesto* → editar → $1.500/día → Guardar.
+- Motivo: **0 reservas del combo 2 noches en el período** (venía de 4) pese a gastar
+  $40.525, y ~35% de ese gasto (~$14k) es tráfico de MARCA ("aremko spa" y variantes)
+  que llegaría igual por orgánico. Su CTR 31,4% e IS 64,2% son espejismo marquero, no
+  demanda del combo. Invierno no mueve estadías de 2 noches; reevaluar al llegar la
+  temporada alta (Ciclo de octubre+). Reversible en 1 clic.
+- [ ] Pendiente de OK de Jorge
 
-**③ Corrección abierta — "Noche de Aguas Calientes": resolver COLISIÓN antes de lanzar.**
-La campaña sigue justificada (cab+tina 1n vende 6 res / $952k SIN Ads), PERO las keywords
-"cabaña con tinaja / con jacuzzi puerto varas" que se cargaron en Ritual el 2026-07-14
-sirven la MISMA intención (una búsqueda de "cabaña con tinaja" no dice si quiere masaje).
-Lanzar una 2ª campaña con esas mismas keywords haría que Ritual y Noche compitan entre sí
-y se suban el CPC — justo el anti-patrón que este loop viene evitando. Antes de crear la
-campaña, decidir UNA de estas dos rutas (SOLO PROPUESTA, esperar OK de Jorge):
-  - **Ruta A (recomendada, cero riesgo):** NO crear campaña nueva. La intención genérica
-    "cabaña con tinaja" se queda capturada por Ritual (mayor ticket, incluye masaje) y
-    Noche sigue vendiendo por orgánico. Medir 1-2 ciclos si la venta orgánica de Noche se
-    mantiene; sólo si CAE, reconsiderar.
-  - **Ruta B (si se quiere pauta propia):** crear "Noche de Aguas Calientes" con keywords
-    DISTINTAS y más de fondo de embudo, SIN pisar a Ritual (p. ej. "alojamiento con tinaja
-    los lagos", "cabaña aguas calientes puerto varas", "hot tub puerto varas"), presupuesto
-    chico ($2-3k/día), y agregar las keywords de Ritual como NEGATIVAS de Noche (y viceversa)
-    para que no se canibalicen.
-- [x] Ruta elegida: **A** (2026-07-14, decisión de Jorge). NO se crea campaña "Noche de
-  Aguas Calientes". La intención genérica "cabaña con tinaja" queda capturada por Ritual
-  (mayor ticket, incluye masaje) + orgánico. **Seguimiento:** monitorear en los próximos
-  ciclos si la venta orgánica de Noche (base **6 res / $952k** en 14 días) se mantiene; sólo
-  si CAE de forma sostenida, reabrir la evaluación de campaña propia (Ruta B).
+**③ DECISIÓN (propuesta mayor, no un pegado) — separar la MARCA en campaña propia.**
+La nota del Ciclo #3 ahora tiene números: **~15% del gasto total (~$27k del período) se va
+en búsquedas de marca** repartidas en las 3 campañas de producto (Refugio ~$14k ≈ 35% de su
+gasto; Pausa ~$8,7k con "aremko" 72 clics; Ritual ~$4,2k). Eso infla CTR/IS de Refugio y
+ensucia la lectura de demanda real en todas. Propuesta en 2 pasos (ejecutar juntos):
+  1. Crear campaña **"Marca - Search"** con keywords `[aremko]`, `"aremko spa"`,
+     `"aremko puerto varas"`, `"aremco"` (typo real con 5 clics), presupuesto $1.000/día,
+     apuntando a la home.
+  2. Agregar `"aremko"` y `"aremco"` como negativas DE CAMPAÑA en Refugio, Ritual y Pausa
+     (no a la lista de cuenta compartida, porque la campaña Marca la usa).
+- Beneficio: el clic de marca cuesta menos en campaña dedicada, y el IS/CTR de las campañas
+  de producto pasa a medir demanda NUEVA de verdad (hoy el 64% de IS de Refugio no dice nada).
+- [ ] Pendiente de decisión de Jorge (si prefiere, puede quedar para el próximo ciclo)
 
-**④ NO tocar / NO aplicar (sin cambios vs Ciclo #2):** presupuestos (ninguna campaña topa
-su budget de $13.000/día en total; Ritual usa solo ~75% del suyo → el IS bajo es por
-rango/keywords, no por plata); y NO aplicar la recomendación de Google *"Agrega palabras
-clave de concordancia amplia"* (agranda la dispersión que estamos corrigiendo).
+**④ NO tocar:** presupuestos de Ritual y Pausa (ninguno topa su budget); las keywords
+nuevas de Ritual del 07-14 (siguen en aprendizaje — IS aún plano pero CPC bajó a $158 y
+clics +45%); y la Ruta A de Noche de Aguas Calientes (validada: subió a 9 res / $1,1M
+orgánico, no se crea campaña).
 
 ---
 
@@ -465,3 +447,66 @@ efecto real (negativas round 1+2, keywords de Ritual/Pausa) recién se podrá me
 partir de ~7-14 días de campañas al aire SIN interrupción de pago. Ojo en el Ciclo #4:
 descontar del análisis los días en que estuvieron caídas por saldo impago (gasto/IS
 subestimados en esa ventana).
+
+---
+
+### 2026-08-08 — Ciclo #4 (primera medición POST-corrección)
+
+**Período analizado:** 2026-07-25 a 2026-08-07 (14 días) — ventana 100% posterior a las
+correcciones del 07-14 (25 negativas + keywords de Ritual/Pausa) y al corte por pago. Es
+el primer ciclo que puede MEDIR el efecto de lo ejecutado.
+
+**Snapshot Google Ads × ventas reales:**
+
+| Campaña | Gasto | % gasto | Clicks | CPC | CTR | Search IS | Ventas reales |
+|---|---|---|---|---|---|---|---|
+| Refugio (cab+tina+masaje 2n) | $40.525 | 23% | 147 | $276 | 31,4% | 64,2% | **0 res / $0** |
+| Ritual del Río (cab+tina+masaje 1n) | $67.435 | 38% | 426 | $158 | 11,2% | 22,3% | 8 res / $1.840.000 |
+| Pausa (tina+masaje) | $68.467 | 39% | 451 | **$152** | 14,8% | 31,9% | **20 res / $2.570.000** |
+| **Total Search** | **$176.427** | — | 1.024 | $172 | 14,0% | — | — |
+| _(sin campaña)_ Noche Aguas Calientes | — | — | — | — | — | — | **9 res / $1.100.000** |
+
+_(Total negocio período: 87 res / $8.292.000. Conversiones de plataforma ignoradas: 1
+fantasma en Refugio, atribución sigue rota.)_
+
+**MEDICIÓN de las correcciones del Ciclo #2/#3 (vs snapshot 06-30 a 07-13):**
+
+- **(a) Negativas (25 de frase) → ✅ FUNCIONARON.** CPC promedio de cuenta **$246 → $172
+  (-30%)**; Pausa se desplomó **$298 → $152 (-49%)**; Refugio $332 → $276. La cuenta compró
+  **+71% de clics (600 → 1.024) por solo +19% de gasto** ($147,7k → $176,4k). El gasto
+  basura en competidores/producto equivocado dejó de diluir la puja.
+- **(b) Keywords nuevas de Ritual → ⚠️ IS AÚN PLANO.** Search IS 21,7% → 22,3% y CTR
+  11,7% → 11,2%: el share no se movió. PERO el mercado creció (impresiones 2.504 → 3.807,
+  +52%) y Ritual capturó +45% de clics con el CPC más bajo de su historia ($179 → $158) →
+  en volumen absoluto sí creció; el share relativo sigue siendo la tarea. Dar 1 ciclo más
+  de aprendizaje antes de tocar keywords de nuevo.
+- **(c) Ventas reales:** Pausa 17 → 20 res (↑, sigue #1 en reservas), Ritual 11 → 8 res
+  ($2,46M → $1,84M, ↓ moderada), **Refugio 4 → 0 res** (el combo 2 noches NO vendió nada),
+  Noche 6 → 9 res / $952k → $1.100k (↑ — **la Ruta A queda VALIDADA**: el orgánico de
+  Noche no solo se mantuvo, creció).
+
+**Hallazgos nuevos (search-terms del período):**
+
+1. **Refugio es hoy una campaña de MARCA disfrazada:** ~35% de su gasto (~$14k) va a
+   "aremko spa"/"aremko"/variantes (70 de sus 147 clics). Su CTR 31,4% e IS 64,2% son
+   espejismo marquero — y el combo que publicita vendió 0. En toda la cuenta, la marca se
+   come **~15% del gasto (~$27k)**: Pausa ~$8,7k ("aremko" 72 clics + typo "aremco" 5),
+   Ritual ~$4,2k.
+2. **Competidor nuevo caro:** "alma lemu tinas calientes" (Refugio) 2 clics / $3.443,
+   CPC $1.721 — el clic más caro de la cuenta. Negativizar `alma lemu`.
+3. **Geo Chiloé:** "cabañas con tinajas en dalcahue" 3 clics / $547 en Ritual —
+   negativizar `dalcahue`.
+4. Los QS de las keywords "románticas" originales de Ritual siguen en 0 (sin datos/volumen):
+   la demanda real de la campaña es "tinajas / termas / cabaña con tinaja", no "escapada
+   romántica". Confirma que las keywords del 07-14 apuntaron bien.
+
+**Correcciones del ciclo (SOLO PROPUESTA — ver sección "▶ Correcciones" arriba):**
+① negativas round 3 (`alma lemu`, `dalcahue`); ② bajar presupuesto de Refugio $3.000 →
+$1.500/día (0 ventas + 35% marca); ③ decidir separación de campaña de MARCA (2 pasos:
+campaña nueva $1.000/día + negativas "aremko"/"aremco" en las 3 de producto); ④ no tocar
+Ritual/Pausa ni la Ruta A.
+
+**A MEDIR en el Ciclo #5:** (a) efecto de round 3 y del ajuste de Refugio en el gasto;
+(b) si el IS de Ritual despega con más tiempo de aprendizaje (base 22,3%); (c) si se
+ejecuta ③, leer por primera vez el IS/CTR de producto LIMPIOS de marca; (d) ventas de
+Refugio con la llegada de la pre-temporada (¿reactivar presupuesto en octubre?).
