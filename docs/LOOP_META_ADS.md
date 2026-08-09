@@ -100,6 +100,18 @@ y CPC $15-21 son muy sanos.
    presupuesto en Ritual y Pausa por un ciclo (hoy se gasta ~$47k/14d contra $5M
    de ventas de programas).
 
+**Addendum (mismo día) — límite de ejecución detectado.** Jorge aprobó ejecutar las
+3, pero `internal/meta/write.go` solo sabe hacer 3 cosas: pausar, activar y fijar
+`daily_budget` de una campaña. NO puede crear campañas, ad sets ni creatividades, ni
+editar copy. Consecuencia:
+- Rec 1 y 2 (crear/recrear campañas) **no son automatizables hoy** — requieren Ads
+  Manager o agregar capacidad de creación al código.
+- Rec 3: el cambio de presupuesto sí es posible por endpoint, pero el cliente de
+  lectura solo pide `id,name,status` — **no se conoce el `daily_budget` actual**, así
+  que no se puede calcular el +50% sin adivinar. No se ejecutó.
+- Nota para el próximo ciclo: proponer solo acciones dentro de pausar/activar/budget,
+  o marcar explícitamente cuáles requieren mano humana.
+
 ### 2026-07-03 — Ciclo 2
 
 **Ventana:** 2026-06-19 → 2026-07-02 (14d). Fuentes: `campaigns-with-insights`
