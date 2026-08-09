@@ -106,16 +106,23 @@ de tocar el paginador (lección del round 2).
     2 clics / $3.443 con CPC $1.721 — **el clic más caro de toda la cuenta** en el período.
   - `dalcahue` → geo equivocada (Chiloé): "cabañas con tinajas en dalcahue" 3 clics / $547
     en Ritual. Quien busca cabaña EN Dalcahue no va a manejar 4 horas + ferry.
+- [x] Ejecutada (2026-08-08 · Jorge cargó las 2 negativas de frase a mano; la lista
+  "negativas base aremko" pasó de **25 → 27** palabras clave, sigue aplicada a las 3
+  campañas). A medir en el Ciclo #5: que desaparezca el clic de $1.721 de "alma lemu".
 
-**② Refugio: bajar presupuesto de $3.000 → $1.500/día.**
-Ruta: *Campañas* → **"Refugio - Search - Lanzamiento Junio 2026"** → clic en la columna
-*Presupuesto* → editar → $1.500/día → Guardar.
-- Motivo: **0 reservas del combo 2 noches en el período** (venía de 4) pese a gastar
-  $40.525, y ~35% de ese gasto (~$14k) es tráfico de MARCA ("aremko spa" y variantes)
-  que llegaría igual por orgánico. Su CTR 31,4% e IS 64,2% son espejismo marquero, no
-  demanda del combo. Invierno no mueve estadías de 2 noches; reevaluar al llegar la
-  temporada alta (Ciclo de octubre+). Reversible en 1 clic.
-- [ ] Pendiente de OK de Jorge
+**② REBALANCEO Refugio → Ritual (presupuesto de cuenta NEUTRO, sigue en $13.000/día).**
+Ruta: *Campañas* → clic en la celda de *Presupuesto* de cada campaña → editar → Guardar.
+- Refugio: $3.000 → **$1.500**/día. Motivo: **0 reservas del combo 2 noches en el período**
+  (venía de 4) pese a gastar $40.525; ~35% de ese gasto (~$14k) es tráfico de MARCA que
+  llegaría igual por orgánico; y el panel la marca *"Limitada por el volumen de búsquedas"*
+  → su mercado es chico, más plata no compra nada. Reevaluar en pre-temporada (octubre+).
+- Ritual: $5.000 → **$6.500**/día. Motivo: **el panel la marca "Limitado por el presupuesto"**
+  (ver hallazgo ⑤ del ciclo) — se queda sin plata todos los días, tiene el CPC más barato de
+  la cuenta ($158) y captura solo 22,3% de las búsquedas. Es donde el peso marginal rinde más.
+- Pausa: SIN CAMBIO ($5.000). El panel la marca *"Limitada por el volumen de búsquedas"* →
+  no le falta plata, le falta mercado.
+- [x] Ejecutada (2026-08-08 · Jorge cambió ambos presupuestos en el panel; verificado en
+  pantalla: Ritual $6.500 · Pausa $5.000 · Refugio $1.500 · **Total cuenta $13.000/día**)
 
 **③ DECISIÓN (propuesta mayor, no un pegado) — separar la MARCA en campaña propia.**
 La nota del Ciclo #3 ahora tiene números: **~15% del gasto total (~$27k del período) se va
@@ -500,13 +507,42 @@ fantasma en Refugio, atribución sigue rota.)_
    la demanda real de la campaña es "tinajas / termas / cabaña con tinaja", no "escapada
    romántica". Confirma que las keywords del 07-14 apuntaron bien.
 
-**Correcciones del ciclo (SOLO PROPUESTA — ver sección "▶ Correcciones" arriba):**
-① negativas round 3 (`alma lemu`, `dalcahue`); ② bajar presupuesto de Refugio $3.000 →
-$1.500/día (0 ventas + 35% marca); ③ decidir separación de campaña de MARCA (2 pasos:
-campaña nueva $1.000/día + negativas "aremko"/"aremco" en las 3 de producto); ④ no tocar
-Ritual/Pausa ni la Ruta A.
+5. **⭐ HALLAZGO MAYOR (visto en el panel con Jorge, 2026-08-08) — el freno de Ritual CAMBIÓ
+   de lugar: ahora SÍ es presupuesto.** El estado de las campañas en el panel hoy es:
+   - **Ritual del Río ($5.000/día): "Limitado por el presupuesto"** ← era *"No hay suficientes
+     palabras clave relevantes"* en el Ciclo #2/#3.
+   - Pausa ($5.000/día) y Refugio ($3.000/día): *"Limitada por el volumen de búsquedas"*.
 
-**A MEDIR en el Ciclo #5:** (a) efecto de round 3 y del ajuste de Refugio en el gasto;
-(b) si el IS de Ritual despega con más tiempo de aprendizaje (base 22,3%); (c) si se
-ejecuta ③, leer por primera vez el IS/CTR de producto LIMPIOS de marca; (d) ventas de
-Refugio con la llegada de la pre-temporada (¿reactivar presupuesto en octubre?).
+   **Esto es la prueba de que las keywords del 07-14 funcionaron.** El diagnóstico del
+   Ciclo #2 ("el IS bajo de Ritual es por rango/keywords, no por plata") era correcto EN SU
+   MOMENTO y quedó RESUELTO: al agregar las keywords núcleo, Ritual dejó de estar limitada
+   por relevancia y pasó a estar limitada por presupuesto. Es el mismo síntoma (IS 22%) con
+   causa distinta — por eso el ciclo anterior acertó al NO subirle plata, y este acierta al
+   SÍ subírsela. La API **no expone esta distinción** (`budget_total_clp` viene en 0 y el
+   `search_impression_share` no separa lost-IS-budget de lost-IS-rank) → **el panel sigue
+   siendo obligatorio para leer el estado real antes de tocar presupuestos.**
+
+6. **Refugio arrastra un problema de configuración de conversiones** (panel: *"Las conversiones
+   avanzadas presentan problemas de configuración que afectan el rendimiento"*). Encaja con la
+   atribución rota que el loop viene ignorando por regla, y explica el `conversions: 1`
+   fantasma de la API. No bloquea nada — pero es la raíz de por qué no se puede confiar en las
+   conversiones de plataforma. Candidato a arreglar cuando se retome el tema de tracking.
+
+**CIERRE Ciclo #4 (2026-08-08) — 2 de 3 correcciones EJECUTADAS en vivo con Jorge.**
+① Negativas round 3 cargadas (`alma lemu`, `dalcahue`) → la lista "negativas base aremko"
+pasó de 25 → **27** palabras clave. ② Rebalanceo ejecutado: Refugio $3.000 → **$1.500** y
+Ritual $5.000 → **$6.500**, Pausa sin cambio → **total de cuenta NEUTRO en $13.000/día**.
+③ (campaña de MARCA separada) queda ABIERTA, pendiente de decisión de Jorge.
+
+**Lección de método (2ª vez que pasa, ahora al revés):** el estado del panel *"Limitado por
+el presupuesto"* vs *"Limitada por el volumen de búsquedas"* es el dato que decide si mover
+plata sirve o no — y la API no lo expone. En el Ciclo #2 ese chequeo DESCARTÓ subir
+presupuesto; en el #4 lo JUSTIFICÓ. **Regla para próximos ciclos: antes de recomendar
+cualquier cambio de presupuesto, pedir a Jorge la captura de la columna Estado del panel.**
+
+**A MEDIR en el Ciclo #5 (ventana ≥ 2026-08-22):** (a) si Ritual con $6.500/día sube su
+Search IS desde 22,3% y si deja de aparecer "Limitado por el presupuesto"; (b) si las ventas
+de Ritual se recuperan (8 res este ciclo, venía de 11); (c) que desaparezca el clic de $1.721
+de "alma lemu"; (d) que bajar Refugio a $1.500 NO haya afectado nada (ya vendía 0 — si sigue
+en 0, evaluar pausarla hasta octubre); (e) si Noche de Aguas Calientes sostiene su orgánico
+(base 9 res / $1,1M — la Ruta A depende de eso).
