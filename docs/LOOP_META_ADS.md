@@ -260,6 +260,43 @@ ciclo 3. **No se ejecutó ningún cambio real de estrategia; todo sigue como est
 4. Refugio: $186.343 gastados históricamente para ROAS 2,68 — el peor de todos, y
    con `budget_pct_used` en 186%. Revisar antes de reactivar nada ahí.
 
+---
+
+### 2026-08-09 — Causa raíz del bloqueo de escritura (NO es el token)
+
+Se rastreó el error `subcode 4841013` hasta su origen real. **No es el scope del
+token ni un rol mal configurado: la cuenta operativa no le pertenece a Aremko.**
+
+Permisos del usuario del sistema `claudeAremko` (ID `61589259339745`), en el
+portfolio "Aremko Aguas Calientes":
+
+| Cuenta publicitaria | Acceso |
+|---|---|
+| 43311853 | Acceso total |
+| 323860814935576 | Administrar campañas ✓ |
+| 455070225054110 (Cuenta Nueva, Refugio) | Acceso total |
+| **214650980544393 (OPERATIVA)** | **Solo "Ver rendimiento"** |
+
+Al intentar activar "Administrar campañas" en la operativa, Meta responde:
+
+> "Un socio compartió este activo con tu negocio y le asignó permisos específicos.
+> Solo puedes usar los permisos asignados. Si necesitas otros permisos, ponte en
+> contacto con el negocio del socio propietario del activo para solicitarlos."
+
+Los toggles están **bloqueados** y "Guardar" deshabilitado. La cuenta pertenece a
+otro portfolio comercial que la compartió en modo lectura.
+
+**Consecuencias:**
+- El loop NO puede pasar a Nivel 3 sobre Ritual/Pausa/NAC por un motivo
+  organizacional, no técnico. Regenerar el token no sirve de nada.
+- Sí podría escribir en `455070225054110` y `43311853` (acceso total), pero ahí
+  solo vive Refugio, que es la campaña de peor ROAS.
+- Desbloquearlo requiere que el negocio dueño de `214650980544393` amplíe el
+  permiso a "Administrar campañas". **Paso pendiente: identificar quién es ese
+  dueño** (Configuración del negocio → Socios, o la ficha de la cuenta).
+- Alternativa costosa si el dueño no colabora: reconstruir las campañas en una
+  cuenta propia, perdiendo el aprendizaje acumulado del algoritmo.
+
 ### 2026-07-03 — Ciclo 2
 
 **Ventana:** 2026-06-19 → 2026-07-02 (14d). Fuentes: `campaigns-with-insights`
