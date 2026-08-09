@@ -297,6 +297,28 @@ otro portfolio comercial que la compartió en modo lectura.
 - Alternativa costosa si el dueño no colabora: reconstruir las campañas en una
   cuenta propia, perdiendo el aprendizaje acumulado del algoritmo.
 
+**Dueño identificado (mismo día):** la ficha de la cuenta dice *"Propiedad de
+Individua…"* — pertenece a un **individuo, no a un negocio**. Por eso "Socios" está
+vacío y "Asignar socio" aparece deshabilitado: no hay empresa socia a quien pedirle
+el permiso. Casi con certeza es el perfil personal de Facebook de Jorge (las
+campañas más antiguas de esa cuenta son de 2019/2021, previas al portfolio
+comercial). Jorge personalmente tiene control total — pausó y reactivó campañas hoy
+sin problema —, pero `claudeAremko` pertenece al negocio, y al negocio solo se le
+compartió lectura.
+
+**Dos caminos para desbloquear (NINGUNO ejecutado, decisión de Jorge):**
+
+- **A · Reclamar la cuenta para el portfolio** (arreglo definitivo): Configuración
+  del negocio → Cuentas publicitarias → Agregar → "Reclamar una cuenta publicitaria".
+  Luego asignar acceso total a `claudeAremko`. ⚠️ Mueve titularidad y medio de pago,
+  no se deshace fácil, y la cuenta tiene campañas activas gastando. Hacerlo con calma.
+- **B · Token de usuario personal** con `ads_management` en vez del usuario del
+  sistema. Destraba rápido, pero los tokens personales expiran a los ~60 días y el
+  loop se queda ciego cada dos meses.
+
+Recomendación: A, sin apuro. La cuenta `43311853` y `455070225054110` sí son del
+portfolio (acceso total) por si alguna vez conviene migrar campañas.
+
 ### 2026-07-03 — Ciclo 2
 
 **Ventana:** 2026-06-19 → 2026-07-02 (14d). Fuentes: `campaigns-with-insights`
