@@ -925,3 +925,123 @@ dentro la mezcla se dio vuelta. Los 2 pagados: gasto $118.962 → ventas $5.480.
 Se evalúan en el Ciclo 8: si el gasto real de Pausa bajó a ~$1.900/día, si Noche
 pagado supera sus 11 reservas orgánicas, y si Refugio rebota o confirma el
 desplome.
+
+### 2026-08-09 — Ciclo 8 · 🔴 TERCER ERROR DE MÉTRICA: el loop mide medio presupuesto
+
+**Ventana:** Meta 2026-07-10 → 2026-08-09 (30d, serie semanal de `/brief/weekly`);
+ventas reales 2026-07-26 → 2026-08-08 (14d, bridge Django). Corrida autónoma.
+
+⚠️ **Nota de método:** este ciclo corre el MISMO día que los ciclos 2/2b, así que la
+serie de Meta no avanzó (la última semana completa sigue siendo 02-08). El aporte de
+este ciclo **no son datos nuevos sino un cruce que nunca se había hecho**: Google Ads.
+
+**Snapshot Meta (30d, métrica correcta — campañas de mensajes):**
+
+| Campaña | Estado | Gasto | Conversac. | Costo/conv | CTR | **Frecuencia** | Alcance |
+|---|---|---|---|---|---|---|---|
+| Ritual del Río - junio 2026 | ACTIVE | $150.687 | 430 | $350 | 3,67% | **2,77** | 73.303 |
+| Pausa junto al río – junio 2026 | ACTIVE | $129.166 | 234 | $552 | 2,98% | 2,10 | 46.556 |
+| Refugio Aremko | **PAUSED** (cuenta vieja `455070…`) | $0 | — | — | — | — | — |
+| Noche de Aguas Calientes | **no existe campaña** (9º ciclo) | — | — | — | — | — | — |
+
+**Ventas reales (bridge Django, 14d 26-07 → 08-08):**
+
+| Programa | Reservas | Ingresos | Ticket |
+|---|---|---|---|
+| Pausa (`tinas_masajes`) | 18 | $2.350.000 | $130.556 |
+| Ritual (`cabanas_tinas_masajes_1n`) | 9 | $2.080.000 | $231.111 |
+| Noche Aguas Calientes (`cabanas_tinas_1n`) | 8 | $940.000 | $117.500 |
+| Refugio (`cabanas_tinas_masajes_2n`) | **0** | **$0** | — |
+| **Total sitio** | 87 | $8.217.000 | — |
+
+---
+
+#### 🔴 Hallazgo 1 — Google Ads paga por los MISMOS programas y el loop nunca lo sumó
+
+Semana 08-01 → 08-08, gasto publicitario real por programa:
+
+| | Meta | Google Search | **Total real** | Reservas | Costo/reserva **solo-Meta** | Costo/reserva **REAL** |
+|---|---|---|---|---|---|---|
+| Ritual | $35.000 | $41.095 | **$76.095** | 6 | $5.833 | **$12.683** |
+| Pausa | $34.915 | $40.729 | **$75.644** | 8 | $4.364 | **$9.455** |
+| Refugio | $0 (pausada) | $26.496 | **$26.496** | **0** | — | **∞** |
+
+**Meta es solo el 43% del gasto publicitario** ($82.566 de $190.886/semana). Los 8
+ciclos anteriores calcularon costo por reserva y ROAS dividiendo las reservas totales
+del programa por el gasto de UN canal, mientras el otro canal empujaba el mismo
+programa en la misma semana. El ROAS "50x de Pausa" que motivó la corrección del
+ciclo 2b es en realidad **14,8x**; el de Ritual, 17,7x.
+
+Esto **no invierte** el ranking (Pausa sigue mejor que Ritual), pero sí destruye la
+premisa de fondo de todo el loop: que estos programas "venden solos con gasto
+ínfimo". No es gasto ínfimo — es gasto contado a medias.
+
+**Regla nueva:** el costo por reserva se calcula por PROGRAMA sumando Meta + Google.
+Ningún canal se juzga solo mientras ambos anuncien el mismo programa. Google reporta
+**0 conversiones** en Ritual y Pausa esta semana, lo que reconfirma la regla madre
+(no usar conversiones de plataforma) — pero el GASTO sí es real y hay que sumarlo.
+
+#### 🔴 Hallazgo 2 — Refugio: 0 reservas reales y Google sigue gastando
+
+Refugio lleva 14 días con **cero** reservas (`_2n` = 0), su campaña Meta está pausada
+en la cuenta vieja… y **"Refugio - Search" sigue ENABLED en Google gastando
+$26.496/semana**. Google reporta 1 conversión de $270.000 que las reservas reales no
+respaldan. La pregunta pendiente del ciclo 7 ("¿Refugio va con pauta o sale del mix?")
+tenía una premisa falsa: Refugio nunca estuvo sin pauta, estaba pagando en el otro canal.
+
+#### 🟡 Hallazgo 3 — Ritual: la fuga está DESPUÉS del anuncio, no en el anuncio
+
+6 semanas pagadas (28-06 → 02-08), solo Meta:
+
+| | Gasto | Conversaciones | Reservas | **Conv → reserva** | Costo/conv |
+|---|---|---|---|---|---|
+| Ritual | $209.979 | 610 | 27 | **4,4%** | $344 |
+| Pausa | $188.747 | 342 | 62 | **18,1%** | $552 |
+
+Ritual compra conversaciones **1,6x más baratas** que Pausa y las convierte **4x
+peor**. Son ~583 conversaciones en 6 semanas que no terminaron en reserva. Ocho ciclos
+recomendando rotar creativo y mover presupuesto nunca miraron este tramo del embudo.
+*Caveat honesto:* las reservas son totales del programa (no atribuidas), y Ritual es
+un programa de menor volumen y ticket $231k vs $131k — parte de la brecha es
+estructural, no una fuga. Pero 4x no se explica solo por eso.
+
+#### 🟡 Hallazgo 4 — Frecuencia 2,77 en Ritual: es saturación, no (solo) fatiga
+
+Métrica nunca reportada en el loop. Ritual va en **frecuencia 2,77** sobre 73.303
+personas alcanzadas en 30 días, en una audiencia geo chica (Osorno + Pto. Montt +
+Pto. Varas). La erosión de CTR (4,93% → 3,67% en 8 ciclos) acompaña a la frecuencia
+subiendo. Si el problema es saturación de audiencia, **rotar el creativo no lo
+arregla** — y explica por qué ese pendiente lleva 5 ciclos sin ejecutarse sin que
+nada empeore dramáticamente.
+
+---
+
+**Estado de escritura:** sigue bloqueado a Nivel 2 por motivo organizacional (la
+cuenta `214650980544393` es de un individuo y solo comparte lectura con el negocio).
+Todas las acciones de abajo son manuales, en el panel.
+
+**Acciones concretas para la próxima sesión interactiva (Jorge presente):**
+
+1. **Apagar "Refugio - Search" en Google Ads.** Es el único gasto del sistema con
+   0 reservas reales verificadas en 14 días ($26.496/semana). Ruta: Google Ads →
+   Campañas → "Refugio - Search - Lanzamiento Junio 2026" → Estado → Pausar.
+   Libera ~$3.785/día sin tocar nada que esté vendiendo. Es el corte de menor riesgo
+   de todo el sistema y financia el punto 2 sin subir el presupuesto total.
+
+2. **Test de canal único en Ritual por 2 semanas.** Ritual gasta $76.095/semana entre
+   los dos canales para 6 reservas, y vendió 4 reservas con Meta en $0 (semana 14-06).
+   Apagar **"Ritual del Río – Search"** en Google (0 conversiones, $41.095/semana) y
+   dejar solo Meta. Si las reservas se mantienen en 4-6, el canal Search era
+   redundante y quedan ~$5.870/día libres. Ruta: Google Ads → "Ritual del Río –
+   Search" → Pausar. Medir contra la base de 6 res / $1.350.000 semanales.
+
+3. **Auditar 20 conversaciones de WhatsApp de Ritual que no cerraron.** Antes de
+   producir un creativo nuevo más (5 ciclos trabado), revisar el otro lado del embudo:
+   por qué 610 conversaciones dieron 27 reservas. Hipótesis a descartar en orden:
+   (a) shock de precio — el anuncio no muestra $210.000 y la conversación sí;
+   (b) disponibilidad — se piden fechas que no hay (martes cerrado);
+   (c) el agente no cierra ni deriva. Es diagnóstico barato y ataca un 4,4% que
+   ningún cambio de creativo va a mover si la fuga está acá.
+
+Se evalúan en el Ciclo 9: si el gasto total del sistema bajó de $190.886/semana sin
+perder reservas (acciones 1 y 2), y qué mostró la auditoría de conversaciones (3).
