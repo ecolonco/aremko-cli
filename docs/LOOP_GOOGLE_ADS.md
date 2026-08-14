@@ -87,61 +87,81 @@
 > Se cargan A MANO en el panel de Google Ads (cuenta `5399750827`, login
 > `ecolonco1@gmail.com`). El loop NO las ejecuta (API de solo lectura). Al ejecutar
 > una, marcar `[x]` con la fecha y medir el efecto en el ciclo siguiente.
-> Origen: Ciclo #4 (2026-08-08). Todas las correcciones del Ciclo #3 (negativas round 2,
-> ítem termas/puerto montt, Ruta A de Noche) fueron ejecutadas/decididas el 2026-07-14 →
-> registradas en su bitácora, salen de esta lista.
+> Origen: Ciclo #5 (2026-08-14). Las correcciones ① (negativas round 3) y ② (rebalanceo
+> Refugio→Ritual) del Ciclo #4 fueron ejecutadas el 2026-08-08 → quedan registradas en la
+> bitácora de ese ciclo y salen de esta lista.
 
-**① Negativas ROUND 3 — misma ruta, agregar al final de la lista de cuenta.**
-Ruta: llave ⚙️ → *Biblioteca compartida* → *Listas de exclusión de palabras clave* →
-abrir **"Negativas base Aremko"** → **+** → pegar el bloque → Guardar (ya está aplicada
-a las 3 campañas). Concordancia de FRASE (las comillas ya la fuerzan). ⚠️ Guardar ANTES
-de tocar el paginador (lección del round 2).
+**① 🔴 BLOQUEANTE — Desbloquear la API de Google Ads: `v21` está deprecada y Google la
+está RECHAZANDO.** Esto NO se pega en el panel: es un cambio de 1 línea en el repo
+`aremko-cli`. Sin esto, el loop queda ciego a nivel plataforma (gasto, CPC, CTR, Search IS,
+Quality Score, search-terms) — los 3 endpoints devuelven el mismo error hoy:
+`UNSUPPORTED_VERSION: "Version v21 is deprecated. Requests to this version will be blocked."`
+
+Archivo: `backend/internal/googleads/client.go:29`
 
 ```
-"alma lemu"
-"dalcahue"
+apiBaseURL = "https://googleads.googleapis.com/v25"
 ```
-- Motivos (respaldo en search-terms 2026-07-25 a 2026-08-07):
-  - `alma lemu` → competidor de tinas calientes; "alma lemu tinas calientes" en Refugio:
-    2 clics / $3.443 con CPC $1.721 — **el clic más caro de toda la cuenta** en el período.
-  - `dalcahue` → geo equivocada (Chiloé): "cabañas con tinajas en dalcahue" 3 clics / $547
-    en Ritual. Quien busca cabaña EN Dalcahue no va a manejar 4 horas + ferry.
-- [x] Ejecutada (2026-08-08 · Jorge cargó las 2 negativas de frase a mano; la lista
-  "negativas base aremko" pasó de **25 → 27** palabras clave, sigue aplicada a las 3
-  campañas). A medir en el Ciclo #5: que desaparezca el clic de $1.721 de "alma lemu".
 
-**② REBALANCEO Refugio → Ritual (presupuesto de cuenta NEUTRO, sigue en $13.000/día).**
-Ruta: *Campañas* → clic en la celda de *Presupuesto* de cada campaña → editar → Guardar.
-- Refugio: $3.000 → **$1.500**/día. Motivo: **0 reservas del combo 2 noches en el período**
-  (venía de 4) pese a gastar $40.525; ~35% de ese gasto (~$14k) es tráfico de MARCA que
-  llegaría igual por orgánico; y el panel la marca *"Limitada por el volumen de búsquedas"*
-  → su mercado es chico, más plata no compra nada. Reevaluar en pre-temporada (octubre+).
-- Ritual: $5.000 → **$6.500**/día. Motivo: **el panel la marca "Limitado por el presupuesto"**
-  (ver hallazgo ⑤ del ciclo) — se queda sin plata todos los días, tiene el CPC más barato de
-  la cuenta ($158) y captura solo 22,3% de las búsquedas. Es donde el peso marginal rinde más.
-- Pausa: SIN CAMBIO ($5.000). El panel la marca *"Limitada por el volumen de búsquedas"* →
-  no le falta plata, le falta mercado.
-- [x] Ejecutada (2026-08-08 · Jorge cambió ambos presupuestos en el panel; verificado en
-  pantalla: Ritual $6.500 · Pausa $5.000 · Refugio $1.500 · **Total cuenta $13.000/día**)
+(hoy dice `.../v21`). Versiones vivas en agosto 2026: **v25 (la más nueva), v24, v23**.
+Se propone **v25** para tener el máximo de meses antes del próximo bloqueo; si algo fallara,
+el fallback es `v24`. **Riesgo BAJO:** es solo la URL base — ningún campo GAQL de
+`queries.go` cambia entre estas versiones (se verificó: `metrics.cost_micros`,
+`metrics.search_impression_share`, `segments.search_term_match_type`, etc. siguen todos
+vigentes). Al pushear a `main` el backend auto-despliega. Comando para verificar que quedó
+arriba (debe responder `"success": true`):
 
-**③ DECISIÓN (propuesta mayor, no un pegado) — separar la MARCA en campaña propia.**
-La nota del Ciclo #3 ahora tiene números: **~15% del gasto total (~$27k del período) se va
-en búsquedas de marca** repartidas en las 3 campañas de producto (Refugio ~$14k ≈ 35% de su
-gasto; Pausa ~$8,7k con "aremko" 72 clics; Ritual ~$4,2k). Eso infla CTR/IS de Refugio y
-ensucia la lectura de demanda real en todas. Propuesta en 2 pasos (ejecutar juntos):
-  1. Crear campaña **"Marca - Search"** con keywords `[aremko]`, `"aremko spa"`,
-     `"aremko puerto varas"`, `"aremco"` (typo real con 5 clics), presupuesto $1.000/día,
-     apuntando a la home.
-  2. Agregar `"aremko"` y `"aremco"` como negativas DE CAMPAÑA en Refugio, Ritual y Pausa
-     (no a la lista de cuenta compartida, porque la campaña Marca la usa).
-- Beneficio: el clic de marca cuesta menos en campaña dedicada, y el IS/CTR de las campañas
-  de producto pasa a medir demanda NUEVA de verdad (hoy el 64% de IS de Refugio no dice nada).
-- [ ] Pendiente de decisión de Jorge (si prefiere, puede quedar para el próximo ciclo)
+```bash
+curl -s "https://aremko-cli-backend.onrender.com/api/v1/google-ads/summary?date_start=$(date -v-14d +%Y-%m-%d)&date_stop=$(date -v-1d +%Y-%m-%d)" | head -c 300
+```
 
-**④ NO tocar:** presupuestos de Ritual y Pausa (ninguno topa su budget); las keywords
-nuevas de Ritual del 07-14 (siguen en aprendizaje — IS aún plano pero CPC bajó a $158 y
-clics +45%); y la Ruta A de Noche de Aguas Calientes (validada: subió a 9 res / $1,1M
-orgánico, no se crea campaña).
+- **Mientras tanto, chequeo manual de 10 segundos en el panel:** confirmar que NO haya
+  banner rojo de saldo vencido y que las campañas digan "Apto"/publicando. Con la API caída
+  el loop NO puede detectar una repetición del corte por pago del Ciclo #3.
+- [ ] Pendiente
+
+**② PAUSAR "Refugio - Search - Lanzamiento Junio 2026" — la condición que dejó escrita el
+Ciclo #4 se cumplió.**
+Ruta: *Campañas* → marcar el check de **Refugio** → menú **Editar** → **Pausar**.
+- Motivo: **0 reservas del combo cabaña+tina+masaje 2 noches por SEGUNDO ciclo consecutivo**
+  — 28 días corridos sin vender lo que publicita (Ciclo #4: 0 res; Ciclo #5: 0 res; venía de
+  4 y 5 res en los ciclos #2/#3). El Ciclo #4 lo dejó por escrito: *"si sigue en 0, evaluar
+  pausarla hasta octubre"*. Además el panel ya la marcaba *"Limitada por el volumen de
+  búsquedas"* (mercado chico) y ~35% de su gasto era tráfico de MARCA que llega igual por
+  orgánico. Reactivar en pre-temporada (octubre+), cuando el combo de 2 noches vuelve a tener
+  demanda estacional.
+- ⚠️ **Riesgo a medir, no ignorar:** Refugio traía 147 clics con CTR 31,4% — es posible que
+  parte de esa gente reservara OTRO combo (Ritual 1 noche o Noche de Aguas Calientes) sin que
+  el loop pueda verlo (atribución rota). **Qué vigilar en el Ciclo #6:** si Ritual (hoy 12 res)
+  o Noche (hoy 11 res) CAEN tras pausar Refugio, esa campaña estaba alimentando ventas ajenas
+  → reactivarla. Si se sostienen, la pausa fue correcta y libera $1.500/día.
+- [ ] Pendiente
+
+**③ Reasignar los $1.500/día que libera Refugio — CONDICIONADO a la columna Estado.**
+Ruta: *Campañas* → columna **Estado** (mirar qué dice bajo cada campaña) → luego celda de
+*Presupuesto* → editar → Guardar.
+Aplicar la regla de método del Ciclo #4 (2 veces salvó de mover plata al lugar equivocado):
+- **Si Ritual del Río sigue diciendo "Limitado por el presupuesto"** → subirla de $6.500 a
+  **$8.000**/día. Total cuenta se mantiene NEUTRO en $13.000/día. Motivo: es el motor de
+  crecimiento del negocio — **12 res / $2.909.000 este período, su récord histórico** (venía
+  de 8 res / $1,84M) y hoy es el combo #1 en revenue de todo Aremko.
+- **Si dice "Limitada por el volumen de búsquedas"** (o cualquier otra cosa) → **NO mover la
+  plata**: dejar la cuenta en $11.500/día y quedarse el ahorro. Un budget que no se gasta no
+  compra demanda.
+- No se puede decidir esto desde acá: la API está caída (ítem ①) y, aunque funcionara, **no
+  expone la distinción budget-vs-rango** (lección del Ciclo #4).
+- [ ] Pendiente — requiere la captura de la columna Estado
+
+**④ NO tocar:** Pausa junto al río ($5.000/día, sin cambio); las 27 negativas de la lista de
+cuenta; y la **Ruta A de Noche de Aguas Calientes** — revalidada por tercera vez: subió a
+**11 res / $1.592.000** (récord, venía de 9 / $1,10M) sin un peso de Ads. No se crea campaña.
+
+**⑤ Campaña de MARCA separada (ítem ③ del Ciclo #4) — DEGRADADA, no ejecutar ahora.**
+Sigue abierta pero pierde urgencia: pausar Refugio (ítem ②) elimina por sí solo **~$14k de
+los ~$27k de gasto de marca** del período, que era más de la mitad del problema, y sin crear
+una 4ª campaña que administrar. Reevaluar en el Ciclo #6 **con datos de plataforma reales**
+(depende del ítem ①): si el gasto de marca remanente en Ritual/Pausa sigue pesando, ahí sí
+crear "Marca - Search".
 
 ---
 
@@ -546,3 +566,75 @@ de Ritual se recuperan (8 res este ciclo, venía de 11); (c) que desaparezca el 
 de "alma lemu"; (d) que bajar Refugio a $1.500 NO haya afectado nada (ya vendía 0 — si sigue
 en 0, evaluar pausarla hasta octubre); (e) si Noche de Aguas Calientes sostiene su orgánico
 (base 9 res / $1,1M — la Ruta A depende de eso).
+
+---
+
+### 2026-08-14 — Ciclo #5
+
+**Período analizado:** 2026-07-31 a 2026-08-13 (14 días).
+
+**⚠️ CIEGO A NIVEL PLATAFORMA — la API de Google Ads rechaza la versión v21.** Los TRES
+endpoints (`/summary`, `/quality-scores`, `/search-terms`) devuelven el mismo error:
+`UNSUPPORTED_VERSION — "Version v21 is deprecated. Requests to this version will be blocked."`
+No es el token esta vez (el bloqueo del Ciclo #2 era OAuth): el backend Go apunta a una
+versión que Google ya dejó de atender (`backend/internal/googleads/client.go:29`). **Sin
+gasto, CPC, CTR, Search IS ni search-terms este ciclo.** La única mitad disponible fue el
+puente de ventas reales (Django, OK). Fix propuesto en la corrección ① — 1 línea, v21 → v25.
+
+**⚠️ Segunda salvedad — ventana solapada, medición prematura.** El Ciclo #4 analizó
+07-25 a 08-07; esta ventana (07-31 a 08-13) **comparte 8 de sus 14 días** con aquella. Y las
+correcciones del 08-08 (negativas round 3 + rebalanceo Ritual $6.500 / Refugio $1.500) solo
+alcanzan a los **últimos 6 días**. Las comparaciones de abajo son direccionales, NO una
+medición limpia — el propio Ciclo #4 pedía esperar a una ventana ≥ 2026-08-22. Lo que sí es
+concluyente es lo que se sostiene a lo largo de DOS ciclos seguidos (Refugio en 0).
+
+**Ventas reales del período (fuente de verdad, plataforma ciega):**
+
+| Combo | Campaña | Reservas | Revenue | vs Ciclo #4 |
+|---|---|---|---|---|
+| cabanas_tinas_masajes_1n | **Ritual del Río** | **12** | **$2.909.000** | ↑↑ (era 8 / $1,84M) — **récord histórico** |
+| solo_tinas | _(sin campaña)_ tina suelta | 35 | $2.075.000 | — |
+| cabanas_tinas_1n | _(sin campaña)_ **Noche Aguas Calientes** | **11** | **$1.592.000** | ↑ (era 9 / $1,10M) — **récord** |
+| tinas_masajes | **Pausa junto al río** | 14 | $1.940.000 | ↓ (era 20 / $2,57M) |
+| solo_masajes | _(sin campaña)_ masaje suelto | 11 | $640.000 | — |
+| cabanas_tinas_masajes_2n | **Refugio** | **0** | **$0** | = (era 0) — **2º ciclo en cero** |
+| **Total negocio** | — | **85** | **$9.631.000** | revenue **↑ +16%** (era 87 res / $8,29M) |
+
+**Diagnóstico (lo que las ventas reales sí permiten afirmar):**
+
+1. **Ritual del Río es el motor del negocio y responde a la plata.** 8 → 12 reservas y
+   $1,84M → $2,91M (+58% revenue). Bate su propio récord anterior ($2,46M del Ciclo #2) y es
+   hoy el combo #1 en revenue de todo Aremko. El rebalanceo del 08-08 ($5.000 → $6.500/día)
+   solo cubre 6 días de esta ventana, así que no se le puede atribuir todo el salto — pero la
+   dirección es exactamente la esperada y **ninguna señal contradice subirle más** (ítem ③,
+   condicionado al panel).
+2. **Refugio confirma su veredicto: 28 días corridos sin vender el combo que publicita.**
+   Dos ciclos consecutivos en 0 reservas, ya con presupuesto reducido a $1.500/día. La
+   condición que el Ciclo #4 dejó escrita ("si sigue en 0, evaluar pausarla") **se cumplió**
+   → se propone pausarla hasta octubre (ítem ②). Es la única conclusión de este ciclo que NO
+   depende de la ventana solapada ni de la API caída.
+3. **Noche de Aguas Calientes revalida la Ruta A por tercera vez, y ahora con récord:**
+   6 → 9 → **11 reservas** ($952k → $1,10M → **$1,59M**) sin un peso de Google Ads. La
+   decisión de NO crear campaña dedicada (para no canibalizar a Ritual) sigue siendo correcta:
+   el orgánico no solo aguanta, acelera.
+4. **Pausa junto al río bajó (20 → 14 res), pero NO es lectura limpia.** Con 8 días de
+   solapamiento entre ventanas y sin datos de plataforma, no se puede saber si es caída real,
+   estacionalidad de mitad de agosto o simple corrimiento de fechas. **No se toca su
+   presupuesto** — se vuelve a medir en el Ciclo #6 con ventana fresca y API arriba. Ojo
+   además: `solo_tinas` (35 res / $2,08M) sigue muy fuerte, así que la demanda de tina no cayó.
+
+**Recomendaciones NUEVAS (SOLO PROPUESTA — Nivel 2, esperar OK de Jorge):**
+1. **🔴 Arreglar `client.go:29` (v21 → v25).** Prerequisito de todo lo demás: es el 2º ciclo
+   de 5 que queda ciego por infraestructura, y esta vez ni siquiera se puede verificar que las
+   campañas estén al aire. 1 línea, riesgo bajo, ningún campo GAQL cambia.
+2. **Pausar Refugio** (condición del Ciclo #4 cumplida) — vigilando en el Ciclo #6 que Ritual
+   y Noche no caigan, porque sus 147 clics podrían estar alimentando ventas de otros combos.
+3. **Mover sus $1.500/día a Ritual SOLO si el panel dice "Limitado por el presupuesto".**
+   Si no, quedarse el ahorro y dejar la cuenta en $11.500/día.
+
+**A MEDIR en el Ciclo #6 (ventana ≥ 2026-08-22, ya sin solape):** (a) **primero de todo**, si
+la API responde — sin eso el ciclo vuelve a quedar a media máquina; (b) el efecto real del
+rebalanceo del 08-08 sobre el Search IS de Ritual (base **22,3%**) con 14 días limpios;
+(c) si Ritual (12 res) y Noche (11 res) se sostienen tras pausar Refugio — la prueba de si
+Refugio alimentaba ventas ajenas; (d) si Pausa se recupera de las 14 res o confirma caída;
+(e) que desaparezca el clic de $1.721 de "alma lemu" (quedó sin verificar por la API caída).
