@@ -127,6 +127,11 @@ export function ConversacionInstagram({ externalId, nombre, canal = 'instagram',
     if (raw.includes('2534022')) {
       return `La ventana de 24 h se cerró. Respóndele a ${nombre} desde la app de ${tema.nombre} en el teléfono.`;
     }
+    // Código 190 = OAuthException: el token de acceso venció (dura ~60 días) o fue
+    // invalidado. Caso real 2026-08-15. Se detecta por código, no por texto.
+    if (raw.includes('"code":190') || raw.includes('OAuthException')) {
+      return `El acceso de ${tema.nombre} expiró (token vencido). Los mensajes del cliente siguen llegando, pero no se puede responder desde acá hasta renovar el token (Meta → Render). Avísale a Jorge — y mientras tanto puedes responderle desde la app de ${tema.nombre}.`;
+    }
     return raw || fallback;
   };
   const manejarErrorEnvio = (e: unknown, fallback: string) => {
