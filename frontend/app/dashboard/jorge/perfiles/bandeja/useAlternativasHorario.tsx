@@ -52,7 +52,10 @@ export function useAlternativasHorario({
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState<string | null>(null);
   // Ritual/Refugio son siempre 2 personas (el endpoint ignora `personas` ahí).
-  const personasFijas = EXPERIENCIA_TIPOS.find((o) => o.tipo === tipo)?.personasFijas;
+  const opcionTipo = EXPERIENCIA_TIPOS.find((o) => o.tipo === tipo);
+  const personasFijas = opcionTipo?.personasFijas;
+  // H-108: gift cards no se agendan — sin fecha ni personas (el endpoint los ignora).
+  const sinAgenda = !!opcionTipo?.sinAgenda;
 
   // Las alternativas son de una fecha puntual: no deben sobrevivir el cambio de
   // conversación.
@@ -85,14 +88,15 @@ export function useAlternativasHorario({
   };
 
   const confirmar = async () => {
-    if (!fecha) {
+    if (!fecha && !sinAgenda) {
       setError('Elegí una fecha');
       return;
     }
     setCargando(true);
     setError(null);
     try {
-      const data = await fetchExperienciaAlternativas(tipo, fecha, personasFijas ?? personas);
+      const data = await fetchExperienciaAlternativas(
+        tipo, sinAgenda ? '' : fecha, personasFijas ?? personas);
       if (!data.alternativas || data.alternativas.length === 0) {
         setError('Sin combinaciones disponibles para esa fecha/personas');
         return;
@@ -129,8 +133,9 @@ export function useAlternativasHorario({
       <div className="mb-1 flex items-center gap-1.5 text-xs text-slate-500">
         <Waves className={`h-3 w-3 ${accentText}`} />
         <span>
-          {EXPERIENCIA_TIPOS.find((o) => o.tipo === tipo)?.label ?? tipo} {fecha} ·{' '}
-          {personasFijas ?? personas}p · opción {indice + 1}/{alternativas.length}
+          {EXPERIENCIA_TIPOS.find((o) => o.tipo === tipo)?.label ?? tipo}
+          {sinAgenda ? '' : ` ${fecha} · ${personasFijas ?? personas}p`} · opción{' '}
+          {indice + 1}/{alternativas.length}
         </span>
         <button
           type="button"
@@ -159,7 +164,9 @@ export function useAlternativasHorario({
             <h2 id="experiencia-alt-titulo" className="text-base font-semibold text-slate-900">
               Alternativas de horario
             </h2>
-            <p className="mt-0.5 text-sm text-slate-500">Elegí qué buscar y para cuándo.</p>
+            <p className="mt-0.5 text-sm text-slate-500">
+              {sinAgenda ? 'Elegí qué gift card ofrecer.' : 'Elegí qué buscar y para cuándo.'}
+            </p>
           </div>
           <button
             type="button"
@@ -190,30 +197,35 @@ export function useAlternativasHorario({
               ))}
             </select>
           </label>
-          <label className="block text-sm">
-            <span className="text-slate-600">Fecha</span>
-            <input
-              type="date"
-              value={fecha}
-              onChange={(e) => setFecha(e.target.value)}
-              className={`mt-1 w-full rounded-lg border border-slate-300 p-2 text-sm focus:outline-none focus:ring-1 ${ringClass}`}
-            />
-          </label>
-          <label className="block text-sm">
-            <span className="text-slate-600">
-              Personas
-              {personasFijas ? ` (fijo en ${personasFijas} para esta experiencia)` : ''}
-            </span>
-            <input
-              type="number"
-              min={1}
-              max={6}
-              value={personasFijas ?? personas}
-              disabled={!!personasFijas}
-              onChange={(e) => setPersonas(Math.min(6, Math.max(1, Number(e.target.value) || 2)))}
-              className={`mt-1 w-full rounded-lg border border-slate-300 p-2 text-sm focus:outline-none focus:ring-1 disabled:bg-slate-100 disabled:text-slate-500 ${ringClass}`}
-            />
-          </label>
+          {/* H-108: gift cards sin agenda → fecha y personas no aplican (se ocultan). */}
+          {!sinAgenda && (
+            <label className="block text-sm">
+              <span className="text-slate-600">Fecha</span>
+              <input
+                type="date"
+                value={fecha}
+                onChange={(e) => setFecha(e.target.value)}
+                className={`mt-1 w-full rounded-lg border border-slate-300 p-2 text-sm focus:outline-none focus:ring-1 ${ringClass}`}
+              />
+            </label>
+          )}
+          {!sinAgenda && (
+            <label className="block text-sm">
+              <span className="text-slate-600">
+                Personas
+                {personasFijas ? ` (fijo en ${personasFijas} para esta experiencia)` : ''}
+              </span>
+              <input
+                type="number"
+                min={1}
+                max={6}
+                value={personasFijas ?? personas}
+                disabled={!!personasFijas}
+                onChange={(e) => setPersonas(Math.min(6, Math.max(1, Number(e.target.value) || 2)))}
+                className={`mt-1 w-full rounded-lg border border-slate-300 p-2 text-sm focus:outline-none focus:ring-1 disabled:bg-slate-100 disabled:text-slate-500 ${ringClass}`}
+              />
+            </label>
+          )}
           {error && <p className="text-sm text-red-600">{error}</p>}
         </div>
         <div className="mt-4 flex justify-end gap-2">
@@ -224,7 +236,7 @@ export function useAlternativasHorario({
             type="button"
             size="sm"
             onClick={confirmar}
-            disabled={cargando || !fecha}
+            disabled={cargando || (!fecha && !sinAgenda)}
             className={buscarBtnClass}
           >
             {cargando ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Buscar'}

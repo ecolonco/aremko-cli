@@ -263,7 +263,8 @@ export type TipoExperiencia =
   | 'masaje_solo'
   | 'noche_aguas_calientes'
   | 'ritual'
-  | 'refugio';
+  | 'refugio'
+  | 'giftcard';
 
 export interface ExperienciaTipoOpcion {
   tipo: TipoExperiencia;
@@ -273,6 +274,10 @@ export interface ExperienciaTipoOpcion {
   // endpoint ignora el parámetro `personas`) — Ritual/Refugio son 2 personas
   // fijas. El modal deshabilita el campo y muestra este valor.
   personasFijas?: number;
+  // H-108: tipo SIN agenda (gift cards): el endpoint ignora fecha y personas —
+  // el modal oculta ambos campos y Buscar no exige fecha. Las alternativas
+  // vienen con fecha:null e itinerario:[] (nada que agendar).
+  sinAgenda?: boolean;
 }
 
 export const EXPERIENCIA_TIPOS: ExperienciaTipoOpcion[] = [
@@ -282,6 +287,11 @@ export const EXPERIENCIA_TIPOS: ExperienciaTipoOpcion[] = [
   { tipo: 'masaje_solo', label: 'Solo masaje', disponible: true },
   { tipo: 'ritual', label: 'Ritual del Río', disponible: true, personasFijas: 2 },
   { tipo: 'refugio', label: 'Refugio', disponible: true, personasFijas: 2 },
+  // H-108: ofrece gift cards del catálogo (una alternativa por experiencia publicada;
+  // texto_sugerido con montos y argumento de venta). Este botón solo OFRECE — la
+  // cotización con gift card la arma Luna en el chat (H-105); el editor "Corregir
+  // cotización" NO las soporta (P-25).
+  { tipo: 'giftcard', label: 'Gift Card', disponible: true, sinAgenda: true },
 ];
 
 // Un paso del itinerario de una alternativa (ej. {servicio:"Tina Llaima", hora:"11:30"}).

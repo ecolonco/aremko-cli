@@ -557,7 +557,10 @@ func WhatsAppExperienciaAlternativas(cfg *config.Config) http.HandlerFunc {
 			return
 		}
 		fecha := strings.TrimSpace(r.URL.Query().Get("fecha"))
-		if fecha == "" {
+		// H-108: las gift cards no se agendan — Django ignora 'fecha' (y 'personas')
+		// para tipo=giftcard, así que acá tampoco se exige. Los demás tipos siguen
+		// requiriéndola.
+		if fecha == "" && tipo != "giftcard" {
 			respondError(w, http.StatusBadRequest, "falta 'fecha' (YYYY-MM-DD)")
 			return
 		}
