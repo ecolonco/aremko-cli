@@ -1267,3 +1267,59 @@ sistema. Se hizo lo contrario y por buen motivo.
 en Search. Con $8.000/día: si las reservas suben, el techo era presupuestario; si no se
 mueven, el techo es otro y se recuperan los $1.500/día.
 
+
+#### ✅ CAMBIO EJECUTADO EN META — 2026-08-16
+
+**Auditoría de la campaña "Pausa junto al río – junio 2026" (`120251270498180782`),
+cuenta operativa `214650980544393`. Resuelto el misterio de A1 de cinco ciclos:**
+
+- **NO había conjuntos de anuncios ocultos.** Hay **uno solo**, "Nuevo conjunto de
+  anuncios de Interacción" (activo desde 27-jun-2026). La hipótesis del Ciclo 7
+  ("seguro hay más de un ad set activo") era falsa.
+- **NO es CBO.** En la tabla de campañas, Pausa y Ritual muestran *"Con el presupuesto
+  del conjunto de anuncios"*, mientras las campañas viejas muestran un monto explícito
+  a nivel campaña. El presupuesto vive en el conjunto.
+- **Entonces el cambio A1 de julio ($1.900/día) simplemente no estaba aplicado.** El
+  conjunto gastó $140.620 en 30 días = **$4.687/día**.
+
+🆕 **Causa raíz probable — la trampa de "Revisar y publicar".** El Ads Manager actual
+**encola** los cambios: se edita, se ve el número nuevo en pantalla, y no se aplica
+hasta apretar **"Revisar y publicar"** arriba a la derecha. Si en julio se editó y se
+cerró sin publicar, el cambio se perdió en silencio y la bitácora lo anotó como hecho.
+Explica los 5 ciclos de "el piso no topa" sin necesidad de ad sets fantasma.
+
+**Regla nueva para cualquier cambio en Meta:** no se anota como hecho hasta ver (a) el
+aviso *"Se publicaron correctamente"*, y (b) el valor nuevo en la columna de la tabla.
+Ver el número en el panel de edición NO es evidencia de nada.
+
+- [x] **M1. Presupuesto del conjunto de Pausa: ~$5.000 → $2.000/día** — ✅ HECHO y
+  **PUBLICADO** 2026-08-16 (Jorge). Verificado doble: columna Presupuesto en `$2.000
+  Diario` + aviso "Se publicaron correctamente: Se publicó 1 conjunto de anuncios".
+
+**Métricas de Meta que respaldaron el corte (30d, 17-jul → 15-ago):**
+
+| | Pausa | Ritual |
+|---|---|---|
+| CPM | **$1.613** | $748 |
+| Costo por conversación | **$604** ↗ | $389 ↗ |
+| Conversaciones | 233 ↘ | 386 |
+| Frecuencia | 2,13 | 2,76 |
+| Importe gastado | $140.620 | $149.995 |
+
+Pausa paga 2,2× más por mil impresiones y 1,6× más por conversación que Ritual, por
+casi la misma plata, y su costo por resultado viene subiendo.
+
+---
+
+#### 📊 Estado del sistema tras los 3 cambios del 2026-08-16
+
+| Programa | Meta/día | Google/día | Total/día | Antes | Δ |
+|---|---|---|---|---|---|
+| Ritual | $5.000 | **$8.000** | **$13.000** | $11.499 | **+$1.501** |
+| Pausa | **$2.000** | $5.000 | **$7.000** | $9.992 | **−$2.992** |
+| Refugio | $0 | **$0** | **$0** | $1.500 | **−$1.500** |
+| Noche | $0 | $0 | $0 | $0 | = |
+| **Total sistema** | **$7.000** | **$13.000** | **$20.000** | ~$22.991 | **−$2.991/día** |
+
+Se recortaron ~$90.000/mes de las dos líneas con evidencia de desperdicio y se
+redirigió hacia la única con demanda insatisfecha comprobada, sin plata nueva.
