@@ -1045,3 +1045,178 @@ Todas las acciones de abajo son manuales, en el panel.
 
 Se evalúan en el Ciclo 9: si el gasto total del sistema bajó de $190.886/semana sin
 perder reservas (acciones 1 y 2), y qué mostró la auditoría de conversaciones (3).
+
+### 2026-08-16 — Ciclo 9 · La "fuga del embudo" del Ciclo 8 no existía
+
+**Ventana:** 2026-08-02 → 2026-08-15 (14d). Fuentes: `/brief/weekly` (conversaciones
+— métrica correcta para campañas de mensajes) + `campaigns-with-insights` (alcance) +
+`family-combinations-range` (Django, ventas reales, mismo rango). Corrida autónoma.
+
+**⚠️ Ciego al otro canal.** La API de Google Ads sigue rechazando v21
+(`UNSUPPORTED_VERSION`, `backend/internal/googleads/client.go:29`), ya documentado en
+`LOOP_GOOGLE_ADS.md` Ciclo #5 con fix propuesto (v21 → v25). Consecuencia para ESTE
+loop: **no se pueden verificar las acciones 1 y 2 del Ciclo 8** (apagar Refugio-Search
+y el test de canal único en Ritual). Todos los costos por reserva de abajo son
+**solo-Meta**, o sea subestimados — la regla del Ciclo 8 (sumar Meta + Google) no se
+puede aplicar hasta que el fix esté arriba.
+
+**Snapshot Meta (14d, métrica correcta — ambas son campañas de mensajes):**
+
+| Campaña | Estado | Gasto | Gasto/día | Conversac. | Costo/conv | Reservas | Costo/reserva | ROAS solo-Meta |
+|---|---|---|---|---|---|---|---|---|
+| Ritual del Río - junio 2026 | ACTIVE | $69.992 | $4.999 | 142 | $493 | 12 | $5.833 | 42,0× |
+| Pausa junto al río – junio 2026 | ACTIVE | $69.889 | $4.992 | 80 | $874 | 16 | $4.368 | 31,8× |
+| Refugio Aremko | **PAUSED** (cuenta vieja `455070…`) | $0 | — | — | — | **0** | — | — |
+| Noche de Aguas Calientes | **no existe campaña** (10º ciclo) | $0 | — | — | — | **12** | **$0** | ∞ |
+
+Alcance/entrega: Ritual 89.022 impres. / 42.320 alcance / CPM $786 · Pausa 37.594
+impres. / 23.568 alcance / **CPM $1.859 (2,4× el de Ritual)**. Frecuencia 30d: Ritual
+2,76 · Pausa 2,13. Gasto total 14d **$139.881 (~$9.991/día, 50/50)**.
+
+🔴 **El piso A1 de Pausa está muerto.** Nominal $1.900/día (jul-14); el Ciclo 7 midió
+$3.498/día; hoy **$4.992/día** — de vuelta al nivel pre-A1. Nunca se auditaron los ad
+sets (rec #1 del Ciclo 7), así que el gasto volvió solo.
+
+**Ventas reales (bridge Django, 14d):**
+
+| Programa | Ciclo 9 (14d) | Ciclo 8 (14d) | Ticket |
+|---|---|---|---|
+| Pausa (`tinas_masajes`) | 16 res / $2.224.000 | 18 res / $2.350.000 | $139.000 |
+| Ritual (`cabanas_tinas_masajes_1n`) | **12 res / $2.939.000** | 9 res / $2.080.000 | $244.917 |
+| Noche Aguas Calientes (`cabanas_tinas_1n`) | **12 res / $1.832.000** | 8 res / $940.000 | $152.667 |
+| Refugio (`cabanas_tinas_masajes_2n`) | **0** | **0** | — |
+| **Total sitio** | 88 res / $10.200.000 | 87 res / $8.217.000 | — |
+
+**Serie semanal (lo que el promedio de 14d escondía):**
+
+| Semana | Ritual | Noche | Pausa | Refugio | solo_tinas | Sitio | Gasto Pausa | Gasto Ritual |
+|---|---|---|---|---|---|---|---|---|
+| 05-07 | 5 | 2 | 8 | 4 | 18 | 42 | $35.000 | $35.000 |
+| 12-07 | 4 | 5 | **17** | 1 | 29 | **65** | **$16.182** | $34.990 |
+| 19-07 | 4 | 7 | 12 | 0 | 23 | 57 | $32.796 | $34.994 |
+| 26-07 | 3 | 4 | 10 | 0 | 21 | 44 | $34.854 | $34.998 |
+| 02-08 | 6 | 4 | 8 | 0 | 20 | 43 | $34.920 | $35.000 |
+| 09-08 | 6 | **8** | 8 | 0 | 14 | 45 | $34.969 | $34.992 |
+
+Dato de contexto que corrige la narrativa de los Ciclos 5–7: **el "récord del sitio" se
+terminó.** El pico fue la semana del 12-07 (65 reservas); agosto corre estable en
+43–45/semana, ~30% abajo. Lo que subió en el agregado de 14d es el ticket, no el volumen.
+
+---
+
+#### 🔴 Hallazgo 1 — La "fuga del embudo" de Ritual (Hallazgo 3 del Ciclo 8) era un artefacto
+
+El Ciclo 8 midió que Ritual convertía conversación→reserva al **4,4%** contra 18,1% de
+Pausa, y lo llamó una fuga de ~583 conversaciones. Este ciclo Ritual va en **8,5%**
+(142 conv → 12 res): casi el doble, en 2 semanas.
+
+**En Meta no cambió absolutamente nada.** Mismo creativo "junio 2026" (~3 meses), gasto
+clavado en $35.000/semana por séptima semana seguida, mismo objetivo, misma audiencia.
+Lo que sí cambió: el **08-08 el loop de Google subió el presupuesto de Ritual de $5.000
+a $6.500/día** (`LOOP_GOOGLE_ADS.md` Ciclo #5).
+
+El ratio conversación→reserva divide **reservas totales del programa** (no atribuidas)
+por **conversaciones de un solo canal**. Cuando el otro canal mueve su presupuesto sobre
+el mismo programa, el numerador se mueve y el denominador no. La "fuga" y su "curación"
+son las dos el mismo artefacto de medición, con distinto signo.
+
+**Regla nueva:** `conversación→reserva` **NO** es una métrica de calidad de creativo ni
+de embudo mientras dos canales empujen el mismo programa. Solo sirve si el gasto del
+otro canal está congelado y verificado. Es el mismo error de los Ciclos 1–8 (contar un
+canal contra ventas de todos), ahora en versión ratio.
+
+#### 🔴 Hallazgo 2 — Pausa: 4 semanas seguidas cayendo con gasto plano
+
+| | Semana 12-07 | Semana 09-08 |
+|---|---|---|
+| Gasto | $16.182 | $34.969 (**2,2×**) |
+| Conversaciones | 38 | 42 |
+| **Reservas** | **17** | **8 (−53%)** |
+| Share del sitio | 26% | 18% |
+
+Serie completa de reservas: 17 → 12 → 10 → 8 → 8. La correlación gasto↔reservas de las
+últimas 6 semanas es **−0,93** (−0,90 excluyendo la semana pico). *Caveat honesto:* con
+el gasto casi constante entre $32.796 y $35.000, la correlación describe una caída
+sostenida contra un gasto plano, **no** prueba causalidad — parte es el fin de las
+vacaciones de invierno. Lo que sí es sólido: **duplicar el gasto respecto de la semana
+de medio presupuesto no recuperó ni una reserva, y el CPM de Pausa ($1.859) es 2,4× el
+de Ritual** — Meta cobra caro por entregar un anuncio que la gente ya no mira.
+
+#### 🟢 Hallazgo 3 — La objeción de canibalización contra lanzar Noche no tiene sustento
+
+El loop de Google decidió NO crear campaña para Noche de Aguas Calientes "para no
+canibalizar a Ritual" (Ruta A, revalidada 3 veces). Este loop viene pidiendo lanzarla
+desde el Ciclo 7. **Los dos loops dan órdenes opuestas sobre el mismo programa.**
+
+Medido sobre las 6 semanas de arriba:
+
+| Par | Correlación semanal |
+|---|---|
+| Ritual ↔ **Noche** | **+0,15** (independientes; si algo, suben juntos) |
+| Ritual ↔ **Pausa** | **−0,56** |
+| Noche ↔ solo_tinas | −0,13 |
+
+Noche no le come reservas a Ritual: su mejor semana (8) es también la mejor de Ritual
+(6). **El par que sí compite es Ritual ↔ Pausa** — los dos programas que hoy tienen
+pauta, gastando $35.000/semana cada uno para pelearse la misma demanda. Con 6 puntos
+esto es direccional, no concluyente, pero invierte la carga de la prueba: la
+canibalización que se temía está en el par equivocado.
+
+Mientras tanto Noche hizo **12 reservas / $1.832.000 con $0 de pauta en los dos
+canales** — empata a Ritual en reservas, que costó $69.992 solo en Meta.
+
+---
+
+**Evaluación de las acciones del Ciclo 8:**
+- ⬜ **Apagar "Refugio - Search" (acción 1):** no verificable (API caída). Vía indirecta:
+  el loop de Google reporta que bajó a $1.500/día y propone pausarla. Refugio cumple
+  **4 semanas seguidas en 0 reservas**.
+- ⬜ **Test de canal único en Ritual (acción 2):** no verificable, y además **el loop de
+  Google hizo lo contrario** (le subió el presupuesto de $5.000 a $6.500/día el 08-08).
+  La acción quedó anulada por el otro loop sin que ninguno se enterara.
+- ❌ **Auditar 20 conversaciones de WhatsApp de Ritual (acción 3):** no se hizo — y el
+  Hallazgo 1 muestra que el 4,4% que la motivaba no era real. **Se retira.**
+- ❌ **Rotar creativos (6º ciclo trabado)** y **auditar ad sets de Pausa (Ciclo 7):** no
+  se hicieron. El gasto de Pausa volvió a $4.992/día por falta de esa auditoría.
+
+**Recomendaciones nuevas (Nivel 2 — nada ejecutado, esperan respuesta de Jorge):**
+
+1. **Retirar la rotación de creativo de Ritual de la cola y no tocar Ritual este ciclo.**
+   Lleva 5 ciclos como "correctivo urgente" apoyada en señales que el Hallazgo 1 acaba
+   de invalidar: Ritual es el programa que MÁS creció (9→12 res, $2,08M→$2,94M, ticket
+   $244.917, el más alto del sistema) con el creativo viejo intacto y gasto congelado.
+   Cambiarle el creativo ahora destruye la única línea que está subiendo, para corregir
+   un problema que no se demostró que exista. Si más adelante se rota, que sea por
+   frecuencia (2,76, la métrica que sí mide saturación), no por conv→reserva.
+
+2. **Cortar Pausa a $2.000/día — auditando TODOS los ad sets, que es lo que nunca se
+   hizo.** Es la acción con más evidencia acumulada del loop y la única que es un puñado
+   de clics. Ruta exacta: Meta Ads Manager → cuenta `214650980544393` → campaña "Pausa
+   junto al río – junio 2026" → pestaña **Conjuntos de anuncios** → filtrar por Estado =
+   Activo. Si hay más de uno, dejar **uno solo en $2.000/día** y apagar el resto; si el
+   presupuesto está a nivel campaña (CBO), cambiarlo ahí. Verificar a los 3 días que el
+   gasto diario real sea ~$2.000 — el Ciclo 7 ya avisó que A1 no topó nada y nadie lo
+   comprobó. Libera ~$3.000/día del gasto peor rentado del sistema.
+
+3. **Zanjar la contradicción entre los dos loops sobre Noche, a favor de lanzarla —
+   financiada con el recorte de Pausa.** El Hallazgo 3 quita la única objeción que
+   existía (canibalizar a Ritual: r = +0,15). Noche lleva 10 ciclos vendiendo con $0 y
+   este ciclo empató a Ritual en reservas. Acción: duplicar la campaña de Ritual en
+   `214650…`, cambiar landing a Noche de Aguas Calientes, **$2.000/día tomados del
+   recorte del punto 2** (el total del sistema no sube). Y anotar la decisión en
+   `LOOP_GOOGLE_ADS.md` para que el otro loop no la revierta — los dos loops se pisaron
+   este ciclo (ver evaluación de la acción 2 del Ciclo 8) y eso hay que cerrarlo.
+
+**Acciones concretas para la próxima sesión interactiva (Jorge presente):**
+1. Auditar los conjuntos de anuncios de Pausa y dejar UNO en $2.000/día (rec 2).
+   Verificar el gasto real a los 3 días.
+2. Lanzar **Noche de Aguas Calientes** duplicando Ritual en `214650…`, $2.000/día del
+   recorte anterior (rec 3).
+3. **No tocar Ritual** (rec 1) — dejarlo correr tal cual para tener una línea de control.
+4. Aplicar el fix `client.go:29` (v21 → v25) que ya propone el loop de Google: sin él
+   este loop no puede volver a calcular costo por reserva real ni verificar nada del
+   canal Search.
+
+Se evalúan en el Ciclo 10: si el gasto real de Pausa bajó a ~$2.000/día (y si sus
+reservas aguantan las 8/semana), si Noche pagado supera sus 12 reservas orgánicas, si
+Ritual sostiene 6 res/semana sin tocarlo, y si la API de Google volvió.
