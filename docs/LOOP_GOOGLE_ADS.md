@@ -638,3 +638,42 @@ rebalanceo del 08-08 sobre el Search IS de Ritual (base **22,3%**) con 14 días 
 (c) si Ritual (12 res) y Noche (11 res) se sostienen tras pausar Refugio — la prueba de si
 Refugio alimentaba ventas ajenas; (d) si Pausa se recupera de las 14 res o confirma caída;
 (e) que desaparezca el clic de $1.721 de "alma lemu" (quedó sin verificar por la API caída).
+
+---
+
+### 2026-08-16 — ✅ CAMBIOS EJECUTADOS (decididos en la sesión del Ciclo 9 de **Meta Ads**)
+
+⚠️ **Nota de coordinación entre loops — leer antes de proponer nada sobre estas campañas.**
+El Ciclo 8 del loop de Meta propuso apagar "Ritual del Río – Search"; cuatro días después
+este loop le SUBIÓ el presupuesto de $5.000 a $6.500/día (Ciclo #5, 08-08). Ninguno de los
+dos se enteró del otro, y esa contradicción distorsionó la medición de Meta durante dos
+ciclos (ver Hallazgo 1 del Ciclo 9 en `LOOP_META_ADS.md`). **Regla nueva: todo cambio de
+presupuesto o estado en Google sobre Ritual / Pausa / Refugio / Noche se anota en los DOS
+archivos, con fecha.**
+
+**Estado del panel al 2026-08-16** (dato que la API NO entrega — motivo de limitación):
+
+| Campaña | Presupuesto | Motivo de limitación |
+|---|---|---|
+| Ritual del Río – Search | $6.500/día | 🔴 **Limitado por el PRESUPUESTO** |
+| Pausa junto al río - Search | $5.000/día | Limitada por **volumen de búsquedas** |
+| Refugio - Search | $1.500/día | Volumen + conversiones mal configuradas |
+
+Lectura: **Pausa no tiene más demanda de búsqueda que capturar** — subirle presupuesto en
+Search no tiene dónde ir. Ritual sí, y es el de mayor ticket.
+
+- [x] **Pausar "Refugio - Search - Lanzamiento Junio 2026"** — ✅ HECHO (Jorge, panel).
+  Cumple la condición que este loop dejó escrita en el Ciclo #4 y repitió en el #5
+  (2 ciclos + 4 semanas con 0 reservas reales). Verificado: fila "Detenido",
+  Total cuenta $13.000 → $11.500/día.
+- [x] **"Ritual del Río – Search": $6.500 → $8.000/día** — ✅ HECHO (Jorge, panel).
+  Financiado con los $1.500/día de Refugio; total de la cuenta de vuelta en $13.000/día,
+  **sin presupuesto nuevo**. Cumple la condición del Ciclo #5 rec #3 (mover a Ritual sólo
+  si el panel dice "Limitado por el presupuesto") — el panel lo dice.
+- [ ] **Pendiente: `client.go:29` v21 → v25.** La API sigue caída (3er ciclo). Sin eso
+  ninguno de los dos loops puede verificar estos cambios por dato, solo por panel.
+
+**A medir en el Ciclo #6:** (a) si Ritual sube de 12 res / $2.939.000 por 14d con el
+presupuesto en $8.000/día; (b) si Pausa y Noche se mantienen tras pausar Refugio
+(prueba de si Refugio alimentaba ventas ajenas); (c) que el gasto total de la cuenta se
+haya quedado en ~$13.000/día y no haya subido solo.

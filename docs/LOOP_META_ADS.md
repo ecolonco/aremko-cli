@@ -1220,3 +1220,50 @@ canales** — empata a Ritual en reservas, que costó $69.992 solo en Meta.
 Se evalúan en el Ciclo 10: si el gasto real de Pausa bajó a ~$2.000/día (y si sus
 reservas aguantan las 8/semana), si Noche pagado supera sus 12 reservas orgánicas, si
 Ritual sostiene 6 res/semana sin tocarlo, y si la API de Google volvió.
+
+---
+
+#### ✅ CAMBIOS EJECUTADOS — 2026-08-16, por Jorge desde el panel de Google Ads
+
+Sesión interactiva del Ciclo 9. Antes de tocar nada se pidió a Jorge la foto del panel
+de Google, porque **la API no reporta el motivo de limitación de una campaña** y ese
+dato cambia la decisión. Estado real encontrado (cuenta `539-975-0827`):
+
+| Campaña Google | Estado | Presupuesto | Motivo de limitación (solo visible en panel) |
+|---|---|---|---|
+| Ritual del Río – Search | ACTIVA | $6.500/día | 🔴 **Limitado por el PRESUPUESTO** |
+| Pausa junto al río - Search | ACTIVA | $5.000/día | Limitada por **volumen de búsquedas** |
+| Refugio - Search | ACTIVA | $1.500/día | Volumen + **conversiones mal configuradas** |
+| **Total cuenta** | | **$13.000/día** | |
+
+**Gasto real por programa (los dos canales), primera vez que el loop lo calcula:**
+
+| Programa | Meta/día | Google/día | Total/día | Reservas 14d | Costo/reserva REAL |
+|---|---|---|---|---|---|
+| Ritual | $4.999 | $6.500 | $11.499 | 12 | **$13.416** |
+| Pausa | $4.992 | $5.000 | $9.992 | 16 | **$8.743** |
+| Refugio | $0 | $1.500 | $1.500 | **0** | **∞** |
+| **Noche** | **$0** | **$0** | **$0** | **12** | **$0** |
+
+- [x] **G1. Pausar "Refugio - Search - Lanzamiento Junio 2026"** — ✅ HECHO 2026-08-16.
+  Verificado en pantalla: fila en "Detenido" y **Total: Cuenta $13.000 → $11.500/día**.
+  Justificación: 4 semanas seguidas con 0 reservas reales, conversiones mal
+  configuradas y limitada por volumen. Único renglón del sistema sin ninguna venta.
+- [x] **G2. Subir "Ritual del Río – Search" de $6.500 a $8.000/día** — ✅ HECHO
+  2026-08-16. Financiado con los $1.500/día liberados por G1; **el total de la cuenta
+  vuelve a $13.000/día, no se agregó presupuesto nuevo.** Justificación: es la única
+  campaña del sistema marcada "Limitado por el presupuesto" — demanda con intención de
+  compra quedando sin atender — y es el programa de mayor ticket ($244.917) y el que
+  más creció este ciclo. Cumple la condición que el loop de Google dejó escrita en su
+  Ciclo #5 rec #3 ("mover los $1.500 a Ritual SOLO si el panel dice limitado por
+  presupuesto").
+
+**Acción del Ciclo 8 formalmente RETIRADA:** la nº2 proponía apagar "Ritual del Río –
+Search" para un test de canal único. El panel muestra que esa campaña está topando
+presupuesto: apagarla habría cortado la única línea con demanda insatisfecha del
+sistema. Se hizo lo contrario y por buen motivo.
+
+**A medir en el Ciclo 10:** Ritual venía en 12 res / $2.939.000 por 14d con $6.500/día
+en Search. Con $8.000/día: si las reservas suben, el techo era presupuestario; si no se
+mueven, el techo es otro y se recuperan los $1.500/día.
+
