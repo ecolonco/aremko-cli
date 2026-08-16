@@ -153,8 +153,8 @@ func handleInstagramEvent(cfg *config.Config, ev instagramMessagingEvent) {
 	// Resolvemos el @usuario/nombre del cliente (no en ecos: ahí el sender somos
 	// nosotros). Vacío si no hay token o no se puede resolver → Django usa el IGSID.
 	contactName := ""
-	if !ev.Message.IsEcho && cfg.InstagramAccessToken != "" && cfg.InstagramBusinessID != "" {
-		contactName = instagram.NewClient(cfg.InstagramAccessToken, cfg.InstagramBusinessID).GetUsername(ev.Sender.ID)
+	if tok := instagramToken(cfg); !ev.Message.IsEcho && tok != "" && cfg.InstagramBusinessID != "" {
+		contactName = instagram.NewClient(tok, cfg.InstagramBusinessID).GetUsername(ev.Sender.ID)
 	}
 
 	bc := bookings.NewClient(cfg.BookingSystemURL)
@@ -182,7 +182,7 @@ func handleInstagramEvent(cfg *config.Config, ev instagramMessagingEvent) {
 // handleInstagramMedia baja cada adjunto del DM (CDN temporal de IG) y lo sube a
 // Django (multipart). El texto del mensaje acompaña al primer adjunto como caption.
 func handleInstagramMedia(cfg *config.Config, bc *bookings.Client, ev instagramMessagingEvent, ts, contactName string) {
-	ic := instagram.NewClient(cfg.InstagramAccessToken, cfg.InstagramBusinessID)
+	ic := instagram.NewClient(instagramToken(cfg), cfg.InstagramBusinessID)
 	posted := 0
 	for i, att := range ev.Message.Attachments {
 		var pl struct {
@@ -278,7 +278,8 @@ func handleInstagramMedia(cfg *config.Config, bc *bookings.Client, ev instagramM
 // saliente (contrato H-016). Lo usa la bandeja para responder por Instagram.
 func InstagramReply(cfg *config.Config) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if cfg.InstagramAccessToken == "" || cfg.InstagramBusinessID == "" {
+		tok := instagramToken(cfg)
+		if tok == "" || cfg.InstagramBusinessID == "" {
 			respondError(w, http.StatusServiceUnavailable, "Instagram no configurado (falta token o business id)")
 			return
 		}
@@ -291,7 +292,7 @@ func InstagramReply(cfg *config.Config) http.HandlerFunc {
 			respondError(w, http.StatusBadRequest, "se requieren 'to' (IGSID) y 'text'")
 			return
 		}
-		res, err := instagram.NewClient(cfg.InstagramAccessToken, cfg.InstagramBusinessID).
+		res, err := instagram.NewClient(tok, cfg.InstagramBusinessID).
 			SendMessage(strings.TrimSpace(body.To), body.Text)
 		if err != nil {
 			// Fuera de la ventana de 24h, token vencido, etc. → error de Meta.
@@ -311,7 +312,8 @@ func InstagramReply(cfg *config.Config) http.HandlerFunc {
 // mensaje de texto aparte antes del adjunto (IG no permite texto+adjunto juntos).
 func InstagramSendMedia(cfg *config.Config) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if cfg.InstagramAccessToken == "" || cfg.InstagramBusinessID == "" {
+		tok := instagramToken(cfg)
+		if tok == "" || cfg.InstagramBusinessID == "" {
 			respondError(w, http.StatusServiceUnavailable, "Instagram no configurado")
 			return
 		}
@@ -331,7 +333,7 @@ func InstagramSendMedia(cfg *config.Config) http.HandlerFunc {
 			respondError(w, http.StatusBadRequest, err.Error())
 			return
 		}
-		ic := instagram.NewClient(cfg.InstagramAccessToken, cfg.InstagramBusinessID)
+		ic := instagram.NewClient(tok, cfg.InstagramBusinessID)
 		if caption != "" {
 			if _, err := ic.SendMessage(to, caption); err != nil {
 				respondError(w, http.StatusBadGateway, err.Error())

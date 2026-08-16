@@ -707,6 +707,15 @@ func (c *Client) GetMediaLibraryRaw(apiKey string) ([]byte, error) {
 	return c.getRaw(u, apiKey, "media library")
 }
 
+// GetInstagramTokenRaw (H-107): token de Instagram vigente desde Django — fuente de
+// verdad editable en admin, con auto-refresh contra Meta del lado Django. JSON crudo
+// {success, token, expira_estimado, refresh_error}. SOLO uso server-side (nunca
+// exponer este contenido por el API público).
+func (c *Client) GetInstagramTokenRaw(apiKey string) ([]byte, error) {
+	u := c.BaseURL + "/api/luna/meta/token-instagram/"
+	return c.getRaw(u, apiKey, "token instagram")
+}
+
 // GetCatalogoAgregablesRaw devuelve el catálogo de ítems agregables a una cotización
 // (ambientaciones + productos Comestibles/Bebestibles) para el picker "+ Agregar ítem"
 // del cajón. JSON crudo de Django.
