@@ -218,11 +218,12 @@ func parseFloatFromString(s string) float64 {
 // metrics: {...}, segments: {...}, ad_group_criterion: {...}, ... }
 type row struct {
 	Campaign struct {
-		ID            json.RawMessage `json:"id"`
-		Name          string          `json:"name"`
-		Status        string          `json:"status"`
-		StartDate     string          `json:"startDate"`
-		EndDate       string          `json:"endDate"`
+		ID     json.RawMessage `json:"id"`
+		Name   string          `json:"name"`
+		Status string          `json:"status"`
+		// campaign.start_date / end_date se sacaron de las queries: v25 ya no los
+		// reconoce (UNRECOGNIZED_FIELD). Nunca se usaron — CampaignInsights.StartDate
+		// y .EndDate se llenan con el rango pedido, no con las fechas de la campaña.
 		AdvertisingChannelType string `json:"advertisingChannelType"`
 	} `json:"campaign"`
 	Metrics struct {
