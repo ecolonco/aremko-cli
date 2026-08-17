@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 	"strconv"
 	"time"
 
@@ -26,9 +27,27 @@ import (
 )
 
 const (
-	apiBaseURL = "https://googleads.googleapis.com/v21"
-	tokenURL   = "https://oauth2.googleapis.com/token"
+	tokenURL = "https://oauth2.googleapis.com/token"
+
+	// defaultAPIVersion es la última versión publicada de la API (verificado
+	// 2026-08-16: v25 responde, v26 devuelve 404). Google retira una versión por
+	// año y el corte es abrupto: la API empieza a responder UNSUPPORTED_VERSION y
+	// los reportes quedan en cero sin más aviso. Ya pasó dos veces (v17 → v21 en
+	// julio 2026, v21 → v25 en agosto 2026).
+	defaultAPIVersion = "v25"
 )
+
+// apiBaseURL arma la base de la API respetando GOOGLE_ADS_API_VERSION, para que
+// el próximo retiro se resuelva cambiando una variable en Render en vez de
+// redeployando. Usa el mismo nombre de env var que el reporter Django, así los
+// dos servicios se mueven juntos.
+func apiBaseURL() string {
+	version := os.Getenv("GOOGLE_ADS_API_VERSION")
+	if version == "" {
+		version = defaultAPIVersion
+	}
+	return "https://googleads.googleapis.com/" + version
+}
 
 // Client habla con Google Ads API REST en nombre de una cuenta (customer_id).
 type Client struct {
@@ -84,7 +103,7 @@ func (c *Client) searchStream(ctx context.Context, gaql string) ([]json.RawMessa
 		return nil, fmt.Errorf("googleads: token refresh failed: %w", err)
 	}
 
-	url := fmt.Sprintf("%s/customers/%s/googleAds:searchStream", apiBaseURL, c.customerID)
+	url := fmt.Sprintf("%s/customers/%s/googleAds:searchStream", apiBaseURL(), c.customerID)
 	body, _ := json.Marshal(map[string]string{"query": gaql})
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(body))
