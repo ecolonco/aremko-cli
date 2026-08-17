@@ -197,7 +197,15 @@ export function useAlternativasHorario({
               ))}
             </select>
           </label>
-          {/* H-108: gift cards sin agenda → fecha y personas no aplican (se ocultan). */}
+          {/* H-108: gift cards sin agenda → fecha y personas no aplican (se ocultan).
+              La línea de ayuda evita que el modal se vea "vacío" (feedback de Jorge). */}
+          {sinAgenda && (
+            <p className="text-xs text-slate-500">
+              Las gift cards no llevan fecha ni personas. Pulsa <strong>Buscar</strong> para
+              traer las del catálogo — la primera se carga al mensaje y con el botón 〰 vas
+              pasando a la siguiente.
+            </p>
+          )}
           {!sinAgenda && (
             <label className="block text-sm">
               <span className="text-slate-600">Fecha</span>
