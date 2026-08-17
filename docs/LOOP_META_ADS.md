@@ -1323,3 +1323,56 @@ casi la misma plata, y su costo por resultado viene subiendo.
 
 Se recortaron ~$90.000/mes de las dos líneas con evidencia de desperdicio y se
 redirigió hacia la única con demanda insatisfecha comprobada, sin plata nueva.
+
+#### ✅ API DE GOOGLE ADS RESTAURADA — 2026-08-17 · primer cuadro real de los 2 canales
+
+Fix en dos commits: `64ddc15` (v21 → v25, versión configurable por
+`GOOGLE_ADS_API_VERSION`) y `d5ad7a5` (sacar `campaign.start_date` / `end_date`, que
+v25 responde con `UNRECOGNIZED_FIELD`; eran código muerto). Verificados los 3
+endpoints en producción: `summary`, `search-terms` y `quality-scores` responden.
+
+**GASTO REAL (no presupuesto) — ventana 2026-08-02 → 2026-08-15:**
+
+| Campaña Google | Estado | Costo 14d | Clics | CTR | CPC | Conv. | **SIS** |
+|---|---|---|---|---|---|---|---|
+| Ritual del Río – Search | ENABLED | $87.935 | 500 | 11,3% | $176 | **0** | **21,1%** |
+| Pausa junto al río - Search | ENABLED | $72.091 | 418 | 14,9% | $172 | **0** | 35,4% |
+| Refugio - Search | PAUSED (16-ago) | $35.869 | 114 | 26,6% | $315 | 1 👻 | 67,0% |
+| **Total Google** | | **$195.894** | | | | | |
+
+**Costo por reserva REAL, los dos canales (regla del Ciclo 8, ahora aplicable):**
+
+| Programa | Meta 14d | Google 14d | Total | Reservas | **Costo/reserva** | ROAS |
+|---|---|---|---|---|---|---|
+| Ritual | $69.992 | $87.935 | $157.927 | 12 | **$13.161** | 18,6× |
+| Pausa | $69.889 | $72.091 | $141.980 | 16 | **$8.874** | 15,7× |
+| Refugio | $0 | $35.869 | $35.869 | **0** | **∞** | **0,0×** |
+| **Noche** | **$0** | **$0** | **$0** | **12** | **$0** | **∞** |
+| **Sistema** | $139.881 | $195.894 | **$335.775** | | | |
+
+**Cuatro cosas que sólo se ven ahora:**
+
+1. 🔴 **Refugio quemaba $2.562/día, no $1.500.** Google puede gastar por sobre el
+   presupuesto diario (compensa dentro del mes): $35.869 en 14 días contra un tope
+   nominal de $21.000. **Pausarla ahorra 71% más de lo estimado.** Lección general:
+   el presupuesto diario de Google es un promedio, no un techo — para dimensionar un
+   recorte hay que usar el costo real, nunca el presupuesto.
+2. 🔴 **Ritual-Search corre con SIS 21,1%:** aparece en 1 de cada 5 búsquedas
+   elegibles. Es la medición cuantitativa de "Limitado por el presupuesto" — hay ~79%
+   de la demanda de búsqueda sin atender. Justifica la subida a $8.000/día y dice que
+   incluso ahí va a quedar corta.
+3. ⚠️ **Corrección a lo dicho más arriba hoy:** se leyó el cartel "Limitada por el
+   volumen de búsquedas" de Pausa-Search como "su demanda de búsqueda está agotada".
+   El gasto real lo desmiente: Pausa-Search gastó **$5.149/día contra un presupuesto
+   de $5.000** (103%) y tiene SIS 35,4%. Está topando presupuesto igual que Ritual.
+   No cambia el recorte de Pausa en META (que se decidió por evidencia de Meta: CPM
+   2,2×, costo/conversación $604 subiendo, reservas 17→8), pero **sí invalida el
+   argumento de que Pausa no tiene dónde crecer en Search.** Queda abierto para el
+   Ciclo 10.
+4. 🟢 **La regla madre, reconfirmada por tercera vez.** Ritual y Pausa reportan **0
+   conversiones** en Google mientras producían 12 y 16 reservas reales. Refugio
+   reporta **1 conversión de $270.000** que las reservas reales no respaldan (0). Las
+   conversiones de plataforma siguen siendo inutilizables en esta cuenta.
+
+**Meta es el 41,7% del gasto** ($139.881 de $335.775). Confirma el 43% del Ciclo 8:
+los primeros 8 ciclos midieron menos de la mitad del sistema.
