@@ -707,6 +707,57 @@ func WhatsAppRunTemplateCampaign(cfg *config.Config) http.HandlerFunc {
 	}
 }
 
+// WhatsAppRunLunaNudges (H-109): corre los recordatorios de Luna — espejo de
+// run-template-campaign, pero con MENSAJE LIBRE DE SESIÓN (texto determinista
+// que armó el cron de Django con el link de cotización/Pase; NO plantilla Meta).
+// La ventana de 24h ya viene validada por Django al generar y REVALIDADA en el
+// pull, así que acá solo se envía y se confirma. Protegido con X-API-Key
+// (server-to-server: lo dispara el cron de Django vía LUNA_NUDGES_RUN_URL).
+func WhatsAppRunLunaNudges(cfg *config.Config) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if cfg.LunaAPIKey == "" || r.Header.Get("X-API-Key") != cfg.LunaAPIKey {
+			respondError(w, http.StatusUnauthorized, "no autorizado")
+			return
+		}
+		if cfg.WhatsAppAccessToken == "" || cfg.WhatsAppPhoneNumberID == "" {
+			respondError(w, http.StatusServiceUnavailable, "WhatsApp no configurado")
+			return
+		}
+		if cfg.BookingSystemURL == "" {
+			respondError(w, http.StatusServiceUnavailable, "Django no configurado")
+			return
+		}
+		bc := bookings.NewClient(cfg.BookingSystemURL)
+		pendientes, err := bc.GetPendingLunaNudges(cfg.LunaAPIKey, campanaLimit(r))
+		if err != nil {
+			respondError(w, http.StatusBadGateway, err.Error())
+			return
+		}
+		wc := whatsapp.NewClient(cfg.WhatsAppAccessToken, cfg.WhatsAppPhoneNumberID)
+		enviados, fallidos := 0, 0
+		for _, p := range pendientes {
+			res, e := wc.SendSessionMessage(p.Phone, p.Texto)
+			if e != nil {
+				fallidos++
+				log.Printf("[whatsapp] nudge falló recordatorio=%d: %v", p.RecordatorioID, e)
+				if me := bc.MarkLunaNudgeFailed(cfg.LunaAPIKey, p.RecordatorioID, e.Error()); me != nil {
+					log.Printf("[whatsapp] error en luna-nudges/mark-failed recordatorio=%d: %v", p.RecordatorioID, me)
+				}
+				continue
+			}
+			enviados++
+			// El mark-sent registra el saliente en el hilo (lado Django) — acá NO se
+			// llama PostWhatsAppOutbound para no duplicar el mensaje en la bandeja.
+			if me := bc.MarkLunaNudgeSent(cfg.LunaAPIKey, p.RecordatorioID, res.MessageID); me != nil {
+				log.Printf("[whatsapp] error en luna-nudges/mark-sent recordatorio=%d: %v", p.RecordatorioID, me)
+			}
+		}
+		respondJSON(w, http.StatusOK, map[string]interface{}{
+			"success": true, "total": len(pendientes), "enviados": enviados, "fallidos": fallidos,
+		})
+	}
+}
+
 // buildTemplateBody arma el component "body" de una plantilla con sus variables
 // posicionales ({{1}}, {{2}}…). Devuelve nil si la plantilla no tiene variables.
 func buildTemplateBody(params []string) []interface{} {

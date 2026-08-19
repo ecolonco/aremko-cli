@@ -196,6 +196,8 @@ func (s *Server) setupRoutes() {
 		r.Post("/whatsapp/bandeja-envios/{id}/aprobar", handlers.WhatsAppBandejaEnvioAccion(s.config, "aprobar"))
 		r.Post("/whatsapp/bandeja-envios/{id}/descartar", handlers.WhatsAppBandejaEnvioAccion(s.config, "descartar"))
 		r.Post("/whatsapp/run-template-campaign", handlers.WhatsAppRunTemplateCampaign(s.config))
+		// H-109: recordatorios de Luna (mensaje libre de sesión; lo dispara el cron de Django).
+		r.Post("/whatsapp/run-luna-nudges", handlers.WhatsAppRunLunaNudges(s.config))
 		r.Post("/whatsapp/create-templates", handlers.WhatsAppCreateTemplates(s.config))
 		r.Post("/whatsapp/send-template", handlers.WhatsAppSendTemplate(s.config))
 		r.Get("/whatsapp/diagnostico", handlers.WhatsAppDiagnostico(s.config))

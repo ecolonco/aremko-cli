@@ -1029,6 +1029,68 @@ func (c *Client) MarkTemplateFailed(apiKey string, contactoID int, errMsg string
 	})
 }
 
+// ============================================================================
+// Recordatorios de Luna (H-109) — espejo del flujo de plantillas, pero con
+// mensaje LIBRE de sesión (texto determinista que armó el cron de Django).
+// ============================================================================
+
+// PendingLunaNudge es un recordatorio listo para enviar por mensaje de sesión.
+// Django ya validó la ventana de 24h al generarlo y la REVALIDA en el pull.
+type PendingLunaNudge struct {
+	RecordatorioID int    `json:"recordatorio_id"`
+	Phone          string `json:"phone"`
+	Texto          string `json:"texto"`
+}
+
+// GetPendingLunaNudges consulta los recordatorios de Luna pendientes de envío
+// (cotización sin respuesta / por vencer / pago pendiente — H-109).
+func (c *Client) GetPendingLunaNudges(apiKey string, limit int) ([]PendingLunaNudge, error) {
+	if limit <= 0 {
+		limit = 50
+	}
+	u := fmt.Sprintf("%s/api/whatsapp/pending-luna-nudges?limit=%d", c.BaseURL, limit)
+	req, err := http.NewRequest(http.MethodGet, u, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("X-API-Key", apiKey)
+	resp, err := c.HTTPClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("error en pending-luna-nudges: %w", err)
+	}
+	defer resp.Body.Close()
+	b, _ := io.ReadAll(resp.Body)
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("django pending-luna-nudges status %d: %s", resp.StatusCode, b)
+	}
+	var parsed struct {
+		Pending []PendingLunaNudge `json:"pending"`
+	}
+	if err := json.Unmarshal(b, &parsed); err != nil {
+		return nil, fmt.Errorf("error parseando pending-luna-nudges: %w", err)
+	}
+	return parsed.Pending, nil
+}
+
+// MarkLunaNudgeSent avisa a Django que el recordatorio se envió. Django registra
+// el saliente en el hilo (la bandeja lo muestra como cualquier mensaje) — por eso
+// el runner NO llama PostWhatsAppOutbound aparte. Idempotente por recordatorio_id.
+func (c *Client) MarkLunaNudgeSent(apiKey string, recordatorioID int, waMessageID string) error {
+	return c.postWhatsApp("/api/whatsapp/luna-nudges/mark-sent", apiKey, map[string]interface{}{
+		"recordatorio_id": recordatorioID,
+		"wa_message_id":   waMessageID,
+	})
+}
+
+// MarkLunaNudgeFailed avisa a Django que el envío del recordatorio falló, para
+// que no quede colgado en pendientes. Idempotente por recordatorio_id.
+func (c *Client) MarkLunaNudgeFailed(apiKey string, recordatorioID int, errMsg string) error {
+	return c.postWhatsApp("/api/whatsapp/luna-nudges/mark-failed", apiKey, map[string]interface{}{
+		"recordatorio_id": recordatorioID,
+		"error":           errMsg,
+	})
+}
+
 // GetWhatsAppConversationsRaw lista las conversaciones (una fila por teléfono),
 // ordenadas por el mensaje más reciente. Devuelve el JSON crudo de Django para
 // que el frontend lo consuma vía el proxy del backend Go.
