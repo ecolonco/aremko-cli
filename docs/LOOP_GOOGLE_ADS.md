@@ -654,10 +654,36 @@ que su precio ("Ritual Patagónico $30.000, 50% off"): es una promesa con consec
 verificable, que no se puede copiar sin cambiar la operación. **Pendiente: no está publicada en
 aremko.cl** — el anuncio la promete y la landing no la confirma.
 
-**EJECUTADO en vivo (2026-08-21):**
+**EJECUTADO en vivo (2026-08-21) — de 0 a 9 textos destacados + 5 keywords de geo:**
 - ✅ **4 textos destacados a nivel CUENTA** (las 3 campañas los heredan; antes había **0**):
   `Travellers' Choice 2026` · `Agua garantizada a 38°` · `Río a 5 metros` · `Masaje de 50 minutos`
-- ⏳ En curso: 2 textos destacados solo para Ritual (`Desayuno en tu cabaña`, `Estacionamiento`)
+- ✅ **2 en Ritual** (alojamiento): `Desayuno en tu cabaña` · `Estacionamiento gratis`
+- ✅ **3 en Pausa** (contraataque a Cancagua/Cochamó/Termas del Sol, que venden agua compartida
+  y por orden de llegada): `Tinaja privada 2 horas` · `Con hora agendada` · `Pasarelas, sin barro`
+- ✅ **5 keywords de FRASE en Ritual** (grupo existente), quedaron «En revisión»:
+  `"cabañas con tinaja puerto montt"` · `"cabaña con tinaja osorno"` · `"tinajas puerto montt"` ·
+  `"tinajas osorno"` · `"termas cerca de puerto montt"`
+- 🔵 Se DESCARTÓ crear un grupo de anuncios dedicado por ahora: exige escribir un RSA completo
+  y los anuncios se dejaron para después. Agregar las keywords al grupo existente captura el
+  grueso del beneficio (dejar de pagar la aproximación); el grupo dedicado queda pendiente.
+- ⚠️ **NO se aplicaron las «ideas» que sugiere Google**: incluían `termas de puyehue` /
+  `termas puyehue` (resort competidor) y `hoteles en puerto varas` (genérica donde Booking
+  tiene presupuesto infinito). Regla: nunca usar «Aplicar todas» en las recomendaciones.
+
+**⭐ HALLAZGO en las keywords de Ritual — la misma palabra, dos configuraciones, resultados
+opuestos.** Dos keywords se comen **$101.074 de los $140.370** de la campaña (72%):
+`spa puerto varas` en AMPLIA ($49.230) y `"cabaña con tinaja"` en frase ($51.844). Y la
+comparación que importa:
+
+| Keyword | Concordancia | Clics | Costo | CTR | CPC |
+|---|---|---:|---:|---:|---:|
+| `spa puerto varas` | **amplia** | 279 | $49.230 | **9,43%** | $176 |
+| `"spa puerto varas"` | frase | 56 | $8.474 | **26,17%** | $151 |
+
+La versión en frase rinde **2,8× mejor CTR con CPC 14% menor**. La amplia es la que dispersa
+el gasto hacia "spa puerto montt", "masajes puerto montt" y demás. **Es la próxima corrección
+—pero NO antes de que las 5 keywords de geo estén activas**, porque hoy la amplia es lo único
+que captura esa demanda; cortarla primero la perdería.
 
 **Hallazgos menores:** los 5 vínculos a sitio existentes los creó **la IA de Google** el 24-06 y
 son genéricos ("Nuestras Cabañas", "Nuestros Productos") — sin un solo dato duro; **Ritual tiene
