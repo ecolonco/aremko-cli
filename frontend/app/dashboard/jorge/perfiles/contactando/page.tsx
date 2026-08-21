@@ -46,10 +46,14 @@ const TEMPLATES: TemplateOption[] = [
 function normalizePhone(raw: string): string {
   const digits = raw.replace(/\D/g, '');
   if (!digits) return '';
-  if (digits.startsWith('56')) return digits;
+  // Un celular chileno es EXACTAMENTE 56 9 XXXX XXXX = 11 dígitos. Antes se
+  // aceptaba cualquier cosa que partiera con 56: el 2026-08-19 salió un envío a
+  // un número de 10 dígitos (le faltaba uno) — Meta lo aceptó y lo dio por
+  // fallido, y la operadora solo vio "Enviado ✓". Ahora se rechaza antes.
+  if (digits.startsWith('56')) return digits.length === 11 && digits[2] === '9' ? digits : '';
   if (digits.length === 9 && digits.startsWith('9')) return '56' + digits;
   if (digits.length === 8) return '569' + digits; // sin el 9 inicial
-  return digits;
+  return '';
 }
 
 interface SendResult {
