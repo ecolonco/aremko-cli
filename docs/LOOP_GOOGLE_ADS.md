@@ -569,6 +569,116 @@ en 0, evaluar pausarla hasta octubre); (e) si Noche de Aguas Calientes sostiene 
 
 ---
 
+### 2026-08-21 — Auditoría competitiva (sesión con Jorge, fuera de ciclo)
+
+**Qué la gatilló:** Jorge pidió (a) revisar si el gasto se estaba disparando y (b) una auditoría
+competitiva contra Termas Cochamó / Termas del Sol / Cancagua, que había levantado de la
+Biblioteca de Anuncios de **Meta**. Se auditó con datos reales de la cuenta.
+
+**Cambios de Jorge no registrados antes (detectados en el panel):** él mismo pausó Refugio y
+movió sus $1.500 a Ritual → Ritual quedó en **$8.000/día**, Pausa $5.000, Refugio $1.500
+pausada. Total activo $13.000/día.
+
+**⚠️ EL GASTO QUE REPORTA ESTE LOOP ESTABA SUBESTIMADO EN 19% — LA API NO TRAE IVA.**
+La API de Google devuelve el costo **sin IVA**; la facturación cobra **+19%**. Verificado:
+julio API $393.839 → boleta $468.136 (×1,19 ✓); agosto 1-19 API $260.765 → boleta $312.430 ✓.
+**Regla nueva: todo número de gasto que se le muestre a Jorge va CON IVA**, porque es lo que
+sale de su bolsillo. (Además, en la pantalla de facturación la columna *Pagos* NO es el gasto
+del mes — incluye deuda de meses anteriores; el gasto es *Costo neto*.)
+
+**Gasto real con IVA:** mayo $26.461 · junio $345.664 · julio $468.136 · agosto proyectado
+~$488.000. Ads pesa **~2,4% de las ventas del negocio** — siete veces menos que la comisión
+de una OTA (15-18%). Conclusión: el gasto NO está disparado; lo que sí escaló es el volumen.
+
+**⭐ AUCTION INSIGHTS (leído del panel; NO existe endpoint en el backend — pendiente).**
+El hallazgo mayor de la sesión: **las dos campañas compiten contra rivales distintos.**
+
+| | Ritual del Río (alojamiento) | Pausa junto al río (spa por el día) |
+|---|---|---|
+| Tu impression share | **21,71%** (4° lugar) | **35,51%** (1° lugar) |
+| Rival dominante | **booking.com 75,57%** · airbnb 29,96% | booking 28,78% · **cancagua 16,28%** |
+| ¿Están las termas? | **NO aparecen** | **SÍ**: Cancagua, Cochamó, Termas del Sol |
+| Te frena | **Presupuesto** | **Ranking / Quality Score** |
+| Palanca | 💰 plata | 🔧 keywords y calidad |
+
+Dos lecturas clave:
+1. **No pierdes por ranking, pierdes por presencia.** El "porcentaje de ranking superior" contra
+   casi todos los rivales ronda 19-21% y tu impression share es 21,71% — el techo para superar
+   a alguien es tu propia presencia. Cuando SÍ apareces compites bien (73,16% en parte superior).
+2. **La hipótesis de Meta no se traslada a Google tal cual.** Cochamó y Termas del Sol pautan
+   en Meta pero no disputan la búsqueda de alojamiento; sí aparecen en la de spa-por-el-día.
+   **Cancagua es el competidor real en Pausa** y le gana a Aremko el "absoluto arriba de todo"
+   (33,18% vs 29,73%).
+
+**💡 CORRECCIÓN DE JORGE que cambia el caso económico de Ritual (importante):** el loop había
+calculado el beneficio de ganarle a Booking como "ahorro de comisión". **Está mal.** Booking
+vende la habitación con desayuno a **$110.000**; el Ritual vale **$210.000** (semana) / $240.000
+(fin de semana). Ganarle la subasta no ahorra una comisión: **cambia el producto que se vende.**
+- Gana Booking → cliente paga $110.000, Aremko recibe ~$93.500 (menos 15%)
+- Gana Aremko → cliente paga **$210.000** directo
+- **Diferencia por reserva desviada: ~$116.500** → punto de equilibrio **637 clics/reserva**
+  (Ritual lleva 768 clics en agosto). Aun en el peor escenario —que reserve el producto
+  barato— se gana la comisión y el equilibrio queda en 90 clics. **Los dos escenarios
+  justifican subir Ritual.**
+
+**🔴 Problema de canal (excede a Ads, pero vale más que todo lo demás):** Booking aparece en el
+**75% de las subastas de Ritual** y ahí Aremko solo tiene publicado su producto de $110.000.
+Se está usando el canal más caro para vender lo más barato, y encima con comisión. Revisar qué
+se lista en Booking.
+
+**CONEXIÓN TELAR (M17 de DH) ↔ ADS — analizada con el brief real de la semana del 17-08.**
+Se leyó el brief completo (`python manage.py piezas aremko` en la Shell de `datamatic-hospitality`):
+29 piezas, 8 ángulos, **19 de las 29 sobre el trabajador embarcado** (turno 14x14 / 22x10).
+Conclusión estructural, para no volver a discutirla:
+
+| Hebra del Telar | Alimenta a | Por qué |
+|---|---|---|
+| Dolores / Ángulos | **Meta + orgánico** | Son de interrupción — nadie busca "regalo para mi marido embarcado" |
+| **Fechas locales** | **Google Ads** | Es la única hebra que genera demanda de BÚSQUEDA |
+| Diferenciadores (38°, río a 5m, 50 min) | **Los dos** | Datos duros, caben en 25 caracteres |
+
+De los 8 ángulos de la semana **solo uno tenía demanda de búsqueda** (el Medio Maratón de
+Puerto Varas del domingo 23) y Google Ads estuvo ciego a él. **Cadencias distintas y no
+negociables:** Meta semanal; sitelinks/textos destacados de Google semanal; **RSA de Google
+cada 4-6 semanas** (rotarlos semanalmente resetea el aprendizaje).
+
+**Y el loop de vuelta (Ads → Telar), que no se había visto:** el brief publicó CUATRO horarios
+distintos de desayuno (8:00, 10:00, "a la hora que necesites") porque el dato no estaba fijado.
+La disciplina de los 25 caracteres de Google lo obligó a definirse. **La precisión de Ads
+depura los datos del Telar.** Correcto: **desayuno servido en la cabaña a las 10:00 AM.**
+
+**⭐ DIFERENCIADOR MAYOR descubierto por Jorge al cargar los textos:** el agua a 38° está
+**GARANTIZADA — si llega a 37° o menos, la tina es gratis**, y es el único de la zona que la
+ofrece. Es más fuerte que la autoridad que usa Termas del Sol ("Traveller's Choice 5 años") y
+que su precio ("Ritual Patagónico $30.000, 50% off"): es una promesa con consecuencia,
+verificable, que no se puede copiar sin cambiar la operación. **Pendiente: no está publicada en
+aremko.cl** — el anuncio la promete y la landing no la confirma.
+
+**EJECUTADO en vivo (2026-08-21):**
+- ✅ **4 textos destacados a nivel CUENTA** (las 3 campañas los heredan; antes había **0**):
+  `Travellers' Choice 2026` · `Agua garantizada a 38°` · `Río a 5 metros` · `Masaje de 50 minutos`
+- ⏳ En curso: 2 textos destacados solo para Ritual (`Desayuno en tu cabaña`, `Estacionamiento`)
+
+**Hallazgos menores:** los 5 vínculos a sitio existentes los creó **la IA de Google** el 24-06 y
+son genéricos ("Nuestras Cabañas", "Nuestros Productos") — sin un solo dato duro; **Ritual tiene
+las 26 keywords en UN SOLO grupo de anuncios**, lo que explica sus Quality Scores de 3-7; y el
+post de Google del Medio Maratón se publicó con el día equivocado ("sábado 23" siendo domingo).
+
+**PENDIENTES ABIERTOS (para el Ciclo #5):**
+1. **Agregar endpoint de Auction Insights al backend** — hoy obliga a pedirle capturas a Jorge.
+2. **Grupo "Geo cercana" en Ritual** con keywords propias de Puerto Montt/Osorno: 160+ clics en
+   30 días entran por concordancia amplia sin keyword propia. **Es el terreno de Cancagua.**
+3. **Subir Ritual $8.000 → $10.000/día** (+$71.400/mes con IVA; equilibrio: 1,7 reservas).
+4. **Limpiar keywords amplias sin geo de Pausa** y las de QS 1 — su freno es ranking, no plata.
+5. **Separar campaña de MARCA** (~$43.000/mes en búsquedas de "aremko") — abierta desde el #4.
+6. **Publicar la garantía de 38° en aremko.cl** y llevarla al Telar como diferenciador.
+7. **Medir el clic a WhatsApp como conversión** — hoy Google puja a ciegas (0 conversiones).
+8. **¿Los anuncios corren los martes?** Aremko cierra los martes por mantención — verificar la
+   programación y, si corren, bajar la puja ese día. Sin responder aún.
+9. **Revisar qué vende Booking en nombre de Aremko** (problema de canal, ver arriba).
+
+---
+
 ### 2026-08-14 — Ciclo #5
 
 **Período analizado:** 2026-07-31 a 2026-08-13 (14 días).
