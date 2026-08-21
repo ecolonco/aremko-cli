@@ -319,6 +319,36 @@ compartió lectura.
 Recomendación: A, sin apuro. La cuenta `43311853` y `455070225054110` sí son del
 portfolio (acceso total) por si alguna vez conviene migrar campañas.
 
+---
+
+### 2026-08-09 — DESBLOQUEADO por otra vía: MCP oficial de Meta
+
+**Ya no hace falta reclamar la cuenta ni arreglar el token.** Se conectó el MCP
+oficial de Meta Ads, que autentica por OAuth **como Jorge** — y él sí tiene control
+total sobre `214650980544393`. El diálogo de Meta lo dice explícito: *"Claude tendrá
+los mismos permisos de administración de anuncios que tú."*
+
+Configuración quedante:
+- Servidor: `meta-ads` → `https://mcp.facebook.com/ads` (alcance de usuario, en
+  `~/.claude.json`). **29 herramientas**, lectura + escritura + eliminación.
+- ⚠️ NO confundir con `pipeboard-co/meta-ads-mcp` de GitHub: ese es de un tercero
+  (Pipeboard), pese a que el video que lo recomendaba lo llamaba "el oficial".
+- Permisos otorgados: solo la página de Aremko, **sin** páginas futuras.
+- **Guardarraíl:** `"ask": ["mcp__meta-ads"]` en `~/.claude/settings.json`. Las 29
+  herramientas piden aprobación explícita, incluso bajo auto mode. Empezamos cerrado
+  a propósito; las de lectura se pueden mover a `allow` cuando se conozcan sus nombres.
+
+**Lo que NO cambia:** el MCP solo ve el mundo de Meta. La regla madre sigue igual —
+cruzar SIEMPRE contra ventas reales (`GetFamilyCombinationsRange`) antes de mover un
+peso. El MCP es brazo ejecutor y capa de lectura más rica; el cerebro del análisis
+sigue en aremko-cli. Y el Nivel 2 sigue vigente: **el loop propone, Jorge aprueba.**
+
+**Capacidad nueva que el backend no tiene:** biblioteca de anuncios de la
+competencia. Primer uso pendiente: revisar Cancagua, Termas Cochamó y Termas del Sol
+en Puerto Varas. En la Biblioteca no se ve el gasto, pero la **antigüedad de un
+anuncio activo** delata qué les funciona — nadie deja corriendo meses algo que no
+convierte.
+
 ### 2026-07-03 — Ciclo 2
 
 **Ventana:** 2026-06-19 → 2026-07-02 (14d). Fuentes: `campaigns-with-insights`
