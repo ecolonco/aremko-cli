@@ -79,6 +79,13 @@ func WhatsAppWebhookReceive(cfg *config.Config) http.HandlerFunc {
 					handleInboundWhatsApp(cfg, ch.Value, msg)
 				}
 				for _, st := range ch.Value.Statuses {
+					if st.Status == "failed" && len(st.Errors) > 0 {
+						for _, e := range st.Errors {
+							log.Printf("[whatsapp] status=failed id=%s destinatario=%s code=%d title=%q message=%q details=%q",
+								st.ID, st.RecipientID, e.Code, e.Title, e.Message, e.ErrorData.Details)
+						}
+						continue
+					}
 					log.Printf("[whatsapp] status=%s id=%s destinatario=%s", st.Status, st.ID, st.RecipientID)
 				}
 			}
@@ -1125,6 +1132,18 @@ type whatsappChangeValue struct {
 		Status      string `json:"status"`
 		Timestamp   string `json:"timestamp"`
 		RecipientID string `json:"recipient_id"`
+		// Motivo del fallo cuando status=failed (Meta lo manda acá, no al enviar:
+		// el POST devuelve 200 "accepted" y el rechazo llega después por webhook).
+		// Caso real 2026-08-20: plantillas de "Contactando" aceptadas y luego
+		// failed sin que supiéramos por qué — esto deja el código en el log.
+		Errors []struct {
+			Code      int    `json:"code"`
+			Title     string `json:"title"`
+			Message   string `json:"message"`
+			ErrorData struct {
+				Details string `json:"details"`
+			} `json:"error_data"`
+		} `json:"errors"`
 	} `json:"statuses"`
 }
 

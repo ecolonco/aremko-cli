@@ -57,6 +57,11 @@ func WhatsAppDiagnostico(cfg *config.Config) http.HandlerFunc {
 			out["phone_number"] = fetchGraphJSON(base + "/" + cfg.WhatsAppPhoneNumberID +
 				"?fields=id,display_phone_number,verified_name,quality_rating,status,platform_type,code_verification_status&" + tok)
 		}
+		// Estado de las plantillas (caso real 2026-08-20: envíos de "Contactando"
+		// aceptados por la API y luego `failed` por webhook — una plantilla PAUSED /
+		// DISABLED / REJECTED o con quality_score RED explica exactamente ese patrón).
+		out["templates"] = fetchGraphJSON(base + "/" + cfg.WhatsAppWABAID +
+			"/message_templates?fields=name,status,category,language,quality_score,rejected_reason&limit=50&" + tok)
 		respondJSON(w, http.StatusOK, out)
 	}
 }
