@@ -698,9 +698,26 @@ el gasto hacia "spa puerto montt", "masajes puerto montt" y demás.
   aislar el efecto de la pausa de `spa puerto varas`.
 
 **Hallazgos menores:** los 5 vínculos a sitio existentes los creó **la IA de Google** el 24-06 y
-son genéricos ("Nuestras Cabañas", "Nuestros Productos") — sin un solo dato duro; **Ritual tiene
-las 26 keywords en UN SOLO grupo de anuncios**, lo que explica sus Quality Scores de 3-7; y el
-post de Google del Medio Maratón se publicó con el día equivocado ("sábado 23" siendo domingo).
+son genéricos ("Nuestras Cabañas", "Nuestros Productos") — sin un solo dato duro; y **Ritual
+tiene las 26 keywords en UN SOLO grupo de anuncios**, lo que explica sus Quality Scores de 3-7.
+
+**🆓 LA MAYOR OPORTUNIDAD GRATUITA DE TODA LA AUDITORÍA — la ficha de Google está abandonada.**
+Al ir a corregir la fecha equivocada del post del Medio Maratón, se descubrió que **el post no
+existía**: la ficha (Perfil de Empresa, cuenta `aremkospa@gmail.com`) tenía solo **3
+publicaciones, la más reciente de hace 2 MESES**. El Telar la marcaba como `Publicada`.
+- La ficha recibe **~6.033 vistas y 2.932 búsquedas al mes**, con «termas» como término #1 (609).
+  Es tráfico con intención de compra y **publicar ahí cuesta $0**, contra $183 el clic en Ads.
+- **El estado «Publicada» del Telar no es confiable en el canal Google** (el brief resumía
+  «29 piezas · 15 con link»). Rompe el ciclo de aprendizaje: la cosecha de los viernes mide
+  piezas que pueden no haber salido.
+- ✅ Se publicó el post en vivo, con **tres correcciones sobre el original**: fecha (domingo, no
+  sábado); **foco cambiado de cabaña a tina** —el alojamiento se decide con 4 días y ya era
+  tarde, la tina con 1 día y llega a tiempo, incluso el domingo post-carrera—; y se agregó la
+  **garantía de los 38°**. Detalle en la memoria `project_aremko_gbp_abandonado`.
+
+**Patrón de fondo (tres evidencias en una semana):** el brief del Telar se genera bien, pero
+**lo que pasa después de generarlo no tiene control** — desayuno con cuatro horarios distintos,
+fecha del maratón equivocada, y una pieza marcada como publicada sin estarlo.
 
 **PENDIENTES ABIERTOS (para el Ciclo #5):**
 1. **Agregar endpoint de Auction Insights al backend** — hoy obliga a pedirle capturas a Jorge.
