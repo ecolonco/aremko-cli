@@ -699,9 +699,43 @@ post de Google del Medio Maratón se publicó con el día equivocado ("sábado 2
 5. **Separar campaña de MARCA** (~$43.000/mes en búsquedas de "aremko") — abierta desde el #4.
 6. **Publicar la garantía de 38° en aremko.cl** y llevarla al Telar como diferenciador.
 7. **Medir el clic a WhatsApp como conversión** — hoy Google puja a ciegas (0 conversiones).
-8. **¿Los anuncios corren los martes?** Aremko cierra los martes por mantención — verificar la
-   programación y, si corren, bajar la puja ese día. Sin responder aún.
+8. **Programación por día de la semana** — RESUELTO CON DATOS (ver bloque siguiente).
 9. **Revisar qué vende Booking en nombre de Aremko** (problema de canal, ver arriba).
+
+**📐 ANTICIPACIÓN DE RESERVA — sonda corrida el 2026-08-21 (n=3.891 desde enero).** Cambia
+supuestos que este loop venía arrastrando. Detalle completo en la memoria
+`project_aremko_estudio_anticipacion_reserva`.
+
+| Métrica | Resultado |
+|---|---|
+| Mediana de anticipación | **2 días** (P25 0 · P75 5 · **P90 13**) |
+| Reserva para el MISMO día | **29,6%** |
+| Dentro de 2 días | **60%** |
+| Por tipo | tina **1d** · masaje **1d** · **cabaña 4d** |
+
+Compras por día: Mié 655 · Vie 604 · Lun 603 · Jue 599 · Sáb 596 · **Mar 424** · Dom 410.
+Visitas por día: **Sáb 1.118 (29%)** · Vie 630 · Dom 617 · Jue 437 · Mié 432 · Lun 343 · Mar 314.
+
+- ✅ **Las ventanas de 14 días del loop están BIEN** (P90 = 13 días → capturan el 90% del
+  efecto). Los 4 ciclos corridos son válidos por este lado.
+- ⚠️ **El martes cae 31% vs los otros días de semana, y ese 31% ≈ el 29,6% que reserva para
+  hoy**: el martes pierde exactamente la demanda «para el mismo día» porque el recinto está
+  cerrado. Corresponde bajar la puja ~25-30% ese día, **nunca apagarla** — el resto sigue
+  comprando para otros días. Ahorro chico (~$2.000/mes); el valor real está en redistribuir.
+- ⚠️ **Ritmos OPUESTOS por campaña, y esto sí es estructural:** Pausa (tina+masaje) se decide
+  en **1 día** — hay que estar presente hoy para hoy; Ritual/Refugio (cabaña) en **4 días** —
+  hay que estar el martes para llenar el sábado. Hoy el presupuesto está plano de lunes a
+  domingo en las dos, lo que es incorrecto para ambas.
+- ✏️ **Matiza la crítica al destino WhatsApp:** con 30% para el mismo día, el canal está más
+  alineado con el cliente de lo que el diagnóstico asumió. Lo que falta no es reserva online
+  sino **medir el clic a WhatsApp** (pendiente 7).
+- **Limitación:** son TODAS las reservas, no solo las de Ads; el patrón por día puede reflejar
+  cuándo responde el equipo. Por eso solo el ajuste del martes tiene causa clara; lo de
+  jueves/viernes es hipótesis a validar.
+- **⛔ BLOQUEO TÉCNICO antes de tocar la programación:** si las campañas usan una estrategia de
+  puja automática (el panel viene recomendando «Maximizar clics» y «Maximizar conversiones»),
+  los ajustes de puja por día NO se aplican como en puja manual. **Verificar primero la
+  estrategia de puja de cada campaña.**
 
 ---
 
