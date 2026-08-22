@@ -681,9 +681,21 @@ comparación que importa:
 | `"spa puerto varas"` | frase | 56 | $8.474 | **26,17%** | $151 |
 
 La versión en frase rinde **2,8× mejor CTR con CPC 14% menor**. La amplia es la que dispersa
-el gasto hacia "spa puerto montt", "masajes puerto montt" y demás. **Es la próxima corrección
-—pero NO antes de que las 5 keywords de geo estén activas**, porque hoy la amplia es lo único
-que captura esa demanda; cortarla primero la perdería.
+el gasto hacia "spa puerto montt", "masajes puerto montt" y demás.
+
+- ✅ **EJECUTADO (2026-08-21): `spa puerto varas` en AMPLIA quedó PAUSADA.** La versión en
+  frase `"spa puerto varas"` sigue activa e intacta (verificado en pantalla). Se pausó, no se
+  eliminó → reversible en un clic. Riesgo asumido: 1-2 días de transición hasta que las 5
+  keywords de geo salgan de revisión (~$2.300), contra ~$70.000/mes de tráfico disperso.
+- ⚠️ **OJO al leer el Ciclo #5: el gasto NO va a bajar.** Ritual está limitada por presupuesto,
+  así que seguirá gastando sus $8.000/día — la plata liberada se redistribuye entre las
+  keywords buenas. **Lo que debe moverse es la EFICIENCIA:** CPC $183 → ~$160, CTR 11,01% →
+  13-15%, y el Search IS al alza (mejor CTR → mejor Quality Score → mejor posición al mismo
+  costo). Si el volumen de clics se desploma, reactivar la amplia.
+- 🔵 **Candidata siguiente, de menor tamaño:** `escapada romantica` también en AMPLIA (385 impr,
+  42 clics, $8.111, CTR 10,91%, CPC $193) — genérica y sin geo, ya existe
+  `"escapada romantica puerto varas"` en frase. Evaluar en el Ciclo #5, no antes: conviene
+  aislar el efecto de la pausa de `spa puerto varas`.
 
 **Hallazgos menores:** los 5 vínculos a sitio existentes los creó **la IA de Google** el 24-06 y
 son genéricos ("Nuestras Cabañas", "Nuestros Productos") — sin un solo dato duro; **Ritual tiene
