@@ -718,10 +718,30 @@ Visitas por día: **Sáb 1.118 (29%)** · Vie 630 · Dom 617 · Jue 437 · Mié 
 
 - ✅ **Las ventanas de 14 días del loop están BIEN** (P90 = 13 días → capturan el 90% del
   efecto). Los 4 ciclos corridos son válidos por este lado.
-- ⚠️ **El martes cae 31% vs los otros días de semana, y ese 31% ≈ el 29,6% que reserva para
-  hoy**: el martes pierde exactamente la demanda «para el mismo día» porque el recinto está
-  cerrado. Corresponde bajar la puja ~25-30% ese día, **nunca apagarla** — el resto sigue
-  comprando para otros días. Ahorro chico (~$2.000/mes); el valor real está en redistribuir.
+- ❌ **CORREGIDO EN LA MISMA SESIÓN — NO bajar la puja los martes.** Jorge cuestionó el 29,6%
+  y tenía razón: esa cifra contaba `ReservaServicio` (3.891) en vez de ventas. Agrupando por
+  **VentaReserva (1.507) y por experiencia**, el promedio se parte en dos negocios:
+
+  | Experiencia | Ventas | Mediana | Mismo día | ¿Campaña? |
+  |---|---:|---:|---:|:---:|
+  | SoloTina | 581 | 1 d | **42,9%** | ❌ |
+  | SoloMasaje | 212 | 1 d | **39,2%** | ❌ |
+  | **Pausa** | 309 | 1 d | **23,6%** | ✅ |
+  | Noche | 109 | 3 d | 14,7% | ❌ |
+  | **Ritual** | 93 | **4 d** | **9,7%** | ✅ |
+  | **Refugio** | 19 | **5 d** | **5,3%** | ✅ |
+
+  **Ritual tiene 9,7% de mismo día, no 30%.** El promedio lo inflaban SoloTina y SoloMasaje
+  (793 ventas juntas), que **no tienen campaña**. Con ese número, que el recinto cierre el
+  martes casi no afecta a las campañas — ese cliente reserva para el fin de semana igual. La
+  caída del martes (424 vs ~600 compras) la producen los productos sin pauta. **La intuición
+  original de Jorge era correcta: los anuncios corren todos los días, martes incluido.**
+- ✅ **Las reservas de mismo día son reales, no walk-ins.** Horas de creación: 9h=38 · 10h=60 ·
+  11h=62 · 12h=67 · 13h=55. **Aremko abre a las 12:00 y 160 se crean entre 9:00 y 11:59** —
+  nadie pudo haber llegado a la puerta. Existe una **ventana de decisión matinal** real.
+- 📌 **Lección de método (2ª vez en esta sesión):** un promedio sobre productos heterogéneos
+  miente. Antes de sacar conclusiones de una métrica agregada, **desglosarla por la unidad que
+  tiene campaña propia** — acá el promedio global describía SoloTina, que no se pauta.
 - ⚠️ **Ritmos OPUESTOS por campaña, y esto sí es estructural:** Pausa (tina+masaje) se decide
   en **1 día** — hay que estar presente hoy para hoy; Ritual/Refugio (cabaña) en **4 días** —
   hay que estar el martes para llenar el sábado. Hoy el presupuesto está plano de lunes a
