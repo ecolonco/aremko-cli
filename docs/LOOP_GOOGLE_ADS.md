@@ -569,15 +569,141 @@ en 0, evaluar pausarla hasta octubre); (e) si Noche de Aguas Calientes sostiene 
 
 ---
 
+### 2026-08-14 — Ciclo #5
+
+**Período analizado:** 2026-07-31 a 2026-08-13 (14 días).
+
+**⚠️ CIEGO A NIVEL PLATAFORMA — la API de Google Ads rechaza la versión v21.** Los TRES
+endpoints (`/summary`, `/quality-scores`, `/search-terms`) devuelven el mismo error:
+`UNSUPPORTED_VERSION — "Version v21 is deprecated. Requests to this version will be blocked."`
+No es el token esta vez (el bloqueo del Ciclo #2 era OAuth): el backend Go apunta a una
+versión que Google ya dejó de atender (`backend/internal/googleads/client.go:29`). **Sin
+gasto, CPC, CTR, Search IS ni search-terms este ciclo.** La única mitad disponible fue el
+puente de ventas reales (Django, OK). Fix propuesto en la corrección ① — 1 línea, v21 → v25.
+
+**⚠️ Segunda salvedad — ventana solapada, medición prematura.** El Ciclo #4 analizó
+07-25 a 08-07; esta ventana (07-31 a 08-13) **comparte 8 de sus 14 días** con aquella. Y las
+correcciones del 08-08 (negativas round 3 + rebalanceo Ritual $6.500 / Refugio $1.500) solo
+alcanzan a los **últimos 6 días**. Las comparaciones de abajo son direccionales, NO una
+medición limpia — el propio Ciclo #4 pedía esperar a una ventana ≥ 2026-08-22. Lo que sí es
+concluyente es lo que se sostiene a lo largo de DOS ciclos seguidos (Refugio en 0).
+
+**Ventas reales del período (fuente de verdad, plataforma ciega):**
+
+| Combo | Campaña | Reservas | Revenue | vs Ciclo #4 |
+|---|---|---|---|---|
+| cabanas_tinas_masajes_1n | **Ritual del Río** | **12** | **$2.909.000** | ↑↑ (era 8 / $1,84M) — **récord histórico** |
+| solo_tinas | _(sin campaña)_ tina suelta | 35 | $2.075.000 | — |
+| cabanas_tinas_1n | _(sin campaña)_ **Noche Aguas Calientes** | **11** | **$1.592.000** | ↑ (era 9 / $1,10M) — **récord** |
+| tinas_masajes | **Pausa junto al río** | 14 | $1.940.000 | ↓ (era 20 / $2,57M) |
+| solo_masajes | _(sin campaña)_ masaje suelto | 11 | $640.000 | — |
+| cabanas_tinas_masajes_2n | **Refugio** | **0** | **$0** | = (era 0) — **2º ciclo en cero** |
+| **Total negocio** | — | **85** | **$9.631.000** | revenue **↑ +16%** (era 87 res / $8,29M) |
+
+**Diagnóstico (lo que las ventas reales sí permiten afirmar):**
+
+1. **Ritual del Río es el motor del negocio y responde a la plata.** 8 → 12 reservas y
+   $1,84M → $2,91M (+58% revenue). Bate su propio récord anterior ($2,46M del Ciclo #2) y es
+   hoy el combo #1 en revenue de todo Aremko. El rebalanceo del 08-08 ($5.000 → $6.500/día)
+   solo cubre 6 días de esta ventana, así que no se le puede atribuir todo el salto — pero la
+   dirección es exactamente la esperada y **ninguna señal contradice subirle más** (ítem ③,
+   condicionado al panel).
+2. **Refugio confirma su veredicto: 28 días corridos sin vender el combo que publicita.**
+   Dos ciclos consecutivos en 0 reservas, ya con presupuesto reducido a $1.500/día. La
+   condición que el Ciclo #4 dejó escrita ("si sigue en 0, evaluar pausarla") **se cumplió**
+   → se propone pausarla hasta octubre (ítem ②). Es la única conclusión de este ciclo que NO
+   depende de la ventana solapada ni de la API caída.
+3. **Noche de Aguas Calientes revalida la Ruta A por tercera vez, y ahora con récord:**
+   6 → 9 → **11 reservas** ($952k → $1,10M → **$1,59M**) sin un peso de Google Ads. La
+   decisión de NO crear campaña dedicada (para no canibalizar a Ritual) sigue siendo correcta:
+   el orgánico no solo aguanta, acelera.
+4. **Pausa junto al río bajó (20 → 14 res), pero NO es lectura limpia.** Con 8 días de
+   solapamiento entre ventanas y sin datos de plataforma, no se puede saber si es caída real,
+   estacionalidad de mitad de agosto o simple corrimiento de fechas. **No se toca su
+   presupuesto** — se vuelve a medir en el Ciclo #6 con ventana fresca y API arriba. Ojo
+   además: `solo_tinas` (35 res / $2,08M) sigue muy fuerte, así que la demanda de tina no cayó.
+
+**Recomendaciones NUEVAS (SOLO PROPUESTA — Nivel 2, esperar OK de Jorge):**
+1. **🔴 Arreglar `client.go:29` (v21 → v25).** Prerequisito de todo lo demás: es el 2º ciclo
+   de 5 que queda ciego por infraestructura, y esta vez ni siquiera se puede verificar que las
+   campañas estén al aire. 1 línea, riesgo bajo, ningún campo GAQL cambia.
+2. **Pausar Refugio** (condición del Ciclo #4 cumplida) — vigilando en el Ciclo #6 que Ritual
+   y Noche no caigan, porque sus 147 clics podrían estar alimentando ventas de otros combos.
+3. **Mover sus $1.500/día a Ritual SOLO si el panel dice "Limitado por el presupuesto".**
+   Si no, quedarse el ahorro y dejar la cuenta en $11.500/día.
+
+**A MEDIR en el Ciclo #6 (ventana ≥ 2026-08-22, ya sin solape):** (a) **primero de todo**, si
+la API responde — sin eso el ciclo vuelve a quedar a media máquina; (b) el efecto real del
+rebalanceo del 08-08 sobre el Search IS de Ritual (base **22,3%**) con 14 días limpios;
+(c) si Ritual (12 res) y Noche (11 res) se sostienen tras pausar Refugio — la prueba de si
+Refugio alimentaba ventas ajenas; (d) si Pausa se recupera de las 14 res o confirma caída;
+(e) que desaparezca el clic de $1.721 de "alma lemu" (quedó sin verificar por la API caída).
+
+---
+
+### 2026-08-16 — ✅ CAMBIOS EJECUTADOS (decididos en la sesión del Ciclo 9 de **Meta Ads**)
+
+⚠️ **Nota de coordinación entre loops — leer antes de proponer nada sobre estas campañas.**
+El Ciclo 8 del loop de Meta propuso apagar "Ritual del Río – Search"; cuatro días después
+este loop le SUBIÓ el presupuesto de $5.000 a $6.500/día (Ciclo #5, 08-08). Ninguno de los
+dos se enteró del otro, y esa contradicción distorsionó la medición de Meta durante dos
+ciclos (ver Hallazgo 1 del Ciclo 9 en `LOOP_META_ADS.md`). **Regla nueva: todo cambio de
+presupuesto o estado en Google sobre Ritual / Pausa / Refugio / Noche se anota en los DOS
+archivos, con fecha.**
+
+**Estado del panel al 2026-08-16** (dato que la API NO entrega — motivo de limitación):
+
+| Campaña | Presupuesto | Motivo de limitación |
+|---|---|---|
+| Ritual del Río – Search | $6.500/día | 🔴 **Limitado por el PRESUPUESTO** |
+| Pausa junto al río - Search | $5.000/día | Limitada por **volumen de búsquedas** |
+| Refugio - Search | $1.500/día | Volumen + conversiones mal configuradas |
+
+Lectura: **Pausa no tiene más demanda de búsqueda que capturar** — subirle presupuesto en
+Search no tiene dónde ir. Ritual sí, y es el de mayor ticket.
+
+- [x] **Pausar "Refugio - Search - Lanzamiento Junio 2026"** — ✅ HECHO (Jorge, panel).
+  Cumple la condición que este loop dejó escrita en el Ciclo #4 y repitió en el #5
+  (2 ciclos + 4 semanas con 0 reservas reales). Verificado: fila "Detenido",
+  Total cuenta $13.000 → $11.500/día.
+- [x] **"Ritual del Río – Search": $6.500 → $8.000/día** — ✅ HECHO (Jorge, panel).
+  Financiado con los $1.500/día de Refugio; total de la cuenta de vuelta en $13.000/día,
+  **sin presupuesto nuevo**. Cumple la condición del Ciclo #5 rec #3 (mover a Ritual sólo
+  si el panel dice "Limitado por el presupuesto") — el panel lo dice.
+- [ ] **Pendiente: `client.go:29` v21 → v25.** La API sigue caída (3er ciclo). Sin eso
+  ninguno de los dos loops puede verificar estos cambios por dato, solo por panel.
+
+**A medir en el Ciclo #6:** (a) si Ritual sube de 12 res / $2.939.000 por 14d con el
+presupuesto en $8.000/día; (b) si Pausa y Noche se mantienen tras pausar Refugio
+(prueba de si Refugio alimentaba ventas ajenas); (c) que el gasto total de la cuenta se
+haya quedado en ~$13.000/día y no haya subido solo.
+
+
 ### 2026-08-21 — Auditoría competitiva (sesión con Jorge, fuera de ciclo)
+
+**⚠️ ERRATA DE ESTA ENTRADA (corregida el mismo día).** Esta sesión **no releyó la bitácora
+antes de escribir** — arrastró en contexto el estado del 08-08 (Ciclo #4) e ignoró las dos
+entradas intermedias: **Ciclo #5 (14-08)** y **CAMBIOS EJECUTADOS (16-08)**. Consecuencias, y
+conviene tenerlas presentes al leer lo de abajo:
+- Quedó **insertada fuera de orden cronológico** en el archivo (se movió al final después).
+- Presentó como «cambios de Jorge no registrados» el que Ritual estuviera en $8.000/día y
+  Refugio pausado. **Sí estaban registrados**: son G1 y G2 del 16-08, ejecutados por
+  recomendación del propio loop.
+- Presentó como hallazgo nuevo que Ritual estuviera *«Limitado por el presupuesto»* y la regla
+  de pedir el estado del panel. **Ambos ya estaban documentados el 16-08**, con la misma tabla.
+- **Incumplió la regla de coordinación del 16-08** («todo cambio en Google se anota en los DOS
+  archivos»): nada de lo ejecutado hoy se anotó en `LOOP_META_ADS.md`.
+
+**Es la tercera voz descoordinada sobre las mismas campañas** (Meta Ciclo 8 quiso apagar Ritual,
+Google Ciclo #5 le subió el presupuesto, y esta sesión intervino sin leer a ninguno de los dos).
+La conclusión operativa está en el bloque «ORQUESTADOR» al final de esta entrada.
 
 **Qué la gatilló:** Jorge pidió (a) revisar si el gasto se estaba disparando y (b) una auditoría
 competitiva contra Termas Cochamó / Termas del Sol / Cancagua, que había levantado de la
 Biblioteca de Anuncios de **Meta**. Se auditó con datos reales de la cuenta.
 
-**Cambios de Jorge no registrados antes (detectados en el panel):** él mismo pausó Refugio y
-movió sus $1.500 a Ritual → Ritual quedó en **$8.000/día**, Pausa $5.000, Refugio $1.500
-pausada. Total activo $13.000/día.
+**Estado de partida (según el panel):** Ritual **$8.000/día** ENABLED, Pausa $5.000 ENABLED,
+Refugio $1.500 PAUSADA. Total activo $13.000/día. Corresponde a G1+G2 del 16-08.
 
 **⚠️ EL GASTO QUE REPORTA ESTE LOOP ESTABA SUBESTIMADO EN 19% — LA API NO TRAE IVA.**
 La API de Google devuelve el costo **sin IVA**; la facturación cobra **+19%**. Verificado:
@@ -787,112 +913,3 @@ Visitas por día: **Sáb 1.118 (29%)** · Vie 630 · Dom 617 · Jue 437 · Mié 
   estrategia de puja de cada campaña.**
 
 ---
-
-### 2026-08-14 — Ciclo #5
-
-**Período analizado:** 2026-07-31 a 2026-08-13 (14 días).
-
-**⚠️ CIEGO A NIVEL PLATAFORMA — la API de Google Ads rechaza la versión v21.** Los TRES
-endpoints (`/summary`, `/quality-scores`, `/search-terms`) devuelven el mismo error:
-`UNSUPPORTED_VERSION — "Version v21 is deprecated. Requests to this version will be blocked."`
-No es el token esta vez (el bloqueo del Ciclo #2 era OAuth): el backend Go apunta a una
-versión que Google ya dejó de atender (`backend/internal/googleads/client.go:29`). **Sin
-gasto, CPC, CTR, Search IS ni search-terms este ciclo.** La única mitad disponible fue el
-puente de ventas reales (Django, OK). Fix propuesto en la corrección ① — 1 línea, v21 → v25.
-
-**⚠️ Segunda salvedad — ventana solapada, medición prematura.** El Ciclo #4 analizó
-07-25 a 08-07; esta ventana (07-31 a 08-13) **comparte 8 de sus 14 días** con aquella. Y las
-correcciones del 08-08 (negativas round 3 + rebalanceo Ritual $6.500 / Refugio $1.500) solo
-alcanzan a los **últimos 6 días**. Las comparaciones de abajo son direccionales, NO una
-medición limpia — el propio Ciclo #4 pedía esperar a una ventana ≥ 2026-08-22. Lo que sí es
-concluyente es lo que se sostiene a lo largo de DOS ciclos seguidos (Refugio en 0).
-
-**Ventas reales del período (fuente de verdad, plataforma ciega):**
-
-| Combo | Campaña | Reservas | Revenue | vs Ciclo #4 |
-|---|---|---|---|---|
-| cabanas_tinas_masajes_1n | **Ritual del Río** | **12** | **$2.909.000** | ↑↑ (era 8 / $1,84M) — **récord histórico** |
-| solo_tinas | _(sin campaña)_ tina suelta | 35 | $2.075.000 | — |
-| cabanas_tinas_1n | _(sin campaña)_ **Noche Aguas Calientes** | **11** | **$1.592.000** | ↑ (era 9 / $1,10M) — **récord** |
-| tinas_masajes | **Pausa junto al río** | 14 | $1.940.000 | ↓ (era 20 / $2,57M) |
-| solo_masajes | _(sin campaña)_ masaje suelto | 11 | $640.000 | — |
-| cabanas_tinas_masajes_2n | **Refugio** | **0** | **$0** | = (era 0) — **2º ciclo en cero** |
-| **Total negocio** | — | **85** | **$9.631.000** | revenue **↑ +16%** (era 87 res / $8,29M) |
-
-**Diagnóstico (lo que las ventas reales sí permiten afirmar):**
-
-1. **Ritual del Río es el motor del negocio y responde a la plata.** 8 → 12 reservas y
-   $1,84M → $2,91M (+58% revenue). Bate su propio récord anterior ($2,46M del Ciclo #2) y es
-   hoy el combo #1 en revenue de todo Aremko. El rebalanceo del 08-08 ($5.000 → $6.500/día)
-   solo cubre 6 días de esta ventana, así que no se le puede atribuir todo el salto — pero la
-   dirección es exactamente la esperada y **ninguna señal contradice subirle más** (ítem ③,
-   condicionado al panel).
-2. **Refugio confirma su veredicto: 28 días corridos sin vender el combo que publicita.**
-   Dos ciclos consecutivos en 0 reservas, ya con presupuesto reducido a $1.500/día. La
-   condición que el Ciclo #4 dejó escrita ("si sigue en 0, evaluar pausarla") **se cumplió**
-   → se propone pausarla hasta octubre (ítem ②). Es la única conclusión de este ciclo que NO
-   depende de la ventana solapada ni de la API caída.
-3. **Noche de Aguas Calientes revalida la Ruta A por tercera vez, y ahora con récord:**
-   6 → 9 → **11 reservas** ($952k → $1,10M → **$1,59M**) sin un peso de Google Ads. La
-   decisión de NO crear campaña dedicada (para no canibalizar a Ritual) sigue siendo correcta:
-   el orgánico no solo aguanta, acelera.
-4. **Pausa junto al río bajó (20 → 14 res), pero NO es lectura limpia.** Con 8 días de
-   solapamiento entre ventanas y sin datos de plataforma, no se puede saber si es caída real,
-   estacionalidad de mitad de agosto o simple corrimiento de fechas. **No se toca su
-   presupuesto** — se vuelve a medir en el Ciclo #6 con ventana fresca y API arriba. Ojo
-   además: `solo_tinas` (35 res / $2,08M) sigue muy fuerte, así que la demanda de tina no cayó.
-
-**Recomendaciones NUEVAS (SOLO PROPUESTA — Nivel 2, esperar OK de Jorge):**
-1. **🔴 Arreglar `client.go:29` (v21 → v25).** Prerequisito de todo lo demás: es el 2º ciclo
-   de 5 que queda ciego por infraestructura, y esta vez ni siquiera se puede verificar que las
-   campañas estén al aire. 1 línea, riesgo bajo, ningún campo GAQL cambia.
-2. **Pausar Refugio** (condición del Ciclo #4 cumplida) — vigilando en el Ciclo #6 que Ritual
-   y Noche no caigan, porque sus 147 clics podrían estar alimentando ventas de otros combos.
-3. **Mover sus $1.500/día a Ritual SOLO si el panel dice "Limitado por el presupuesto".**
-   Si no, quedarse el ahorro y dejar la cuenta en $11.500/día.
-
-**A MEDIR en el Ciclo #6 (ventana ≥ 2026-08-22, ya sin solape):** (a) **primero de todo**, si
-la API responde — sin eso el ciclo vuelve a quedar a media máquina; (b) el efecto real del
-rebalanceo del 08-08 sobre el Search IS de Ritual (base **22,3%**) con 14 días limpios;
-(c) si Ritual (12 res) y Noche (11 res) se sostienen tras pausar Refugio — la prueba de si
-Refugio alimentaba ventas ajenas; (d) si Pausa se recupera de las 14 res o confirma caída;
-(e) que desaparezca el clic de $1.721 de "alma lemu" (quedó sin verificar por la API caída).
-
----
-
-### 2026-08-16 — ✅ CAMBIOS EJECUTADOS (decididos en la sesión del Ciclo 9 de **Meta Ads**)
-
-⚠️ **Nota de coordinación entre loops — leer antes de proponer nada sobre estas campañas.**
-El Ciclo 8 del loop de Meta propuso apagar "Ritual del Río – Search"; cuatro días después
-este loop le SUBIÓ el presupuesto de $5.000 a $6.500/día (Ciclo #5, 08-08). Ninguno de los
-dos se enteró del otro, y esa contradicción distorsionó la medición de Meta durante dos
-ciclos (ver Hallazgo 1 del Ciclo 9 en `LOOP_META_ADS.md`). **Regla nueva: todo cambio de
-presupuesto o estado en Google sobre Ritual / Pausa / Refugio / Noche se anota en los DOS
-archivos, con fecha.**
-
-**Estado del panel al 2026-08-16** (dato que la API NO entrega — motivo de limitación):
-
-| Campaña | Presupuesto | Motivo de limitación |
-|---|---|---|
-| Ritual del Río – Search | $6.500/día | 🔴 **Limitado por el PRESUPUESTO** |
-| Pausa junto al río - Search | $5.000/día | Limitada por **volumen de búsquedas** |
-| Refugio - Search | $1.500/día | Volumen + conversiones mal configuradas |
-
-Lectura: **Pausa no tiene más demanda de búsqueda que capturar** — subirle presupuesto en
-Search no tiene dónde ir. Ritual sí, y es el de mayor ticket.
-
-- [x] **Pausar "Refugio - Search - Lanzamiento Junio 2026"** — ✅ HECHO (Jorge, panel).
-  Cumple la condición que este loop dejó escrita en el Ciclo #4 y repitió en el #5
-  (2 ciclos + 4 semanas con 0 reservas reales). Verificado: fila "Detenido",
-  Total cuenta $13.000 → $11.500/día.
-- [x] **"Ritual del Río – Search": $6.500 → $8.000/día** — ✅ HECHO (Jorge, panel).
-  Financiado con los $1.500/día de Refugio; total de la cuenta de vuelta en $13.000/día,
-  **sin presupuesto nuevo**. Cumple la condición del Ciclo #5 rec #3 (mover a Ritual sólo
-  si el panel dice "Limitado por el presupuesto") — el panel lo dice.
-- [ ] **Pendiente: `client.go:29` v21 → v25.** La API sigue caída (3er ciclo). Sin eso
-  ninguno de los dos loops puede verificar estos cambios por dato, solo por panel.
-
-**A medir en el Ciclo #6:** (a) si Ritual sube de 12 res / $2.939.000 por 14d con el
-presupuesto en $8.000/día; (b) si Pausa y Noche se mantienen tras pausar Refugio
-(prueba de si Refugio alimentaba ventas ajenas); (c) que el gasto total de la cuenta se
-haya quedado en ~$13.000/día y no haya subido solo.
