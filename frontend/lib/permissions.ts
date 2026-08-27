@@ -47,6 +47,8 @@ export const USER_PERMISSIONS: Record<string, 'all' | string[]> = {
   jorge: 'all',
   angelica: ALL_KEYS.filter((k) => k !== 'sistema'), // todo menos "Aremko-CLI Sistema"
   deborah: ['bandeja', 'mensajes', 'contactando', 'envios', 'agente', 'aprendizaje', 'masajes', 'tableros', 'evolucion', 'metricas'],
+  // Alda atiende clientes en la bandeja: mismo perfil que Deborah (Jorge, 2026-08-23).
+  alda: ['bandeja', 'mensajes', 'contactando', 'envios', 'agente', 'aprendizaje', 'masajes', 'tableros', 'evolucion', 'metricas'],
   ernesto: [], // por ahora, ninguna
 };
 

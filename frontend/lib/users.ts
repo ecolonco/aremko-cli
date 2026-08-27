@@ -44,6 +44,16 @@ const users: User[] = [
     passwordHash: '',
     dashboards: ['ernesto'], // Solo su dashboard
   },
+  {
+    id: '5',
+    username: 'alda',
+    name: 'Alda',
+    role: 'admin',
+    passwordHash: '',
+    // Atiende clientes en la bandeja, igual que Deborah. El acceso real lo
+    // define USER_PERMISSIONS en lib/permissions.ts (este campo es informativo).
+    dashboards: ['deborah'],
+  },
 ];
 
 // Las contraseñas se leen EXCLUSIVAMENTE desde variables de entorno (Vercel):
