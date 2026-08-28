@@ -255,8 +255,10 @@ export interface CarritoEnCurso {
 }
 
 // Tipos de experiencia soportados por el buscador de alternativas (H-061,
-// generaliza el H-059 Pausa-only). Los 6 tipos están completos (Fase 1 + Fase 2
-// de Django, 2026-07-06/13).
+// generaliza el H-059 Pausa-only). Fase 1 + Fase 2 de Django (2026-07-06/13),
+// más «Cabaña y spa por el día» (2026-08-28). Cada valor tiene que existir en
+// `TIPOS_VALIDOS` de `whatsapp_agent/alternativas.py`: si no, el botón aparece
+// en pantalla y el endpoint lo rechaza.
 export type TipoExperiencia =
   | 'pausa'
   | 'tina_sola'
@@ -264,6 +266,7 @@ export type TipoExperiencia =
   | 'noche_aguas_calientes'
   | 'ritual'
   | 'refugio'
+  | 'dia'
   | 'giftcard';
 
 export interface ExperienciaTipoOpcion {
@@ -287,6 +290,10 @@ export const EXPERIENCIA_TIPOS: ExperienciaTipoOpcion[] = [
   { tipo: 'masaje_solo', label: 'Solo masaje', disponible: true },
   { tipo: 'ritual', label: 'Ritual del Río', disponible: true, personasFijas: 2 },
   { tipo: 'refugio', label: 'Refugio', disponible: true, personasFijas: 2 },
+  // Cabaña y spa por el día: la experiencia completa SIN alojamiento (lun/mié/jue,
+  // $200.000). Es la respuesta al «me encantaría pero no puedo quedarme a dormir»,
+  // que antes se perdía o terminaba en una tina suelta.
+  { tipo: 'dia', label: 'Cabaña y spa por el día', disponible: true, personasFijas: 2 },
   // H-108: ofrece gift cards del catálogo (una alternativa por experiencia publicada;
   // texto_sugerido con montos y argumento de venta). Este botón solo OFRECE — la
   // cotización con gift card la arma Luna en el chat (H-105); el editor "Corregir
