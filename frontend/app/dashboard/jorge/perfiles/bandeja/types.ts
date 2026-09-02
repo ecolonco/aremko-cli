@@ -305,6 +305,10 @@ export const EXPERIENCIA_TIPOS: ExperienciaTipoOpcion[] = [
 export interface ExperienciaItinerarioItem {
   servicio: string;
   hora: string;
+  /** Id del servicio a agendar. Va solo en las líneas que SE agendan: las
+   *  informativas («Llegada y desayuno») no lo traen a propósito. Sin él no se
+   *  puede armar una cotización sin adivinar por nombre. */
+  servicio_id?: number;
 }
 
 // Una combinación válida (horario+precio) del tipo de experiencia pedido,

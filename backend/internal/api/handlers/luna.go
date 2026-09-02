@@ -95,6 +95,98 @@ func LunaCrearReserva(cfg *config.Config) http.HandlerFunc {
 	}
 }
 
+// LunaPrepararCotizacion CREA una cotización desde el cajón cuando Luna no armó
+// nada — se enredó, el cliente llegó por otro canal, o simplemente hay que
+// cotizar a mano (Jorge, 01-09-2026).
+//
+// Reenvía a Django POST /api/luna/reservas/preparar/, el MISMO endpoint de Luna,
+// marcando `origen: "cajon"`: con esa marca Django exige solo el NOMBRE del
+// cliente. El correo y el RUT se los pide la propia cotización al cliente cuando
+// aprueba — pedirle el RUT antes de decirle el precio pierde la venta.
+//
+// La `idempotency_key` la manda el front y no se genera acá a propósito: si la
+// generáramos por llamada, un doble clic crearía dos cotizaciones del mismo hilo.
+func LunaPrepararCotizacion(cfg *config.Config) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if cfg.LunaAPIKey == "" || cfg.BookingSystemURL == "" {
+			respondError(w, http.StatusServiceUnavailable, "Django no configurado")
+			return
+		}
+		var body struct {
+			IdempotencyKey string `json:"idempotency_key"`
+			Canal          string `json:"canal"`
+			ExternalID     string `json:"external_id"`
+			Cliente        struct {
+				Nombre             string `json:"nombre"`
+				Email              string `json:"email"`
+				DocumentoIdentidad string `json:"documento_identidad"`
+			} `json:"cliente"`
+			Servicios []struct {
+				ServicioID       int    `json:"servicio_id"`
+				Fecha            string `json:"fecha"`
+				Hora             string `json:"hora"`
+				CantidadPersonas int    `json:"cantidad_personas"`
+			} `json:"servicios"`
+			Productos []struct {
+				ProductoID int `json:"producto_id"`
+				Cantidad   int `json:"cantidad"`
+			} `json:"productos"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			respondError(w, http.StatusBadRequest, "cuerpo inválido")
+			return
+		}
+		body.Canal = strings.TrimSpace(body.Canal)
+		body.ExternalID = strings.TrimSpace(body.ExternalID)
+		body.Cliente.Nombre = strings.TrimSpace(body.Cliente.Nombre)
+		if body.Canal == "" || body.ExternalID == "" {
+			respondError(w, http.StatusBadRequest, "se requieren 'canal' y 'external_id'")
+			return
+		}
+		// Cortes tempranos con el mismo criterio de Django, para que el error
+		// se lea en el cajón y no como un 502 opaco del proxy.
+		if len([]rune(body.Cliente.Nombre)) < 3 {
+			respondError(w, http.StatusBadRequest, "el nombre del cliente es obligatorio (mín 3 caracteres)")
+			return
+		}
+		if len(body.Servicios) == 0 {
+			respondError(w, http.StatusBadRequest, "la cotización debe llevar al menos un servicio")
+			return
+		}
+		if strings.TrimSpace(body.IdempotencyKey) == "" {
+			respondError(w, http.StatusBadRequest, "se requiere 'idempotency_key' (evita cotizaciones dobles al reintentar)")
+			return
+		}
+		if body.Productos == nil {
+			body.Productos = []struct {
+				ProductoID int `json:"producto_id"`
+				Cantidad   int `json:"cantidad"`
+			}{}
+		}
+
+		payload := map[string]interface{}{
+			"idempotency_key": strings.TrimSpace(body.IdempotencyKey),
+			"canal":           body.Canal,
+			"external_id":     body.ExternalID,
+			"payload": map[string]interface{}{
+				"origen":      "cajon",
+				"cliente":     body.Cliente,
+				"servicios":   body.Servicios,
+				"productos":   body.Productos,
+				"metodo_pago": "pendiente",
+			},
+		}
+		raw, err := bookings.NewClient(cfg.BookingSystemURL).PrepararPropuestaLuna(cfg.LunaAPIKey, payload)
+		if err != nil {
+			respondError(w, http.StatusBadGateway, err.Error())
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write(raw)
+	}
+}
+
 // LunaEditarPropuesta corrige una propuesta de reserva antes de enviarla (H-042).
 // Reenvía a Django POST /api/luna/reservas/editar/ con REEMPLAZO TOTAL de servicios +
 // productos. NO mandamos precios: Django re-lee el catálogo y recalcula total/descuento.

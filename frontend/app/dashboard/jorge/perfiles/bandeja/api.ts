@@ -698,6 +698,43 @@ export interface EditarPropuestaResult {
 }
 
 /**
+ * Crea una cotización DESDE EL CAJÓN, sin que Luna haya armado nada: se enredó,
+ * el cliente llegó por otro canal, o simplemente hay que cotizar a mano.
+ *
+ * Usa el mismo circuito de Luna, así que la cotización sale idéntica —mismo link
+ * para el cliente, misma vigencia, mismo botón de aprobar—. Basta el nombre del
+ * cliente: el correo y el RUT se los pide la propia cotización al aprobar.
+ *
+ * `idempotencyKey` se genera UNA vez por búsqueda de alternativas, no por clic:
+ * así un doble clic no crea dos cotizaciones del mismo hilo.
+ */
+export const prepararCotizacionLuna = async (params: {
+  canal: string;
+  externalId: string;
+  nombre: string;
+  idempotencyKey: string;
+  servicios: { servicio_id: number; fecha: string; hora: string; cantidad_personas: number }[];
+}): Promise<{ propuesta_id?: string; total?: number; resumen_texto?: string }> => {
+  const res = await fetch(`${apiBase()}/api/v1/luna/preparar-cotizacion`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      canal: params.canal,
+      external_id: params.externalId,
+      idempotency_key: params.idempotencyKey,
+      cliente: { nombre: params.nombre },
+      servicios: params.servicios,
+      productos: [],
+    }),
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok || json.success === false) {
+    throw new Error(json.mensaje || json.error || `HTTP ${res.status}`);
+  }
+  return json;
+};
+
+/**
  * H-042: Deborah corrige la cotización antes de enviarla. Es REEMPLAZO TOTAL: se
  * mandan las listas COMPLETAS finales (ids + cantidades), NO precios. Django re-lee
  * el catálogo y recalcula total + descuento. Tras esto hay que releer la conversación.

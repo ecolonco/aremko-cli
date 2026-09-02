@@ -732,6 +732,17 @@ func (c *Client) CrearReservaLuna(apiKey, propuestaID string) ([]byte, error) {
 		map[string]string{"propuesta_id": propuestaID})
 }
 
+// PrepararPropuestaLuna CREA una cotización desde el cajón, sin que Luna haya
+// armado nada (Jorge, 01-09-2026: "qué ocurre cuando Luna se enreda"). Reenvía a
+// Django POST /api/luna/reservas/preparar/, el MISMO endpoint que usa Luna: la
+// cotización sale idéntica —mismo link para el cliente, misma vigencia, mismo
+// botón de aprobar— en vez de un camino paralelo que tendría que rehacer la
+// validación de disponibilidad y el link firmado. JSON crudo
+// `{success, propuesta_id, resumen_texto, total}`.
+func (c *Client) PrepararPropuestaLuna(apiKey string, payload interface{}) ([]byte, error) {
+	return c.postWhatsAppRaw("/api/luna/reservas/preparar/", apiKey, payload)
+}
+
 // EditarPropuestaLuna corrige una propuesta de reserva (H-042): REEMPLAZO TOTAL de
 // servicios + productos (no es un PATCH por línea). Django re-lee los precios del
 // catálogo y recalcula total + descuento de pack con la fuente única

@@ -192,6 +192,13 @@ export function ConversacionWhatsApp({
     ringClass: 'focus:border-emerald-500 focus:ring-emerald-500',
     buscarBtnClass: 'bg-emerald-600 hover:bg-emerald-700',
     accentText: 'text-emerald-700',
+    // Con esto el chip de alternativas ofrece «cotizar esta»: crea la cotización
+    // sin que Luna haya armado nada. Basta el nombre — el correo y el RUT los
+    // pone el cliente al aprobar.
+    canal: 'whatsapp',
+    externalId: phone,
+    nombreCliente: nombre,
+    onCotizada: onReplySent,
   });
 
   const copiarTelefono = useCallback(() => {

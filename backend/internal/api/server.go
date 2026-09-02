@@ -227,6 +227,8 @@ func (s *Server) setupRoutes() {
 		// H-028: Deborah aprueba una propuesta → crea la reserva + trae el resumen.
 		r.Post("/luna/crear-reserva", handlers.LunaCrearReserva(s.config))
 		// H-042: Deborah corrige (editar) o cierra (descartar) el borrador de cotización.
+		// Cotizar a mano desde el cajón cuando Luna no armó nada.
+		r.Post("/luna/preparar-cotizacion", handlers.LunaPrepararCotizacion(s.config))
 		r.Post("/luna/editar-reserva", handlers.LunaEditarPropuesta(s.config))
 		r.Post("/luna/descartar-reserva", handlers.LunaDescartarPropuesta(s.config))
 		// H-079 (H-046 F2): corregir el carrito EN CURSO (pre-cotización) desde el cajón.

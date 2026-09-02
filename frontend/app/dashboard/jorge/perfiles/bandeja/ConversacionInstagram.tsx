@@ -150,6 +150,12 @@ export function ConversacionInstagram({ externalId, nombre, canal = 'instagram',
     ringClass: tema.focus,
     buscarBtnClass: tema.sendBg,
     accentText: tema.accent,
+    // «cotizar esta»: Luna se enreda igual en Instagram y Messenger, y el
+    // circuito de cotización no depende del canal.
+    canal,
+    externalId,
+    nombreCliente: nombre,
+    onCotizada: onReplySent,
   });
 
   const cargar = useCallback(

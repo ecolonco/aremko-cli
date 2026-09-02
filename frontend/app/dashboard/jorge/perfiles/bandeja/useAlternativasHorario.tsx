@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Loader2, Waves, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { fetchExperienciaAlternativas } from './api';
+import { fetchExperienciaAlternativas, prepararCotizacionLuna } from './api';
 import { EXPERIENCIA_TIPOS } from './types';
 import type { TipoExperiencia, ExperienciaAlternativa } from './types';
 
@@ -22,6 +22,13 @@ interface UseAlternativasHorarioOpts {
   buscarBtnClass: string;
   /** Color de acento para el chip de estado (tema del canal). */
   accentText: string;
+  /** Identidad de la conversación, para poder COTIZAR la alternativa elegida.
+   *  Sin estos tres, el botón de cotizar no aparece (el hook sigue igual). */
+  canal?: string;
+  externalId?: string;
+  nombreCliente?: string;
+  /** Tras crear la cotización, para que el cajón se repinte. */
+  onCotizada?: () => void;
 }
 
 /**
@@ -42,6 +49,10 @@ export function useAlternativasHorario({
   ringClass,
   buscarBtnClass,
   accentText,
+  canal,
+  externalId,
+  nombreCliente,
+  onCotizada,
 }: UseAlternativasHorarioOpts) {
   const [abierto, setAbierto] = useState(false);
   const [tipo, setTipo] = useState<TipoExperiencia>('pausa');
@@ -51,6 +62,12 @@ export function useAlternativasHorario({
   const [indice, setIndice] = useState(0);
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [cotizando, setCotizando] = useState(false);
+  const [errorCotizar, setErrorCotizar] = useState<string | null>(null);
+  const [cotizada, setCotizada] = useState(false);
+  // Se genera UNA vez por búsqueda: un doble clic reusa la misma llave y Django
+  // devuelve la cotización que ya creó, en vez de crear otra.
+  const [idemKey, setIdemKey] = useState('');
   // Ritual/Refugio son siempre 2 personas (el endpoint ignora `personas` ahí).
   const opcionTipo = EXPERIENCIA_TIPOS.find((o) => o.tipo === tipo);
   const personasFijas = opcionTipo?.personasFijas;
@@ -64,6 +81,8 @@ export function useAlternativasHorario({
     setAlternativas(null);
     setIndice(0);
     setError(null);
+    setErrorCotizar(null);
+    setCotizada(false);
   }, [resetKey]);
 
   // Si ya hay alternativas cargadas, el clic avanza a la siguiente (cicla al
@@ -103,6 +122,9 @@ export function useAlternativasHorario({
       }
       setAlternativas(data.alternativas);
       setIndice(0);
+      setCotizada(false);
+      setErrorCotizar(null);
+      setIdemKey(`cajon-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`);
       onUsarTexto(data.alternativas[0].texto_sugerido);
       setAbierto(false);
     } catch (e: unknown) {
@@ -128,6 +150,47 @@ export function useAlternativasHorario({
     </button>
   );
 
+  // Convierte la alternativa que se está mostrando en una cotización real.
+  // Solo se agendan las líneas que traen servicio_id: las informativas del
+  // itinerario («Llegada y desayuno») no son un servicio que reservar.
+  const puedeCotizar =
+    !!canal && !!externalId && (nombreCliente || '').trim().length >= 3 &&
+    !!alternativas && alternativas.length > 0 && !sinAgenda;
+
+  const cotizarAlternativa = async () => {
+    if (!alternativas || cotizando) return;
+    const elegida = alternativas[indice];
+    const servicios = (elegida.itinerario || [])
+      .filter((l) => !!l.servicio_id)
+      .map((l) => ({
+        servicio_id: l.servicio_id as number,
+        fecha,
+        hora: l.hora,
+        cantidad_personas: personasFijas ?? personas,
+      }));
+    if (servicios.length === 0) {
+      setErrorCotizar('Esa alternativa no trae servicios agendables.');
+      return;
+    }
+    setCotizando(true);
+    setErrorCotizar(null);
+    try {
+      await prepararCotizacionLuna({
+        canal: canal as string,
+        externalId: externalId as string,
+        nombre: (nombreCliente || '').trim(),
+        idempotencyKey: idemKey,
+        servicios,
+      });
+      setCotizada(true);
+      onCotizada?.();
+    } catch (e: unknown) {
+      setErrorCotizar(e instanceof Error ? e.message : 'No se pudo crear la cotización');
+    } finally {
+      setCotizando(false);
+    }
+  };
+
   const chip =
     alternativas && alternativas.length > 0 ? (
       <div className="mb-1 flex items-center gap-1.5 text-xs text-slate-500">
@@ -144,6 +207,19 @@ export function useAlternativasHorario({
         >
           cambiar búsqueda
         </button>
+        {puedeCotizar && (
+          <button
+            type="button"
+            onClick={cotizarAlternativa}
+            disabled={cotizando || cotizada}
+            title="Crear la cotización con esta alternativa (el cliente completa correo y RUT al aprobar)"
+            className={`underline decoration-dotted hover:opacity-80 disabled:no-underline
+                        disabled:opacity-60 ${accentText}`}
+          >
+            {cotizada ? '✓ cotización creada' : cotizando ? 'cotizando…' : 'cotizar esta'}
+          </button>
+        )}
+        {errorCotizar && <span className="text-rose-600">{errorCotizar}</span>}
       </div>
     ) : null;
 
