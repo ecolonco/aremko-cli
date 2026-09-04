@@ -4,196 +4,274 @@
     "language": "es",
     "category": "MARKETING",
     "body": "Hola {{1}}, te escribe Aremko de Puerto Varas.\nNos acordamos de ustedes — la última vez que vinieron a las tinas fue {{2}}. ¿Te tinca venir un día de semana con tu pareja? Tenemos tarifa más tranquila martes a jueves.\n¿Qué día te acomoda?",
-    "example": ["Jorge", "en febrero"]
+    "example": [
+      "Jorge",
+      "en febrero"
+    ]
   },
   {
     "name": "vac_a_1_n",
     "language": "es",
     "category": "MARKETING",
     "body": "Hola {{1}}, te escribe Aremko de Puerto Varas.\nComo les gustaron las tinas la última vez, te aviso que tenemos un pack romántico: 2 noches en cabaña con tina caliente privada + desayunos. Tarifa pre-temporada hasta {{2}}.\n¿Te tinca una escapada al sur?",
-    "example": ["Jorge", "8 de junio"]
+    "example": [
+      "Jorge",
+      "8 de junio"
+    ]
   },
   {
     "name": "vac_a_1_sc",
     "language": "es",
     "category": "MARKETING",
     "body": "Hola {{1}}, te escribe Aremko de Puerto Varas.\nHace {{2}} días que no nos vemos. Si quieren volver, cuéntenme qué fecha les acomoda y desde dónde nos visitan — así les propongo el mejor plan (en el día o con cabaña).",
-    "example": ["Jorge", "120"]
+    "example": [
+      "Jorge",
+      "120"
+    ]
   },
   {
     "name": "vac_a_2",
     "language": "es",
     "category": "MARKETING",
     "body": "Hola {{1}}, soy de Aremko.\nHace {{2}} días que no te vemos por un masaje. Te guardamos un cupo el {{3}} a las {{4}}.\n¿Lo confirmamos?",
-    "example": ["Jorge", "120", "jueves", "16:00"]
+    "example": [
+      "Jorge",
+      "120",
+      "jueves",
+      "16:00"
+    ]
   },
   {
     "name": "vac_a_2_n",
     "language": "es",
     "category": "MARKETING",
     "body": "Hola {{1}}, te escribe Aremko.\nSi te animas a una pausa larga, tenemos pack 3 noches en cabaña individual + masaje diario. Perfecto para desconectarte del todo.\n¿Te interesa que te cuente?",
-    "example": ["Jorge"]
+    "example": [
+      "Jorge"
+    ]
   },
   {
     "name": "vac_a_3",
     "language": "es",
     "category": "MARKETING",
     "body": "Hola {{1}}, te escribe Aremko.\nComo te gusta el día completo (tina + masaje + descanso), te aviso que abrimos una nueva opción: día spa de 5 horas con almuerzo incluido entre semana.\n¿Te lo cuento por aquí?",
-    "example": ["Jorge"]
+    "example": [
+      "Jorge"
+    ]
   },
   {
     "name": "vac_a_3_n",
     "language": "es",
     "category": "MARKETING",
     "body": "Hola {{1}}, te escribe Aremko.\nComo les gustó el día completo, te aviso que abrimos un pack 2 noches + spa + almuerzo para que vuelvan sin estrés de organizar nada. Hasta {{2}} con tarifa especial.\n¿Les armo opciones?",
-    "example": ["Jorge", "8 de junio"]
+    "example": [
+      "Jorge",
+      "8 de junio"
+    ]
   },
   {
     "name": "vac_a_4",
     "language": "es",
     "category": "MARKETING",
     "body": "Hola {{1}}, soy de Aremko.\nSi están planeando juntarse con tu grupo, te aviso que las reservas de tinas para 4+ personas se están llenando rápido para {{2}}.\n¿Te paso disponibilidad?",
-    "example": ["Jorge", "junio"]
+    "example": [
+      "Jorge",
+      "junio"
+    ]
   },
   {
     "name": "vac_a_5",
     "language": "es",
     "category": "MARKETING",
     "body": "Hola {{1}}, te escribe Aremko.\nVimos que la última vez probaste {{2}}. Si quieres conocer otra cosa, te invitamos a probar {{3}} con un descuento de bienvenida.\n¿Te interesa?",
-    "example": ["Jorge", "una tina caliente", "un masaje relajante"]
+    "example": [
+      "Jorge",
+      "una tina caliente",
+      "un masaje relajante"
+    ]
   },
   {
     "name": "vac_a_6",
     "language": "es",
     "category": "MARKETING",
     "body": "Hola {{1}}, te escribe Aremko de Puerto Varas.\nNos acordamos de ti — hace {{2}} días que no te vemos. ¿Te tinca venir antes de fin de mes? Cuéntame qué día te acomoda.",
-    "example": ["Jorge", "120"]
+    "example": [
+      "Jorge",
+      "120"
+    ]
   },
   {
     "name": "vac_a_7",
     "language": "es",
     "category": "MARKETING",
     "body": "Hola {{1}}, te escribe Aremko de Puerto Varas.\n¿Hace cuánto que no se regalan una tarde solo para ustedes dos? Tenemos cupos para masajes en pareja estos días — sin apuro, sin reloj.\nSi quieren darse esa pausa, escríbeme y armamos algo.",
-    "example": ["Jorge"]
+    "example": [
+      "Jorge"
+    ]
   },
   {
     "name": "vac_a_gen_n",
     "language": "es",
     "category": "MARKETING",
     "body": "Hola {{1}}, te saluda Deborah desde Aremko Spa Boutique.\nHace {{2}} días que no nos visitas. Si estás pensando en una escapada estos meses, te armo un plan a tu medida.\n¿Te paso opciones?",
-    "example": ["Jorge", "120"]
+    "example": [
+      "Jorge",
+      "120"
+    ]
   },
   {
     "name": "vac_a_gen_sc",
     "language": "es",
     "category": "MARKETING",
     "body": "Hola {{1}}, te saluda Deborah desde Aremko Spa Boutique.\nHace {{2}} días que no te vemos. ¿Te tinca darte un break con masaje, tina o algo así?\nCuéntame qué te interesa y te paso opciones.",
-    "example": ["Jorge", "120"]
+    "example": [
+      "Jorge",
+      "120"
+    ]
   },
   {
     "name": "vac_b_1",
     "language": "es",
     "category": "MARKETING",
     "body": "Hola {{1}}, te escribe Aremko de Puerto Varas.\nTe extrañamos. Hace {{2}} días que no vienes y queremos invitarte a volver con un detalle de parte nuestra: una copa de espumante de regalo en tu próxima visita.\n¿Te tinca venir antes de fin de mes?",
-    "example": ["Jorge", "200"]
+    "example": [
+      "Jorge",
+      "200"
+    ]
   },
   {
     "name": "vac_b_1_n",
     "language": "es",
     "category": "MARKETING",
     "body": "Hola {{1}}, te escribe Aremko de Puerto Varas.\nTe extrañamos. Hace {{2}} días que no vienes al sur. Si están pensando en una escapada, tenemos un pack 2 noches + spa con un detalle especial de bienvenida.\n¿Te tinca volver antes de fin de mes?",
-    "example": ["Jorge", "200"]
+    "example": [
+      "Jorge",
+      "200"
+    ]
   },
   {
     "name": "vac_b_1_sc",
     "language": "es",
     "category": "MARKETING",
     "body": "Hola {{1}}, te escribe Aremko de Puerto Varas.\nTe extrañamos. Hace {{2}} días que no vienes. ¿Quieres volver pronto? Cuéntame fecha + desde dónde vienes, así organizo todo a tu medida.",
-    "example": ["Jorge", "200"]
+    "example": [
+      "Jorge",
+      "200"
+    ]
   },
   {
     "name": "vac_b_refugio_n",
     "language": "es",
     "category": "MARKETING",
     "body": "¡Hola {{1}}! Te saluda Deborah desde Aremko Spa Boutique.\nTe escribo porque pensamos algo especialmente para quienes vienen de lejos: Refugio Aremko. Dos noches en cabaña con masaje en pareja y tinas calientes — la segunda noche, cortesía nuestra.\nMira los detalles: aremko.cl/refugio\n¿Te tinca que te arme una propuesta para alguna fecha?",
-    "example": ["Jorge"]
+    "example": [
+      "Jorge"
+    ]
   },
   {
     "name": "vac_b_refugio_sc",
     "language": "es",
     "category": "MARKETING",
     "body": "¡Hola {{1}}! Te saluda Deborah desde Aremko Spa Boutique.\nTe escribo porque pensamos algo especial para quienes vienen a Puerto Varas desde otras ciudades: Refugio Aremko. Dos noches en cabaña con masaje en pareja y tinas calientes — la segunda noche, cortesía nuestra.\nMira los detalles: aremko.cl/refugio\n¿Te tinca que te arme una propuesta para alguna fecha?",
-    "example": ["Jorge"]
+    "example": [
+      "Jorge"
+    ]
   },
   {
     "name": "vac_b_refugio_dor_n",
     "language": "es",
     "category": "MARKETING",
     "body": "¡Hola {{1}}! Te saluda Deborah desde Aremko Spa Boutique.\nHan pasado {{2}} días desde tu última visita, ¡cuánto te extrañamos! Te escribo con algo pensado especialmente para quienes vienen de lejos: Refugio Aremko.\nDos noches en cabaña con masaje en pareja y tinas calientes — la segunda noche, cortesía nuestra. Tres días para volver a tu centro.\nMira los detalles: aremko.cl/refugio\n¿Te tinca que te arme una propuesta para alguna fecha?",
-    "example": ["Jorge", "200"]
+    "example": [
+      "Jorge",
+      "200"
+    ]
   },
   {
     "name": "vac_b_refugio_dor_sc",
     "language": "es",
     "category": "MARKETING",
     "body": "¡Hola {{1}}! Te saluda Deborah desde Aremko Spa Boutique.\nHan pasado {{2}} días desde tu última visita, ¡cuánto te extrañamos! Te escribo con algo pensado para quienes vienen a Puerto Varas desde otras ciudades: Refugio Aremko.\nDos noches en cabaña con masaje en pareja y tinas calientes — la segunda noche, cortesía nuestra. Tres días para volver a tu centro.\nMira los detalles: aremko.cl/refugio\n¿Te tinca que te arme una propuesta para alguna fecha?",
-    "example": ["Jorge", "200"]
+    "example": [
+      "Jorge",
+      "200"
+    ]
   },
   {
     "name": "vac_c_1",
     "language": "es",
     "category": "MARKETING",
     "body": "Hola {{1}}, te escribe Aremko.\nPasó un mes desde tu primera visita a {{2}} y quería preguntarte cómo te sentiste. Si te animas a contarnos algo, lo leemos con cariño.\nY si quieres volver, tenemos cupos los {{3}}. ¿Te reservo uno?",
-    "example": ["Jorge", "una tina caliente", "jueves"]
+    "example": [
+      "Jorge",
+      "una tina caliente",
+      "jueves"
+    ]
   },
   {
     "name": "vac_c_1_sc",
     "language": "es",
     "category": "MARKETING",
     "body": "Hola {{1}}, te escribe Aremko.\nPasó un mes desde tu primera visita. ¿Cómo te sentiste? Si quieres volver, cuéntame qué fecha + desde dónde vienes para sugerirte el mejor plan.",
-    "example": ["Jorge"]
+    "example": [
+      "Jorge"
+    ]
   },
   {
     "name": "vac_d_1",
     "language": "es",
     "category": "MARKETING",
     "body": "Hola {{1}},\nComo te gustan las tinas en pareja, te aviso que estamos estrenando una nueva opción y quería que tú estuvieras entre los primeros en probarlo. Te guardo cupo si quieres.\n¿Te parece?",
-    "example": ["Jorge"]
+    "example": [
+      "Jorge"
+    ]
   },
   {
     "name": "vac_d_2",
     "language": "es",
     "category": "MARKETING",
     "body": "Hola {{1}},\nSé que vienes a Aremko cuando es algo especial. Si tienes algo que celebrar este {{2}} (cumpleaños, aniversario, escapada), arma con nosotros un día a tu medida.\nCuéntame qué tienen en mente y te propongo opciones.",
-    "example": ["Jorge", "junio"]
+    "example": [
+      "Jorge",
+      "junio"
+    ]
   },
   {
     "name": "vac_d_3",
     "language": "es",
     "category": "MARKETING",
     "body": "Hola {{1}}, te escribe Aremko.\nComo nos visitas seguido, quería contarte que tenemos algunas novedades este {{2}} y quería que estuvieras entre los primeros en saberlo.\n¿Te lo cuento por aquí?",
-    "example": ["Jorge", "junio"]
+    "example": [
+      "Jorge",
+      "junio"
+    ]
   },
   {
     "name": "vac_e_mesachica_sur",
     "language": "es",
     "category": "MARKETING",
     "body": "Hola {{1}}, ¿cómo has estado? Te escribo de Aremko.\nEstamos pensando en ti — eres parte de nuestra mesa chica de clientes. Si tienes ganas de venir este mes, quiero reservarte personalmente el horario que mejor te acomode.\n¿Cuándo te tinca?",
-    "example": ["Jorge"]
+    "example": [
+      "Jorge"
+    ]
   },
   {
     "name": "vac_e_mesachica_n",
     "language": "es",
     "category": "MARKETING",
     "body": "Hola {{1}}, ¿cómo has estado? Te escribo de Aremko.\nEstamos pensando en ti — eres parte de nuestra mesa chica de clientes. Si están pensando en una escapada al sur, te armo un pack a medida con todo incluido. Solo dime fecha aproximada y armamos algo perfecto.\nUn abrazo.",
-    "example": ["Jorge"]
+    "example": [
+      "Jorge"
+    ]
   },
   {
     "name": "vac_e_mesachica_sc",
     "language": "es",
     "category": "MARKETING",
     "body": "Hola {{1}}, ¿cómo has estado? Te escribo de Aremko.\nEstamos pensando en ti — eres parte de nuestra mesa chica de clientes. Si quieres venir pronto, cuéntame fecha y desde dónde nos visitas, así te armo el mejor plan a tu medida.\nUn abrazo.",
-    "example": ["Jorge"]
+    "example": [
+      "Jorge"
+    ]
   },
   {
     "name": "contacto_general",
@@ -206,6 +284,18 @@
     "language": "es",
     "category": "MARKETING",
     "body": "¡Hola! 👋 Te saluda Aremko Spa Boutique, Puerto Varas.\n{{1}}\nEscríbenos por aquí y coordinamos lo que necesites. 🌿",
-    "example": ["Vimos que nos visitas pronto — quedamos atentos a lo que necesites."]
+    "example": [
+      "Vimos que nos visitas pronto — quedamos atentos a lo que necesites."
+    ]
+  },
+  {
+    "name": "boleta_electronica",
+    "language": "es",
+    "category": "UTILITY",
+    "body": "Hola {{1}}, gracias por tu visita a Aremko. Tu boleta electrónica quedó en tu Pase: {{2}}",
+    "example": [
+      "Jorge",
+      "https://www.aremko.cl/ventas/reserva/a1b2c3d4/"
+    ]
   }
 ]
