@@ -292,7 +292,7 @@
     "name": "boleta_electronica",
     "language": "es",
     "category": "UTILITY",
-    "body": "Hola {{1}}, gracias por tu visita a Aremko. Tu boleta electrónica quedó en tu Pase: {{2}}",
+    "body": "Hola {{1}}, gracias por tu visita a Aremko. Tu boleta electrónica quedó en tu Pase: {{2}}\nAhí puedes verla y descargarla cuando la necesites.",
     "example": [
       "Jorge",
       "https://www.aremko.cl/ventas/reserva/a1b2c3d4/"
