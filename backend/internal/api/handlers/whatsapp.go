@@ -376,7 +376,11 @@ func WhatsAppSendTemplate(cfg *config.Config) http.HandlerFunc {
 			TemplateName string `json:"template_name"`
 			Lang         string `json:"lang"`
 			Text         string `json:"text"`
-			DisplayText  string `json:"display_text"`
+			// Texts permite plantillas con MÁS de una variable ({{1}}, {{2}}…),
+			// en orden. `text` sigue funcionando igual para las de una sola —
+			// lo usan Contactando y las campañas, y no se toca.
+			Texts       []string `json:"texts"`
+			DisplayText string   `json:"display_text"`
 		}
 		if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.To == "" || body.TemplateName == "" {
 			respondError(w, http.StatusBadRequest, "se requieren 'to' y 'template_name'")
@@ -386,15 +390,19 @@ func WhatsAppSendTemplate(cfg *config.Config) http.HandlerFunc {
 		if lang == "" {
 			lang = "es"
 		}
+		// Los parámetros del cuerpo, en el orden en que Meta los espera.
+		valores := body.Texts
+		if len(valores) == 0 && strings.TrimSpace(body.Text) != "" {
+			valores = []string{body.Text}
+		}
 		var components []interface{}
-		if strings.TrimSpace(body.Text) != "" {
+		if len(valores) > 0 {
+			params := make([]interface{}, 0, len(valores))
+			for _, v := range valores {
+				params = append(params, map[string]interface{}{"type": "text", "text": v})
+			}
 			components = []interface{}{
-				map[string]interface{}{
-					"type": "body",
-					"parameters": []interface{}{
-						map[string]interface{}{"type": "text", "text": body.Text},
-					},
-				},
+				map[string]interface{}{"type": "body", "parameters": params},
 			}
 		}
 
